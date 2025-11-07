@@ -22,7 +22,7 @@ jobs:
         run: flutter pub get
 
       - name: Decode keystore from secret
-        run: echo "${{ secrets.UPLOAD_KEYSTORE }}" | base64 -d > android/upload-keystore.jks
+        run: echo "${{ secrets.UPLOAD_KEYSTORE }}" | base64 -d > upload-keystore.jks
 
       - name: Write key.properties from secrets
         run: |
