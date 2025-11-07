@@ -1,5 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
+import java.io.FileInputStream
+import java.util.Properties
 
 
 plugins {
@@ -12,13 +14,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keystoreProperties = Properties()
-val keystorePropertiesFile = file("android/key.properties")
+//val keystoreProperties = Properties()
+//val keystorePropertiesFile = file("android/key.properties")
 
-val keystoreProperties = Properties()
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+val props = Properties()
+val propsFile = file("android/key.properties")
+if (propsFile.exists()) {
+    props.load(FileInputStream(propsFile))
 }
+
 
 android {
     namespace = "app.vercel.justaman045.money_control"
@@ -48,12 +52,13 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as? String ?: ""
-            keyPassword = keystoreProperties["keyPassword"] as? String ?: ""
-            storeFile = keystoreProperties["storeFile"]?.toString()?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as? String ?: ""
+            keyAlias = props["keyAlias"] as? String ?: ""
+            keyPassword = props["keyPassword"] as? String ?: ""
+            storeFile = props["storeFile"]?.toString()?.let { file(it) }
+            storePassword = props["storePassword"] as? String ?: ""
         }
     }
+
 
 
 
