@@ -41,7 +41,7 @@ android {
         create("release") {
             // Try to get from key.properties file first (local), then from env vars (CI)
             val storeFilePath = keystoreProperties["storeFile"] as? String
-                ?: System.getenv("KEYSTORE_PATH")
+                ?: storeFile = file("../upload-keystore.jks")
                 ?: "upload-keystore.jks"
 
             val storePass = keystoreProperties["storePassword"] as? String
