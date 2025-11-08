@@ -67,20 +67,29 @@ jobs:
           TAG="v1.0.${{ github.run_number }}"
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/app-release.apk"
 
-          # Replace existing APK download link or append if none found
-          if grep -q "app-release.apk" README.md; then
-            sed -i "s|https://github.com/.*/releases/download/v[0-9.]*/app-release.apk|$DOWNLOAD_URL|" README.md
-          else
-            echo -e "\n## Latest APK\n[Download latest APK]($DOWNLOAD_URL)" >> README.md
-          fi
+          echo "Generated download URL: $DOWNLOAD_URL"
+
+          # Replace the relative path URL with absolute GitHub URL
+          sed -i "s|\[app-release\.apk\](.*)|[app-release.apk]($DOWNLOAD_URL)|" README.md
+
+          # Debug: show what was changed
+          echo "Updated README content:"
+          grep -n "app-release.apk" README.md
 
       - name: Commit updated README
         if: success()
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add README.md
-          git commit -m "Update README with latest APK download link for ${{ github.run_number }}" || echo "No changes to commit"
-          git push
+          
+          # Check if there are any changes
+          if git diff --quiet README.md; then
+            echo "No changes to README"
+          else
+            echo "README has changes, committing..."
+            git add README.md
+            git commit -m "Update README with latest APK download link for v1.0.${{ github.run_number }}"
+            git push
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

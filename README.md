@@ -1,6 +1,6 @@
 # money_control
 
-A Cross Platform App to control and track you money and expenses.
+A Cross Platform App to control and track your money and expenses.
 
 ## Getting Started
 
@@ -22,7 +22,7 @@ samples, guidance on mobile development, and a full API reference.
 Get the latest built APK from the [Releases](../../releases) page.
 
 **Direct Download:**
-- [app-release.apk](../../releases/download/latest/app-release.apk) - Latest build
+- [app-release.apk](https://github.com/justaman045/Money_Control/releases/download/v1.0.1/app-release.apk) - Latest build
 
 **How to Install:**
 1. Download the APK file from the releases page
