@@ -12,7 +12,6 @@ import 'package:money_control/Components/section_title.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Screens/analysis.dart';
 import 'package:money_control/Screens/transaction_history.dart';
-import 'package:money_control/Screens/analysis.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});

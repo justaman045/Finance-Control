@@ -14,6 +14,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Screens/transaction_history.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class BankingHomeScreen extends StatefulWidget {
   const BankingHomeScreen({super.key});
@@ -29,36 +31,24 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _updateLastOpened();
+    _updateLastOpenedLocal();
   }
 
-  Future<void> _updateLastOpened() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .set(
-        {
-          'lastOpened': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
-    } catch (e) {
-      debugPrint("Failed to update lastOpened: $e");
-    }
+  Future<void> _updateLastOpenedLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt("lastOpened", DateTime.now().millisecondsSinceEpoch);
   }
+
 
   Future<void> _onRefresh() async {
+    _updateLastOpenedLocal();
     setState(() {
       _balanceKey = UniqueKey();
       _quickSendKey = UniqueKey();
     });
     await Future.delayed(const Duration(milliseconds: 400));
-    await _updateLastOpened();
   }
+
 
   Future<List<String>> fetchCategoriesSortedByUsage() async {
     final user = FirebaseAuth.instance.currentUser;

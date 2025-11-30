@@ -54,6 +54,8 @@ dependencies {
     implementation("com.google.mlkit:text-recognition-devanagari:16.0.0")
     implementation("com.google.mlkit:text-recognition-japanese:16.0.0")
     implementation("com.google.mlkit:text-recognition-korean:16.0.0")
+    implementation("com.google.gms:google-services:4.4.2")
+
 }
 
 flutter {
