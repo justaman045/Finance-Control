@@ -4,34 +4,27 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Components/colors.dart';
-import 'firebase_options.dart';
-import 'package:money_control/Services/notification_service.dart';
+import 'package:money_control/firebase_options.dart';
+import 'package:money_control/Services/background_worker.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Required for background FCM handling
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // We’re storing notifications from Cloud Functions, so no extra handling here
-}
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-  );
+  FirebaseFirestore.instance.settings =
+  const Settings(persistenceEnabled: true);
 
-  // FCM background handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Background worker + local notifications
+  await BackgroundWorker.init();
 
-  // Initialize our notification/FCM logic
-  await NotificationService.init();
+  await FlutterLocalNotificationsPlugin().resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>()?.requestNotificationsPermission();
 
   runApp(const MoneyControlApp());
 }
@@ -43,14 +36,30 @@ class MoneyControlApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScreenUtilInit(
       designSize: const Size(390, 844),
-      minTextAdapt: true,
       builder: (_, __) => GetMaterialApp(
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         title: 'Money Control',
         themeMode: ThemeMode.system,
         theme: _buildLightTheme(),
         darkTheme: _buildDarkTheme(),
         home: const AuthChecker(),
+        // Handle notification click
+        // builder: (context, child) {
+        //   FlutterLocalNotificationsPlugin().initialize(
+        //     const InitializationSettings(
+        //       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        //     ),
+        //     onDidReceiveNotificationResponse: (response) {
+        //       if (response.payload == "home") {
+        //         navigatorKey.currentState?.push(
+        //           MaterialPageRoute(builder: (_) => const BankingHomeScreen()),
+        //         );
+        //       }
+        //     },
+        //   );
+        //   return child!;
+        // },
       ),
     );
   }
@@ -66,12 +75,11 @@ class AuthChecker extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Colors.teal)),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
         if (snapshot.hasData && snapshot.data != null) {
-          final user = snapshot.data!;
-          if (user.emailVerified) {
+          if (snapshot.data!.emailVerified) {
             return const BankingHomeScreen();
           } else {
             FirebaseAuth.instance.signOut();
@@ -83,7 +91,6 @@ class AuthChecker extends StatelessWidget {
     );
   }
 }
-
 // LIGHT THEME CONFIGURATION
 ThemeData _buildLightTheme() {
   return ThemeData(

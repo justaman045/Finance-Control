@@ -60,7 +60,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
       for (var doc in snapshot.docs) {
         final tx = TransactionModel.fromMap(
           doc.id,
-          doc.data() as Map<String, dynamic>,
+          doc.data(),
         );
 
         final txDateStr = DateFormat('yyyy-MM-dd').format(tx.date);
