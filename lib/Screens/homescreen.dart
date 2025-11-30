@@ -24,32 +24,55 @@ class BankingHomeScreen extends StatefulWidget {
 
 class _BankingHomeScreenState extends State<BankingHomeScreen> {
   Key _balanceKey = UniqueKey();
-  Key _quickSendKey = UniqueKey(); // Add this to force widget rebuild
+  Key _quickSendKey = UniqueKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _updateLastOpened();
+  }
+
+  Future<void> _updateLastOpened() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.email)
+          .set(
+        {
+          'lastOpened': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      debugPrint("Failed to update lastOpened: $e");
+    }
+  }
 
   Future<void> _onRefresh() async {
     setState(() {
-      _balanceKey = UniqueKey(); // Force rebuild of balance
-      _quickSendKey = UniqueKey(); // Force rebuild of quick send
+      _balanceKey = UniqueKey();
+      _quickSendKey = UniqueKey();
     });
     await Future.delayed(const Duration(milliseconds: 400));
+    await _updateLastOpened();
   }
 
   Future<List<String>> fetchCategoriesSortedByUsage() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // User not logged in, return empty list or handle as needed
       return [];
     }
 
     final txRef = FirebaseFirestore.instance
         .collection('transactions')
-        .doc(user.email) // or user.uid for privacy
+        .doc(user.email)
         .collection('transactions');
 
     try {
       final snapshot = await txRef.get();
-
-      // Count category usage
       Map<String, int> categoryCounts = {};
       for (var doc in snapshot.docs) {
         final category = doc['category'] as String?;
@@ -58,11 +81,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         }
       }
 
-      // Sort categories by count descending
       final sortedCategories = categoryCounts.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
-
-      // Return only category names sorted by usage
       return sortedCategories.map((e) => e.key).toList();
     } catch (e) {
       debugPrint('Error fetching categories sorted by usage: $e');
@@ -70,16 +90,13 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final Color gradientTop = scheme.brightness == Brightness.light
-        ? kLightGradientTop
-        : kDarkGradientTop;
-    final Color gradientBottom = scheme.brightness == Brightness.light
-        ? kLightGradientBottom
-        : kDarkGradientBottom;
+    final Color gradientTop =
+    scheme.brightness == Brightness.light ? kLightGradientTop : kDarkGradientTop;
+    final Color gradientBottom =
+    scheme.brightness == Brightness.light ? kLightGradientBottom : kDarkGradientBottom;
     final user = FirebaseAuth.instance.currentUser;
 
     return Container(
@@ -138,11 +155,14 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                     if (!snapshot.hasData || !snapshot.data!.exists) {
                       return blankText(scheme);
                     }
-                    final userModel = UserModel.fromMap(user!.uid, snapshot.data!.data());
+                    final userModel =
+                    UserModel.fromMap(user!.uid, snapshot.data!.data());
                     return Text(
-                      userModel.firstName != null && userModel.firstName!.isNotEmpty
+                      userModel.firstName != null &&
+                          userModel.firstName!.isNotEmpty
                           ? userModel.firstName!
-                          : (user.displayName != null && user.displayName!.isNotEmpty
+                          : (user.displayName != null &&
+                          user.displayName!.isNotEmpty
                           ? user.displayName!
                           : 'User'),
                       style: TextStyle(

@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';  // Add this package for date formatting
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,14 +18,18 @@ class NotificationsScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final user = FirebaseAuth.instance.currentUser;
 
-    final Color gradientTop = scheme.brightness == Brightness.light ? kLightGradientTop : kDarkGradientTop;
-    final Color gradientBottom = scheme.brightness == Brightness.light ? kLightGradientBottom : kDarkGradientBottom;
+    final Color gradientTop =
+    scheme.brightness == Brightness.light ? kLightGradientTop : kDarkGradientTop;
+    final Color gradientBottom =
+    scheme.brightness == Brightness.light ? kLightGradientBottom : kDarkGradientBottom;
 
     if (user == null) {
       return Scaffold(
         body: Center(
-          child: Text("Not logged in",
-              style: TextStyle(color: scheme.error, fontSize: 16.sp)),
+          child: Text(
+            "Not logged in",
+            style: TextStyle(color: scheme.error, fontSize: 16.sp),
+          ),
         ),
       );
     }
@@ -75,7 +79,10 @@ class NotificationsScreen extends StatelessWidget {
                 return Center(
                   child: Text(
                     "No notifications",
-                    style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 14.sp),
+                    style: TextStyle(
+                      color: scheme.onSurface.withOpacity(0.6),
+                      fontSize: 14.sp,
+                    ),
                   ),
                 );
               }
@@ -115,7 +122,7 @@ class NotificationsScreen extends StatelessWidget {
                             CircleAvatar(
                               radius: 22.r,
                               backgroundColor: Colors.transparent,
-                              backgroundImage: AssetImage('assets/profile.png'), // Optionally customize
+                              backgroundImage: const AssetImage('assets/profile.png'),
                             ),
                             SizedBox(width: 11.w),
                             Expanded(
@@ -125,16 +132,18 @@ class NotificationsScreen extends StatelessWidget {
                                   Text(
                                     title,
                                     style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15.sp,
-                                        color: scheme.onSurface),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15.sp,
+                                      color: scheme.onSurface,
+                                    ),
                                   ),
                                   SizedBox(height: 4.h),
                                   Text(
                                     body,
                                     style: TextStyle(
-                                        fontSize: 13.5.sp,
-                                        color: scheme.onSurface),
+                                      fontSize: 13.5.sp,
+                                      color: scheme.onSurface,
+                                    ),
                                   ),
                                 ],
                               ),

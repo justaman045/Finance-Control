@@ -45,7 +45,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       "Your request is in process. You will receive an update soon.",
       backgroundColor: Colors.blue,
       colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
+      snackPosition: SnackPosition.TOP,
     );
   }
 

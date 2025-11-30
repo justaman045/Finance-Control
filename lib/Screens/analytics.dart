@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Components/tx_tile.dart';
@@ -11,6 +12,7 @@ import 'package:money_control/Components/section_title.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Screens/analysis.dart';
 import 'package:money_control/Screens/transaction_history.dart';
+import 'package:money_control/Screens/analysis.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -19,7 +21,7 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
-  int tabIndex = 0;
+  int tabIndex = 0; // 0 = income, 1 = expenses
   String statsPeriod = 'Weekly';
   int chartPage = 0;
   int? activeBarIndex;
@@ -46,24 +48,119 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   int get periodCount => statsPeriod == 'Daily' ? 7 : 12;
 
-  DateTime weekStart(DateTime date) =>
-      date.subtract(Duration(days: date.weekday - 1));
-
   Future<void> _refreshData() async {
     setState(() {
       _streamKey = UniqueKey();
       activeBarIndex = null;
       chartPage = 0;
     });
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 600));
+  }
+
+  // Simple model for period ranges (start–end)
+  List<PeriodRange> _generatePeriods() {
+    final now = DateTime.now();
+    final year = now.year;
+    final month = now.month;
+
+    if (statsPeriod == 'Daily') {
+      // Mon → Sun of current week
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      return List.generate(7, (i) {
+        final start = DateTime(monday.year, monday.month, monday.day + i);
+        final end = start.add(const Duration(days: 1));
+        return PeriodRange(start, end);
+      });
+    }
+
+    if (statsPeriod == 'Weekly') {
+      final List<PeriodRange> periods = [];
+
+      // First day of selected month
+      final startOfMonth = DateTime(year, month, 1);
+      final nextMonth = DateTime(year, month + 1, 1);
+      final endOfMonth = nextMonth;
+
+      DateTime weekStart = startOfMonth;
+
+      while (weekStart.isBefore(endOfMonth)) {
+        final weekEnd =
+        weekStart.add(const Duration(days: 7)).isBefore(endOfMonth)
+            ? weekStart.add(const Duration(days: 7))
+            : endOfMonth;
+
+        periods.add(PeriodRange(weekStart, weekEnd));
+        weekStart = weekEnd;
+      }
+
+      return periods;
+    }
+
+    // Monthly view (unchanged)
+    return List.generate(12, (i) {
+      final start = DateTime(year, i + 1, 1);
+      final end = DateTime(year, i + 2, 1);
+      return PeriodRange(start, end);
+    });
+  }
+
+
+  List<double> _generateBarData(
+      List<TransactionModel> txs,
+      List<PeriodRange> periods,
+      String userId,
+      ) {
+    final result = List<double>.filled(periods.length, 0.0);
+
+    for (final tx in txs) {
+      final t = tx.date;
+
+      for (int i = 0; i < periods.length; i++) {
+        final p = periods[i];
+        if (!t.isBefore(p.start) && t.isBefore(p.end)) {
+          if (tabIndex == 0 && tx.recipientId == userId) {
+            // income
+            result[i] += tx.amount;
+          } else if (tabIndex == 1 && tx.senderId == userId) {
+            // expense
+            result[i] += tx.amount;
+          }
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  List<TransactionModel> _filterTxsForBar(
+      List<TransactionModel> all,
+      List<PeriodRange> periods,
+      int barIndex,
+      String userId,
+      ) {
+    final p = periods[barIndex];
+    return all.where((tx) {
+      final t = tx.date;
+      final inPeriod = !t.isBefore(p.start) && t.isBefore(p.end);
+
+      if (!inPeriod) return false;
+
+      if (tabIndex == 0) {
+        return tx.recipientId == userId;
+      } else {
+        return tx.senderId == userId;
+      }
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final bool isLight = scheme.brightness == Brightness.light;
+
     final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
     final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
+
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -92,11 +189,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           elevation: 0,
           toolbarHeight: 62.h,
           leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios,
-              color: scheme.onBackground,
-              size: 22.sp,
-            ),
+            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground),
             onPressed: () => Navigator.pop(context),
           ),
           centerTitle: true,
@@ -110,13 +203,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           actions: [
             IconButton(
+              icon: const Icon(Icons.analytics_outlined),
               onPressed: () => Get.to(
-                () => AIInsightsScreen(),
+                    () => const AIInsightsScreen(),
                 curve: curve,
                 transition: transition,
                 duration: duration,
               ),
-              icon: Icon(Icons.analytics_outlined),
             ),
           ],
         ),
@@ -138,94 +231,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
                 final docs = snapshot.data!.docs;
                 final userId = user.uid;
+
                 final txs = docs
                     .map(
-                      (doc) => TransactionModel.fromMap(
-                        doc.id,
-                        doc.data() as Map<String, dynamic>,
-                      ),
-                    )
+                      (d) => TransactionModel.fromMap(
+                    d.id,
+                    d.data() as Map<String, dynamic>,
+                  ),
+                )
                     .where(
-                      (txn) =>
-                          txn.senderId == userId || txn.recipientId == userId,
-                    )
+                      (tx) =>
+                  tx.senderId == userId || tx.recipientId == userId,
+                )
                     .toList();
 
-                List<double> dataPoints = List.filled(periodCount, 0.0);
-                final now = DateTime.now();
-                List<DateTime> periodStarts = [];
-                List<DateTime> periodEnds = [];
+                final periods = _generatePeriods();
+                final barData = _generateBarData(txs, periods, userId);
 
-                if (statsPeriod == 'Daily') {
-                  final today = now.subtract(Duration(days: now.weekday % 7));
-                  for (int i = 0; i < 7; i++) {
-                    periodStarts.add(
-                      DateTime(today.year, today.month, today.day + i),
-                    );
-                    periodEnds.add(
-                      DateTime(today.year, today.month, today.day + i + 1),
-                    );
-                  }
-                } else if (statsPeriod == 'Weekly') {
-                  DateTime firstOfYear = DateTime(now.year, 1, 1);
-                  DateTime firstWeekStart = weekStart(firstOfYear);
-                  for (int i = 0; i < periodCount; i++) {
-                    final s = firstWeekStart.add(Duration(days: i * 7));
-                    periodStarts.add(s);
-                    periodEnds.add(s.add(const Duration(days: 7)));
-                  }
-                } else if (statsPeriod == 'Monthly') {
-                  final currentYear = now.year;
-                  for (int i = 0; i < 12; i++) {
-                    periodStarts.add(DateTime(currentYear, i + 1, 1));
-                    periodEnds.add(DateTime(currentYear, i + 2, 1));
-                  }
-                }
+                final totalPeriods = periods.length;
+                final visibleBars = statsPeriod == 'Daily' ? 7 : 6;
+                final maxPage =
+                    (totalPeriods / visibleBars).ceil() - 1;
 
-                for (var tx in txs) {
-                  final time = tx.date;
-                  int idx = 0;
-                  for (int i = 0; i < periodEnds.length; i++) {
-                    if (!time.isBefore(periodStarts[i]) &&
-                        time.isBefore(periodEnds[i])) {
-                      idx = i;
-                      break;
-                    }
-                  }
-                  if (idx >= 0 && idx < dataPoints.length) {
-                    if (tabIndex == 0 && tx.recipientId == userId) {
-                      dataPoints[idx] += tx.amount;
-                    } else if (tabIndex == 1 && tx.senderId == userId) {
-                      dataPoints[idx] += tx.amount;
-                    }
-                  }
-                }
+                final startIdx = chartPage * visibleBars;
+                final endIdx =
+                (startIdx + visibleBars).clamp(0, totalPeriods);
 
-                int visibleBars = statsPeriod == 'Daily' ? 7 : 6;
-                int maxPage = (dataPoints.length / visibleBars).ceil() - 1;
-                int startIdx = chartPage * visibleBars;
-                int endIdx = (startIdx + visibleBars).clamp(
-                  0,
-                  dataPoints.length,
-                );
-                List<String> labels = periodLabels[statsPeriod]!;
-                final barLabels = labels.sublist(startIdx, endIdx);
-                final barData = dataPoints.sublist(startIdx, endIdx);
+                final labels = periodLabels[statsPeriod]!;
+                final chartLabels = labels.sublist(startIdx, endIdx);
+                final chartSlice = barData.sublist(startIdx, endIdx);
 
-                List<TransactionModel> filteredTxs = txs;
+                final List<TransactionModel> shownTxs;
                 if (activeBarIndex != null) {
-                  final periodIdx = startIdx + activeBarIndex!;
-                  filteredTxs = txs.where((tx) {
-                    final time = tx.date;
-                    final inPeriod =
-                        !time.isBefore(periodStarts[periodIdx]) &&
-                        time.isBefore(periodEnds[periodIdx]);
-                    if (tabIndex == 0) {
-                      return inPeriod && tx.recipientId == userId;
-                    } else {
-                      return inPeriod && tx.senderId == userId;
-                    }
-                  }).toList();
+                  final barIndex = startIdx + activeBarIndex!;
+                  shownTxs =
+                      _filterTxsForBar(txs, periods, barIndex, userId);
+                } else {
+                  shownTxs = txs;
                 }
 
                 return Column(
@@ -274,57 +316,55 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               if (v != null) {
                                 setState(() {
                                   statsPeriod = v;
-                                  activeBarIndex = null;
                                   chartPage = 0;
+                                  activeBarIndex = null;
                                 });
                               }
                             },
-                            chartLabels: barLabels,
-                            chartData: barData,
+                            chartLabels: chartLabels,
+                            chartData: chartSlice,
+                            tabIndex: tabIndex,
+                            activeBarIndex: activeBarIndex,
+                            onBarTap: (idx) => setState(() {
+                              activeBarIndex =
+                              idx == activeBarIndex ? null : idx;
+                            }),
                             onLeft: chartPage > 0
                                 ? () => setState(() {
-                                    chartPage--;
-                                    activeBarIndex = null;
-                                  })
+                              chartPage--;
+                              activeBarIndex = null;
+                            })
                                 : null,
                             onRight: chartPage < maxPage
                                 ? () => setState(() {
-                                    chartPage++;
-                                    activeBarIndex = null;
-                                  })
+                              chartPage++;
+                              activeBarIndex = null;
+                            })
                                 : null,
-                            tabIndex: tabIndex,
-                            onBarTap: (idx) => setState(() {
-                              activeBarIndex = idx == activeBarIndex
-                                  ? null
-                                  : idx;
-                            }),
-                            activeBarIndex: activeBarIndex,
                           ),
                         ],
                       ),
                     ),
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 16.h),
+                        padding:
+                        EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 16.h),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(height: 18),
                             SectionTitle(
                               title: 'Recent Payment',
-                              onTap: () => gotoPage(TransactionHistoryScreen()),
+                              onTap: () =>
+                                  gotoPage(TransactionHistoryScreen()),
                             ),
                             SizedBox(height: 12),
-                            ...(activeBarIndex != null ? filteredTxs : txs)
-                                .reversed
-                                .map(
+                            ...shownTxs.reversed.map(
                                   (tx) => TxTile(
-                                    tx: tx,
-                                    received: tx.recipientId == userId,
-                                  ),
-                                )
-                                .toList(),
+                                tx: tx,
+                                received: tx.recipientId == userId,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -341,33 +381,42 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _tabBtn(
-    String label,
-    bool selected,
-    ColorScheme scheme,
-    bool isLight,
-  ) => Container(
-    height: 40.h,
-    decoration: BoxDecoration(
-      color: selected ? scheme.primary : scheme.surface,
-      borderRadius: BorderRadius.circular(12.r),
-      border: Border.all(
-        color: selected
-            ? scheme.primary
-            : (isLight ? kLightBorder : kDarkBorder),
-        width: 1.5,
-      ),
-    ),
-    child: Center(
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected ? scheme.onPrimary : scheme.onSurface,
-          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-          fontSize: 15.sp,
+      String label,
+      bool selected,
+      ColorScheme scheme,
+      bool isLight,
+      ) =>
+      Container(
+        height: 40.h,
+        decoration: BoxDecoration(
+          color: selected ? scheme.primary : scheme.surface,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: selected
+                ? scheme.primary
+                : (isLight ? kLightBorder : kDarkBorder),
+            width: 1.5,
+          ),
         ),
-      ),
-    ),
-  );
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? scheme.onPrimary : scheme.onSurface,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 15.sp,
+            ),
+          ),
+        ),
+      );
+}
+
+/// Simple range model instead of Dart records (works on all versions)
+class PeriodRange {
+  final DateTime start;
+  final DateTime end;
+
+  PeriodRange(this.start, this.end);
 }
 
 class _AnalyticsStatsCard extends StatelessWidget {
@@ -397,6 +446,7 @@ class _AnalyticsStatsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final bool isLight = scheme.brightness == Brightness.light;
+
     final maxValue = chartData.isNotEmpty
         ? chartData.reduce((a, b) => a > b ? a : b)
         : 0.0;
@@ -404,6 +454,7 @@ class _AnalyticsStatsCard extends StatelessWidget {
     return Container(
       height: 205.h,
       width: double.infinity,
+      padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(19.r),
@@ -415,25 +466,28 @@ class _AnalyticsStatsCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.all(18.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top row
           Row(
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tabIndex == 0 ? "Income Statistics" : "Expense Statistics",
+                    tabIndex == 0
+                        ? "Income Statistics"
+                        : "Expense Statistics",
                     style: TextStyle(
-                      color: isLight ? kLightTextSecondary : kDarkTextSecondary,
+                      color:
+                      isLight ? kLightTextSecondary : kDarkTextSecondary,
                       fontSize: 13.sp,
                     ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    "₹ ${chartData.fold(0, (a, b) => (a + b).toInt()).toStringAsFixed(2)}",
+                    "₹ ${chartData.fold(0.0, (a, b) => a + b).toStringAsFixed(2)}",
                     style: TextStyle(
                       color: scheme.onSurface,
                       fontWeight: FontWeight.w800,
@@ -444,7 +498,8 @@ class _AnalyticsStatsCard extends StatelessWidget {
               ),
               const Spacer(),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 3.h),
+                padding:
+                EdgeInsets.symmetric(horizontal: 11.w, vertical: 3.h),
                 decoration: BoxDecoration(
                   color: isLight ? kLightBackground : kDarkBackground,
                   borderRadius: BorderRadius.circular(12.r),
@@ -454,17 +509,23 @@ class _AnalyticsStatsCard extends StatelessWidget {
                   dropdownColor: scheme.surface,
                   value: period,
                   onChanged: onPeriodChanged,
-                  style: TextStyle(color: scheme.onSurface, fontSize: 12.5.sp),
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 12.5.sp,
+                  ),
                   icon: Icon(
                     Icons.keyboard_arrow_down,
                     size: 17.sp,
-                    color: isLight ? kLightTextSecondary : kDarkTextSecondary,
+                    color:
+                    isLight ? kLightTextSecondary : kDarkTextSecondary,
                   ),
                   items: ['Daily', 'Weekly', 'Monthly']
                       .map(
-                        (v) =>
-                            DropdownMenuItem<String>(value: v, child: Text(v)),
-                      )
+                        (v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ),
+                  )
                       .toList(),
                 ),
               ),
@@ -481,51 +542,59 @@ class _AnalyticsStatsCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 19.h),
+          // Bar chart
           SizedBox(
             height: 72.h,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(
-                chartData.length,
-                (idx) => GestureDetector(
-                  onTap: onBarTap != null ? () => onBarTap!(idx) : null,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 15.w,
-                    height:
-                        (maxValue == 0 ? 0.0 : chartData[idx] / maxValue * 70)
-                            .h,
-                    decoration: BoxDecoration(
-                      color: idx == chartData.indexOf(maxValue)
-                          ? (isLight ? kLightPrimary : kDarkPrimary)
-                          : (isLight ? kLightBorder : kDarkDivider),
-                      borderRadius: BorderRadius.circular(6.r),
-                      border: Border.all(
+              children: List.generate(chartData.length, (idx) {
+                final value = chartData[idx];
+                final heightFactor =
+                maxValue == 0 ? 0.0 : value / maxValue;
+
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: onBarTap != null ? () => onBarTap!(idx) : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: EdgeInsets.symmetric(horizontal: 4.w),
+                      height: (heightFactor * 70).h,
+                      decoration: BoxDecoration(
                         color: (activeBarIndex ?? -1) == idx
                             ? scheme.primary
-                            : Colors.transparent,
-                        width: 2,
+                            : (isLight
+                            ? kLightBorder
+                            : kDarkDivider),
+                        borderRadius: BorderRadius.circular(6.r),
+                        border: Border.all(
+                          color: (activeBarIndex ?? -1) == idx
+                              ? scheme.primary
+                              : Colors.transparent,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              }),
             ),
           ),
           SizedBox(height: 12.h),
+          // Labels
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: chartLabels
                 .map(
                   (txt) => Text(
-                    txt,
-                    style: TextStyle(
-                      color: isLight ? kLightTextSecondary : kDarkTextSecondary,
-                      fontSize: 11.sp,
-                    ),
-                  ),
-                )
+                txt,
+                style: TextStyle(
+                  color: isLight
+                      ? kLightTextSecondary
+                      : kDarkTextSecondary,
+                  fontSize: 11.sp,
+                ),
+              ),
+            )
                 .toList(),
           ),
         ],

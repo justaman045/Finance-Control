@@ -41,9 +41,11 @@ class _ForecastScreenState extends State<ForecastScreen> {
     try {
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
-      final endOfMonth = DateTime(now.year, now.month + 1, 1).subtract(const Duration(seconds: 1));
+      final endOfMonth =
+      DateTime(now.year, now.month + 1, 1).subtract(const Duration(seconds: 1));
       final daysInMonth = endOfMonth.day;
 
+      // FETCH month transactions
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.email)
@@ -52,68 +54,65 @@ class _ForecastScreenState extends State<ForecastScreen> {
           .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .get();
 
-      // Map of Date (yyyy-MM-dd) to income & expense sums
       Map<String, double> dailyIncome = {};
       Map<String, double> dailyExpense = {};
 
       for (var doc in snapshot.docs) {
-        final tx = TransactionModel.fromMap(doc.id, doc.data());
+        final tx = TransactionModel.fromMap(
+          doc.id,
+          doc.data() as Map<String, dynamic>,
+        );
+
         final txDateStr = DateFormat('yyyy-MM-dd').format(tx.date);
 
-        if (tx.recipientId == user.uid && tx.senderId != user.uid) {
+        if (tx.recipientId == user.uid && tx.amount > 0) {
           dailyIncome[txDateStr] = (dailyIncome[txDateStr] ?? 0) + tx.amount.abs();
-        } else if (tx.senderId == user.uid && tx.recipientId != user.uid) {
+        } else if (tx.senderId == user.uid && tx.amount > 0) {
           dailyExpense[txDateStr] = (dailyExpense[txDateStr] ?? 0) + tx.amount.abs();
         }
       }
 
-      // Sum totals so far
+      // SUM totals till today
       incomeSoFar = dailyIncome.values.fold(0, (a, b) => a + b);
       expenseSoFar = dailyExpense.values.fold(0, (a, b) => a + b);
 
-      // Compute moving averages for last N days up to today
-      List<String> lastNDates = _lastNDates(movingAvgDays, now);
+      // --- COMPUTE 7-DAY MOVING AVERAGE ----
+      List<String> lastDates = _lastNDates(movingAvgDays, now);
 
-      double incomeSumLastN = 0;
-      double expenseSumLastN = 0;
-      int actualIncomeDays = 0;
-      int actualExpenseDays = 0;
+      double income7 = 0, expense7 = 0;
+      int incomeDays = 0, expenseDays = 0;
 
-      for (var dateStr in lastNDates) {
-        if (dailyIncome.containsKey(dateStr)) {
-          incomeSumLastN += dailyIncome[dateStr]!;
-          actualIncomeDays++;
+      for (String d in lastDates) {
+        if (dailyIncome.containsKey(d)) {
+          income7 += dailyIncome[d]!;
+          incomeDays++;
         }
-        if (dailyExpense.containsKey(dateStr)) {
-          expenseSumLastN += dailyExpense[dateStr]!;
-          actualExpenseDays++;
+        if (dailyExpense.containsKey(d)) {
+          expense7 += dailyExpense[d]!;
+          expenseDays++;
         }
       }
+
+      double avgIncome = incomeDays == 0 ? 0 : income7 / incomeDays;
+      double avgExpense = expenseDays == 0 ? 0 : expense7 / expenseDays;
 
       int daysSoFar = now.day;
       int daysLeft = daysInMonth - daysSoFar;
 
-      double incomeAvgDaily = incomeSoFar / daysSoFar;
-      double expenseAvgDaily = expenseSoFar / daysSoFar;
+      // FORECAST (moving-average based)
+      forecastIncome = (avgIncome * daysLeft).clamp(0, double.infinity);
+      forecastExpense = (avgExpense * daysLeft).clamp(0, double.infinity);
 
-      forecastIncome = (incomeAvgDaily * daysLeft).clamp(0, double.infinity);
-      forecastExpense = (expenseAvgDaily * daysLeft).clamp(0, double.infinity);
-
-      setState(() {
-        loading = false;
-      });
-
+      setState(() => loading = false);
     } catch (e) {
-      debugPrint("Error loading monthly forecast: $e");
-      setState(() {
-        loading = false;
-      });
+      debugPrint("Forecast error: $e");
+      setState(() => loading = false);
     }
   }
 
-  // Returns list of last N dates formatted yyyy-MM-dd, includes today
+  // Last N days including today
   List<String> _lastNDates(int n, DateTime today) {
-    final List<String> dates = [];
+    List<String> dates = [];
     for (int i = n - 1; i >= 0; i--) {
       final d = today.subtract(Duration(days: i));
       dates.add(DateFormat('yyyy-MM-dd').format(d));
@@ -122,14 +121,15 @@ class _ForecastScreenState extends State<ForecastScreen> {
   }
 
   String _formatIndianCurrency(double amount) {
-    final formatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+    final formatter =
+    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
     return formatter.format(amount);
   }
 
   String _monthName(int monthNum) {
     const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "January","February","March","April","May","June",
+      "July","August","September","October","November","December"
     ];
     return months[monthNum - 1];
   }
@@ -156,14 +156,18 @@ class _ForecastScreenState extends State<ForecastScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          elevation: 0,
           centerTitle: true,
+          elevation: 0,
           title: Text(
             "Monthly Forecast",
-            style: TextStyle(color: scheme.onBackground, fontWeight: FontWeight.bold, fontSize: 18.sp),
+            style: TextStyle(
+              color: scheme.onBackground,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+            ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
+            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -177,9 +181,15 @@ class _ForecastScreenState extends State<ForecastScreen> {
               children: [
                 Text(
                   currentMonthYear,
-                  style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: scheme.onBackground),
+                  style: TextStyle(
+                    fontSize: 22.sp,
+                    fontWeight: FontWeight.bold,
+                    color: scheme.onBackground,
+                  ),
                 ),
                 SizedBox(height: 20.h),
+
+                // ------ Income Cards ------
                 _ForecastCard(
                   label: "Income So Far",
                   amount: incomeSoFar,
@@ -193,7 +203,10 @@ class _ForecastScreenState extends State<ForecastScreen> {
                   color: Colors.green.shade300,
                   formattedAmount: _formatIndianCurrency(forecastIncome),
                 ),
+
                 SizedBox(height: 20.h),
+
+                // ------ Expense Cards ------
                 _ForecastCard(
                   label: "Expenses So Far",
                   amount: expenseSoFar,
@@ -207,21 +220,28 @@ class _ForecastScreenState extends State<ForecastScreen> {
                   color: Colors.red.shade300,
                   formattedAmount: _formatIndianCurrency(forecastExpense),
                 ),
+
                 const Spacer(),
+
                 Padding(
                   padding: EdgeInsets.only(bottom: 20.h),
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size(double.infinity, 52.h),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.r),
+                      ),
                     ),
                     child: Text(
-                      'Back',
-                      style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+                      "Back",
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -248,6 +268,7 @@ class _ForecastCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 22.h, horizontal: 24.w),
@@ -265,10 +286,20 @@ class _ForecastCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           Text(
             formattedAmount,
-            style: TextStyle(fontSize: 19.sp, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 19.sp,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),

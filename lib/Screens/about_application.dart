@@ -2,10 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-class AboutApplicationScreen extends StatelessWidget {
+class AboutApplicationScreen extends StatefulWidget {
   const AboutApplicationScreen({super.key});
 
+  @override
+  State<AboutApplicationScreen> createState() => _AboutApplicationScreenState();
+}
+
+class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
+
+  String _appVersion = 'Loading...';
+
+  @override
+  void initState() {
+    _getAppVersion();
+    super.initState();
+  }
+
+  Future<void> _getAppVersion() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    debugPrint(packageInfo.version);
+    setState(() {
+      _appVersion = packageInfo.version;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -82,7 +104,7 @@ class AboutApplicationScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 5.h),
                     Text(
-                      "Version 1.0.0",
+                      "Version $_appVersion",
                       style: TextStyle(
                         color: secondaryText,
                         fontSize: 13.sp,
@@ -164,7 +186,7 @@ class AboutApplicationScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 13.5.sp, color: secondaryText, fontWeight: FontWeight.w600),
                     ),
                     SizedBox(height: 8.h),
-                    Text("• Flutter\n• Firebase (Auth & Firestore)\n• GetX\n• flutter_screenutil\n• share_plus\n• printing package",
+                    Text("• Flutter\n• Firebase (Auth & Firestore)\n• GetX\n• flutter_screenutil\n• share_plus\n• printing package\n• package info",
                         style: TextStyle(fontSize: 13.sp, color: scheme.onSurface)),
                     SizedBox(height: 14.h),
                     Row(

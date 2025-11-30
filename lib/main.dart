@@ -4,10 +4,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Components/colors.dart';
 import 'firebase_options.dart';
+import 'package:money_control/Services/notification_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Required for background FCM handling
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // We’re storing notifications from Cloud Functions, so no extra handling here
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +26,12 @@ Future<void> main() async {
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
   );
+
+  // FCM background handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Initialize our notification/FCM logic
+  await NotificationService.init();
 
   runApp(const MoneyControlApp());
 }
@@ -31,11 +47,9 @@ class MoneyControlApp extends StatelessWidget {
       builder: (_, __) => GetMaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Money Control',
-
         themeMode: ThemeMode.system,
         theme: _buildLightTheme(),
         darkTheme: _buildDarkTheme(),
-
         home: const AuthChecker(),
       ),
     );
@@ -94,9 +108,10 @@ ThemeData _buildLightTheme() {
       bodyMedium: TextStyle(color: kLightTextSecondary, fontSize: 14.sp),
       bodyLarge: TextStyle(color: kLightTextPrimary, fontSize: 16.sp),
       titleLarge: TextStyle(
-          color: kLightTextPrimary,
-          fontWeight: FontWeight.w600,
-          fontSize: 18.sp),
+        color: kLightTextPrimary,
+        fontWeight: FontWeight.w600,
+        fontSize: 18.sp,
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,

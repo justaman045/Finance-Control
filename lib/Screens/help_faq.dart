@@ -131,7 +131,7 @@ class HelpFAQScreen extends StatelessWidget {
               SizedBox(height: 30.h),
               Center(
                 child: Text(
-                  "Still have questions?\nContact support at support@moneycontrol.app",
+                  "Still have questions?\nContact support at work.amanojha30@gmail.com",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: secondaryText,

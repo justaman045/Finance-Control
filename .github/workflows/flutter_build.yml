@@ -22,6 +22,32 @@ jobs:
         with:
           flutter-version: '3.35.5'
 
+      - name: Auto-update version in pubspec.yaml
+        run: |
+          VERSION="1.0.${{ github.run_number }}"
+          echo "Updating pubspec.yaml version to: $VERSION"
+
+          sed -i "s/^version:.*/version: $VERSION+${{ github.run_number }}/" pubspec.yaml
+
+          echo "Updated pubspec.yaml:"
+          grep "version:" pubspec.yaml
+
+      - name: Commit updated pubspec.yaml
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+
+          if git diff --quiet pubspec.yaml; then
+            echo "No changes in pubspec.yaml"
+          else
+            echo "pubspec.yaml updated, committing..."
+            git add pubspec.yaml
+            git commit -m "Auto-update version to 1.0.${{ github.run_number }}"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -69,12 +95,7 @@ jobs:
 
           echo "Generated download URL: $DOWNLOAD_URL"
 
-          # Replace the relative path URL with absolute GitHub URL
           sed -i "s|\[app-release\.apk\](.*)|[app-release.apk]($DOWNLOAD_URL)|" README.md
-
-          # Debug: show what was changed
-          echo "Updated README content:"
-          grep -n "app-release.apk" README.md
 
       - name: Commit updated README
         if: success()
@@ -82,11 +103,9 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           
-          # Check if there are any changes
           if git diff --quiet README.md; then
             echo "No changes to README"
           else
-            echo "README has changes, committing..."
             git add README.md
             git commit -m "Update README with latest APK download link for v1.0.${{ github.run_number }}"
             git push
