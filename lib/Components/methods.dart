@@ -31,9 +31,14 @@ void gotoPage(Widget page){
   debugPrint(Get.previousRoute);
 }
 
-void goBack(){
-  Get.back();
+void goBack() {
+  if (Get.key.currentContext != null && Navigator.canPop(Get.key.currentContext!)) {
+    Navigator.pop(Get.key.currentContext!);
+  } else {
+    Get.back();
+  }
 }
+
 
 TransactionResultType getTransactionTypeFromStatus(String? status) {
   switch (status?.toLowerCase()) {
