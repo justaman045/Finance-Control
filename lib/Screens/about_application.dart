@@ -12,22 +12,19 @@ class AboutApplicationScreen extends StatefulWidget {
 }
 
 class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
-
-  String _appVersion = 'Loading...';
+  String _appVersion = "Loading...";
 
   @override
   void initState() {
-    _getAppVersion();
     super.initState();
+    _loadAppVersion();
   }
 
-  Future<void> _getAppVersion() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    debugPrint(packageInfo.version);
-    setState(() {
-      _appVersion = packageInfo.version;
-    });
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() => _appVersion = info.version);
   }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -37,7 +34,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
     final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
     final surface = scheme.surface;
     final border = isLight ? kLightBorder : kDarkBorder;
-    final secondaryText = isLight ? kLightTextSecondary : kDarkTextSecondary;
+    final secondary = isLight ? kLightTextSecondary : kDarkTextSecondary;
 
     return Container(
       decoration: BoxDecoration(
@@ -62,153 +59,224 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
-            onPressed: () => Navigator.of(context).pop(),
+            icon: Icon(Icons.arrow_back_ios,
+                color: scheme.onBackground, size: 20.sp),
+            onPressed: () => Navigator.pop(context),
           ),
           toolbarHeight: 64.h,
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // App profile card
-              Container(
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 4,
-                    ),
-                  ],
-                  border: Border.all(color: border, width: 1),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: scheme.primary.withOpacity(0.16),
-                      radius: 36.r,
-                      backgroundImage: const AssetImage("assets/app_logo.png"), // Place your app's logo in assets and update path
-                    ),
-                    SizedBox(height: 12.h),
-                    Text(
-                      "Money Control",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                    SizedBox(height: 5.h),
-                    Text(
-                      "Version $_appVersion",
-                      style: TextStyle(
-                        color: secondaryText,
-                        fontSize: 13.sp,
-                      ),
-                    ),
-                    SizedBox(height: 11.h),
-                    Divider(color: border),
-                    SizedBox(height: 10.h),
-                    Text(
-                      "Money Control is your all-in-one personal finance and expense tracker app. "
-                          "Easily manage expenses, track income, analyze spending patterns by category, "
-                          "review transaction history, and stay motivated to budget and save.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.82),
-                        fontSize: 13.5.sp,
-                      ),
-                    ),
-                    SizedBox(height: 18.h),
-                  ],
-                ),
+              // APP HEADER CARD
+              _AppInfoCard(
+                surface: surface,
+                border: border,
+                scheme: scheme,
+                version: _appVersion,
+                secondary: secondary,
               ),
-              SizedBox(height: 19.h),
-              Text(
-                "Developer",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13.sp,
-                  color: secondaryText,
-                ),
-              ),
-              SizedBox(height: 7.h),
-              // Developer info card
-              Container(
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: border, width: 1),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: scheme.primary.withOpacity(0.10),
-                    radius: 22.r,
-                    child: const Icon(Icons.developer_mode, color: Colors.teal),
-                  ),
-                  title: Text(
-                    "Developed by { Aman }",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp, color: scheme.onSurface),
-                  ),
-                  subtitle: Text(
-                    "QA Analyst & Full-stack Dev",
-                    style: TextStyle(fontSize: 12.sp, color: secondaryText),
-                  ),
-                ),
-              ),
-              SizedBox(height: 19.h),
-              // Open Source & Credits
-              Text(
-                "Acknowledgements",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13.sp,
-                  color: secondaryText,
-                ),
-              ),
-              SizedBox(height: 7.h),
-              Container(
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: border, width: 1),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "This app uses open source components:",
-                      style: TextStyle(fontSize: 13.5.sp, color: secondaryText, fontWeight: FontWeight.w600),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text("• Flutter\n• Firebase (Auth & Firestore)\n• GetX\n• flutter_screenutil\n• share_plus\n• printing package\n• package info",
-                        style: TextStyle(fontSize: 13.sp, color: scheme.onSurface)),
-                    SizedBox(height: 14.h),
-                    Row(
-                      children: [
-                        Icon(Icons.copyright, size: 16, color: secondaryText),
-                        SizedBox(width: 7.w),
-                        Text(
-                          "2025 Money Control",
-                          style: TextStyle(color: secondaryText, fontSize: 13.sp),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 24.h),
+              SizedBox(height: 22.h),
+
+              _SectionLabel("Developer", secondary),
+              SizedBox(height: 8.h),
+              _DeveloperTile(surface, border, scheme, secondary),
+
+              SizedBox(height: 22.h),
+
+              _SectionLabel("Acknowledgements", secondary),
+              SizedBox(height: 8.h),
+              _AcknowledgementCard(surface, border, scheme, secondary),
+
+              SizedBox(height: 30.h),
             ],
           ),
         ),
-        bottomNavigationBar: BottomNavBar(
-          currentIndex: 2,
+        bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+      ),
+    );
+  }
+
+  Widget _SectionLabel(String title, Color color) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 13.5.sp,
+          color: color,
         ),
+      ),
+    );
+  }
+
+  // ---------------- APP INFO CARD ----------------
+  Widget _AppInfoCard({
+    required Color surface,
+    required Color border,
+    required ColorScheme scheme,
+    required String version,
+    required Color secondary,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 7,
+          ),
+        ],
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 18.h),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 40.r,
+            backgroundColor: scheme.primary.withOpacity(0.15),
+            backgroundImage: const AssetImage("assets/app_logo.png"),
+          ),
+          SizedBox(height: 14.h),
+          Text(
+            "Money Control",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20.sp,
+              color: scheme.onSurface,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: version == "Loading..." ? 0.5 : 1,
+            child: Text(
+              "Version $version",
+              style: TextStyle(color: secondary, fontSize: 13.sp),
+            ),
+          ),
+          SizedBox(height: 14.h),
+          Divider(color: border),
+          SizedBox(height: 12.h),
+          Text(
+            "Money Control helps you effortlessly manage expenses, track income, view analytics, monitor savings goals, and understand your financial habits — all in one beautiful place.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: scheme.onSurface.withOpacity(0.85),
+              fontSize: 13.5.sp,
+              height: 1.35,
+            ),
+          ),
+          SizedBox(height: 18.h),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- DEVELOPER TILE ----------------
+  Widget _DeveloperTile(
+      Color surface, Color border, ColorScheme scheme, Color secondary) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: ListTile(
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        leading: CircleAvatar(
+          radius: 24.r,
+          backgroundColor: scheme.primary.withOpacity(0.12),
+          child: const Icon(Icons.code_rounded, color: Colors.teal),
+        ),
+        title: Text(
+          "Developed by Aman",
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15.5.sp,
+              color: scheme.onSurface),
+        ),
+        subtitle: Text(
+          "QA Analyst • Full-stack Developer",
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: secondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------- ACKNOWLEDGEMENT CARD ----------------
+  Widget _AcknowledgementCard(
+      Color surface, Color border, ColorScheme scheme, Color secondary) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: border, width: 1),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "This app uses open-source and ecosystem packages:",
+            style: TextStyle(
+              fontSize: 13.5.sp,
+              fontWeight: FontWeight.w600,
+              color: secondary,
+            ),
+          ),
+          SizedBox(height: 10.h),
+
+          _Bullet("Flutter Framework"),
+          _Bullet("Firebase Authentication & Firestore"),
+          _Bullet("GetX – State Management & Routing"),
+          _Bullet("flutter_screenutil – Responsive UI"),
+          _Bullet("package_info_plus"),
+          _Bullet("share_plus, printing, and more"),
+
+          SizedBox(height: 16.h),
+          Row(
+            children: [
+              Icon(Icons.copyright,
+                  size: 16.sp, color: secondary.withOpacity(0.9)),
+              SizedBox(width: 6.w),
+              Text(
+                "2025 Money Control",
+                style: TextStyle(color: secondary, fontSize: 13.sp),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _Bullet(String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("•  ",
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500)),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13.5.sp,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
