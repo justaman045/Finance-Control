@@ -3,6 +3,9 @@ name: Build Flutter APK
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - "README.md"
+      - "app_version.json"
   pull_request:
     branches: [master]
 
@@ -14,25 +17,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ------------------------------------------------------------
+      # CHECKOUT
+      # ------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      # ------------------------------------------------------------
+      # SETUP FLUTTER
+      # ------------------------------------------------------------
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.5'
 
+      # ------------------------------------------------------------
+      # AUTO VERSION BUMP: pubspec.yaml
+      # ------------------------------------------------------------
       - name: Auto-update version in pubspec.yaml
         run: |
           VERSION="1.0.${{ github.run_number }}"
           echo "Updating pubspec.yaml version to: $VERSION"
 
           sed -i "s/^version:.*/version: $VERSION+${{ github.run_number }}/" pubspec.yaml
-
-          echo "Updated pubspec.yaml:"
+          echo "Updated version:"
           grep "version:" pubspec.yaml
 
       - name: Commit updated pubspec.yaml
+        if: "! contains(github.event.head_commit.message, 'CI:')"
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
@@ -40,27 +52,34 @@ jobs:
           if git diff --quiet pubspec.yaml; then
             echo "No changes in pubspec.yaml"
           else
-            echo "pubspec.yaml updated, committing..."
             git add pubspec.yaml
-            git commit -m "Auto-update version to 1.0.${{ github.run_number }}"
+            git commit -m "CI: Auto-update version to 1.0.${{ github.run_number }}"
             git push
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # ------------------------------------------------------------
+      # DEPENDENCIES
+      # ------------------------------------------------------------
       - name: Install dependencies
         run: flutter pub get
 
+      # ------------------------------------------------------------
+      # ANDROID KEYSTORE + GOOGLE SERVICES
+      # ------------------------------------------------------------
       - name: Decode keystore from secret
         run: echo "${{ secrets.UPLOAD_KEYSTORE }}" | base64 -d > android/upload-keystore.jks
 
       - name: Add google-services.json from secret
-        run: |
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
+      # ------------------------------------------------------------
+      # BUILD APK (signed)
+      # ------------------------------------------------------------
       - name: Build APK with signing
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -68,60 +87,74 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release
 
+      # ------------------------------------------------------------
+      # UPLOAD ARTIFACT
+      # ------------------------------------------------------------
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release.apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Create GitHub Release and Upload APK
-        if: success()
+      # ------------------------------------------------------------
+      # CREATE RELEASE (AUTO-GENERATED RELEASE NOTES)
+      # ------------------------------------------------------------
+      - name: Create GitHub Release & Upload APK
         uses: softprops/action-gh-release@v2
-        id: create_release
         with:
           files: build/app/outputs/flutter-apk/app-release.apk
           tag_name: v1.0.${{ github.run_number }}
-          body: |
-            Built on: ${{ github.event.head_commit.timestamp }}
-            Commit: ${{ github.event.head_commit.message }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # ------------------------------------------------------------
+      # UPDATE README WITH LATEST APK DOWNLOAD LINK
+      # ------------------------------------------------------------
       - name: Update README with latest APK link
-        if: success()
         run: |
           TAG="v1.0.${{ github.run_number }}"
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/app-release.apk"
 
-          echo "Generated download URL: $DOWNLOAD_URL"
+          echo "Updating README with: $DOWNLOAD_URL"
 
-          sed -i "s|\[app-release\.apk\](.*)|[app-release.apk]($DOWNLOAD_URL)|" README.md
+          sed -i "s|https://github.com/.*/releases/download/.*|$DOWNLOAD_URL|g" README.md
 
       - name: Commit updated README
-        if: success()
+        if: "! contains(github.event.head_commit.message, 'CI:')"
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          
+
           if git diff --quiet README.md; then
-            echo "No changes to README"
+            echo "README not changed"
           else
             git add README.md
-            git commit -m "Update README with latest APK download link for v1.0.${{ github.run_number }}"
+            git commit -m "CI: Update README APK link v1.0.${{ github.run_number }}"
             git push
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # ------------------------------------------------------------
+      # UPDATE app_version.json (used for in-app update)
+      # ------------------------------------------------------------
       - name: Update app_version.json
         run: |
-          echo "{ \"latest_version\": \"$1.0.{{ github.run_number }}\", \"update_message\": \"Automatic update deployed.\", \"force\": false }" > app_version.json
+          VERSION="1.0.${{ github.run_number }}"
+          echo "{
+            \"latest_version\": \"$VERSION\",
+            \"update_message\": \"A new version is available.\",
+            \"force\": false
+          }" > app_version.json
 
-      - name: Commit version file
+      - name: Commit app_version.json
+        if: "! contains(github.event.head_commit.message, 'CI:')"
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
           git add app_version.json
-          git commit -m "Update version file"
+          git commit -m "CI: Update version JSON to $VERSION"
           git push
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

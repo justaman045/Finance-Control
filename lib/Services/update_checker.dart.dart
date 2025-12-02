@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:money_control/Components/methods.dart';
+import 'package:money_control/Screens/update_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:get/get.dart';
 
@@ -65,7 +67,7 @@ class UpdateChecker {
           ElevatedButton(
             onPressed: () {
               Get.back();
-              Get.toNamed("/update_page");
+              gotoPage(UpdatePage());
             },
             child: const Text("Update Now"),
           ),
