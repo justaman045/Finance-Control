@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:money_control/Services/update_checker.dart.dart';
 
 import 'package:money_control/firebase_options.dart';
 import 'package:money_control/Screens/homescreen.dart';
@@ -109,8 +110,21 @@ class RootApp extends StatelessWidget {
 }
 
 // ---- AUTH CHECK ----
-class AuthChecker extends StatelessWidget {
+class AuthChecker extends StatefulWidget {
   const AuthChecker({super.key});
+
+  @override
+  State<AuthChecker> createState() => _AuthCheckerState();
+}
+
+class _AuthCheckerState extends State<AuthChecker> {
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    UpdateChecker.checkForUpdate(context);
+  }
 
   @override
   Widget build(BuildContext context) {

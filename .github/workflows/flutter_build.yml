@@ -112,3 +112,16 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update app_version.json
+        run: |
+          echo "{ \"latest_version\": \"$1.0.{{ github.run_number }}\", \"update_message\": \"Automatic update deployed.\", \"force\": false }" > app_version.json
+
+      - name: Commit version file
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add app_version.json
+          git commit -m "Update version file"
+          git push
+

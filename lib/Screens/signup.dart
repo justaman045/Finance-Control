@@ -6,7 +6,7 @@ import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/loginscreen.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({Key? key}) : super(key: key);
+  const AuthScreen({super.key});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
