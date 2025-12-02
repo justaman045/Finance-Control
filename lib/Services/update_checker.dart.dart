@@ -21,6 +21,8 @@ class UpdateChecker {
 
       final data = jsonDecode(response.body);
 
+      debugPrint(data["latest_version"].toString());
+
       final latestVersion = data["latest_version"];
       final updateMessage = data["update_message"];
       final isForce = data["force"] ?? false;
@@ -29,6 +31,7 @@ class UpdateChecker {
       final currentVersion = package.version;
 
       if (_isNewerVersion(latestVersion, currentVersion)) {
+
         _showUpdateDialog(context, latestVersion, updateMessage, isForce);
       }
     } catch (e) {
