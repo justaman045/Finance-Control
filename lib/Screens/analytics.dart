@@ -443,6 +443,18 @@ class _AnalyticsStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    String _calculateTotal() {
+      if (activeBarIndex != null) {
+        final value = chartData[activeBarIndex!];
+        return value.toStringAsFixed(2);
+      }
+      final total = chartData.fold(0.0, (a, b) => a + b);
+      return total.toStringAsFixed(2);
+    }
+
+
+
     final scheme = Theme.of(context).colorScheme;
     final bool isLight = scheme.brightness == Brightness.light;
 
@@ -486,7 +498,7 @@ class _AnalyticsStatsCard extends StatelessWidget {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    "₹ ${chartData.fold(0.0, (a, b) => a + b).toStringAsFixed(2)}",
+                    "₹ ${_calculateTotal()}",
                     style: TextStyle(
                       color: scheme.onSurface,
                       fontWeight: FontWeight.w800,

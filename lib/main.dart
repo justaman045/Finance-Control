@@ -81,8 +81,8 @@ class RootApp extends StatelessWidget {
           // Only this part reacts 🔥
           themeMode: themeController.themeMode,
 
-          theme: _buildLightTheme(),
-          darkTheme: _buildDarkTheme(),
+          theme: buildLightTheme(),
+          darkTheme: buildDarkTheme(),
 
           home: const AuthChecker(),
 
@@ -134,37 +134,4 @@ class AuthChecker extends StatelessWidget {
       },
     );
   }
-}
-
-/// -------------------------
-///       THEMES
-/// -------------------------
-ThemeData _buildLightTheme() {
-  return ThemeData(
-    brightness: Brightness.light,
-    colorScheme: lightColorScheme,
-    scaffoldBackgroundColor: kLightBackground,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: kLightPrimary,
-      foregroundColor: Colors.white,
-    ),
-
-    visualDensity: VisualDensity.adaptivePlatformDensity,
-    useMaterial3: true,
-  );
-}
-
-ThemeData _buildDarkTheme() {
-  return ThemeData(
-    brightness: Brightness.dark,
-    colorScheme: darkColorScheme,
-    scaffoldBackgroundColor: kDarkBackground,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: kDarkSurface,
-      foregroundColor: Colors.white,
-    ),
-
-    visualDensity: VisualDensity.adaptivePlatformDensity,
-    useMaterial3: true,
-  );
 }

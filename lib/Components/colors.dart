@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // ----- LIGHT THEME -----
 const Color kLightGradientTop = Color(0xFF8EB2FF);     // blue gradient top
@@ -58,3 +59,106 @@ const ColorScheme darkColorScheme = ColorScheme(
   surface: kDarkSurface,
   onSurface: kDarkTextPrimary,
 );
+
+// LIGHT THEME CONFIGURATION
+ThemeData buildLightTheme() {
+  return ThemeData(
+    brightness: Brightness.light,
+    colorScheme: lightColorScheme,
+    scaffoldBackgroundColor: kLightBackground,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: kLightPrimary,
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: kLightPrimary,
+        foregroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    ),
+    textTheme: TextTheme(
+      bodyMedium: TextStyle(color: kLightTextSecondary, fontSize: 14.sp),
+      bodyLarge: TextStyle(color: kLightTextPrimary, fontSize: 16.sp),
+      titleLarge: TextStyle(
+        color: kLightTextPrimary,
+        fontWeight: FontWeight.w600,
+        fontSize: 18.sp,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: kLightSurface,
+      hintStyle: const TextStyle(color: kLightTextSecondary),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: kLightBorder, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: kLightBorder, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: kLightPrimary, width: 2),
+      ),
+    ),
+    dividerColor: kLightBorder,
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: kLightPrimary,
+      contentTextStyle: TextStyle(color: Colors.white),
+    ),
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+    useMaterial3: true,
+  );
+}
+
+// DARK THEME CONFIGURATION
+ThemeData buildDarkTheme() {
+  return ThemeData(
+    brightness: Brightness.dark,
+    colorScheme: darkColorScheme,
+    scaffoldBackgroundColor: kDarkBackground,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: kDarkSurface,
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: kDarkPrimary,
+        foregroundColor: Colors.black,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: kDarkSurface,
+      hintStyle: const TextStyle(color: kDarkTextSecondary),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: kDarkDivider, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: kDarkDivider, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: kDarkPrimary, width: 2),
+      ),
+    ),
+    dividerColor: kDarkDivider,
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: kDarkPrimary,
+      contentTextStyle: TextStyle(color: Colors.black),
+    ),
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+    useMaterial3: true,
+  );
+}
