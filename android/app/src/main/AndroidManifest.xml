@@ -3,7 +3,7 @@
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.READ_SMS" />
-    <uses-permission android:name="android.permission/RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -41,35 +41,14 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- 🔥 REQUIRED FOR WORKMANAGER (Correct Executor) -->
+        <!-- Workmanager background executor -->
         <meta-data
             android:name="flutterBackgroundExecutor"
             android:value="dev.fluttercommunity.workmanager.WorkManagerBackgroundExecutor" />
 
-        <!-- WorkManager background worker -->
-        <service
-            android:name="dev.fluttercommunity.workmanager.BackgroundWorker"
-            android:exported="false"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
-
-        <!-- Needed for background rescheduling -->
-        <receiver
-            android:name="androidx.work.impl.background.systemalarm.RescheduleReceiver"
-            android:enabled="true"
-            android:exported="false"
-            tools:replace="android:enabled" />
-
-
-        <!-- Foreground service for WorkManager if needed -->
-        <service
-            android:name="androidx.work.impl.foreground.SystemForegroundService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            tools:replace="android:foregroundServiceType" />
-
     </application>
 
-    <!-- Required by Flutter for text processing -->
+    <!-- Required to query activities that can process text -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
