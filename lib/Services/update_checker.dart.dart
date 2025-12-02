@@ -8,7 +8,7 @@ class UpdateChecker {
   static Future<void> checkForUpdate(BuildContext context) async {
     try {
       final url =
-      Uri.parse("https://raw.githubusercontent.com/justaman045/Money_Control/master/app_version.json");
+      Uri.parse("https://raw.githubusercontent.com/justaman045/Money_Control/development/app_version.json");
 
       final response = await http.get(url);
 
