@@ -1,37 +1,61 @@
+// ignore_for_file: constant_identifier_names
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-// ----- LIGHT THEME -----
-const Color kLightGradientTop = Color(0xFF8EB2FF);     // blue gradient top
-const Color kLightGradientBottom = Color(0xFFDC81FF);  // purple gradient bottom
-const Color kLightBackground = Color(0xFFF6F8FD);      // major bg (scaffold)
-const Color kLightSurface = Colors.white;              // cards, nav, sheets
-const Color kLightPrimary = Color(0xFF2F80ED);         // accent blue
-const Color kLightSecondary = Color(0xFF8A3FFC);       // accent purple
-const Color kLightTextPrimary = Colors.black;          // title/headline text
-const Color kLightTextSecondary = Color(0xFF55596F);   // body/subtext
-const Color kLightBorder = Color(0xFFEBEBEB);          // borders, dividers
-const Color kLightError = Color(0xFFE53935);           // error, destructive
-const Color kLightSuccess = Color(0xFF0FA958);         // received/positive
-const Color kLightWarning = Color(0xFFFFC107);         // warning, optional
+//
+// ────────────────────────────────────────────────
+//  COLOR PALETTE
+// ────────────────────────────────────────────────
+//
 
-// ----- DARK THEME -----
-const Color kDarkGradientTop = Color(0xFF232D53);         // dark blue gradient top
-const Color kDarkGradientBottom = Color(0xFF59377C);      // dark purple gradient bottom
-const Color kDarkBackground = Color(0xFF1B2339);          // scaffold bg
-const Color kDarkSurface = Color(0xFF23253C);             // cards, nav, sheets
-const Color kDarkPrimary = Color(0xFF90AFFF);             // accent blue (lighter for dark)
-const Color kDarkSecondary = Color(0xFFB39DDB);           // accent purple (lighter)
-const Color kDarkTextPrimary = Colors.white;              // title/headline text
-const Color kDarkTextSecondary = Color(0xFFA8ADC5);       // subtext, descriptions
-const Color kDarkBorder = Color(0xFF31304F);              // borders, dividers
-const Color kDarkError = Color(0xFFFF8686);               // error, destructive
-const Color kDarkSuccess = Color(0xFF3AD29F);             // received/positive
-const Color kDarkWarning = Color(0xFFFFC76F);             // warning, optional
-const Color kDarkDivider = Color(0xFF31304F); // dark divider line/border
+// ------------------ LIGHT THEME ------------------
+const Color kLightGradientTop = Color(0xFFE9F0FF);     // Soft bluish white
+const Color kLightGradientBottom = Color(0xFFF6EBFF);  // Soft lavender white
 
-// ----- ColorScheme for ThemeData -----
-const ColorScheme lightColorScheme = ColorScheme(
+const Color kLightBackground = Color(0xFFF8FAFF); // Softer background
+const Color kLightSurface = Colors.white;
+
+const Color kLightPrimary = Color(0xFF2F80ED);
+const Color kLightSecondary = Color(0xFF8A3FFC);
+
+const Color kLightTextPrimary = Color(0xFF1A1A1A);
+const Color kLightTextSecondary = Color(0xFF55596F);
+
+const Color kLightBorder = Color(0xFFE3E6EC);
+const Color kLightDivider = Color(0xFFD5D9E0);
+
+const Color kLightError = Color(0xFFE53935);
+const Color kLightSuccess = Color(0xFF0FA958);
+const Color kLightWarning = Color(0xFFFFC107);
+
+// ------------------ DARK THEME ------------------
+const Color kDarkGradientTop = Color(0xFF1F263F);
+const Color kDarkGradientBottom = Color(0xFF4A2A66);
+
+const Color kDarkBackground = Color(0xFF121725);
+const Color kDarkSurface = Color(0xFF1C2033);
+
+const Color kDarkPrimary = Color(0xFF90AFFF);
+const Color kDarkSecondary = Color(0xFFC6B2E8);
+
+const Color kDarkTextPrimary = Colors.white;
+const Color kDarkTextSecondary = Color(0xFFA8ADC5);
+
+const Color kDarkBorder = Color(0xFF2D3248);
+const Color kDarkDivider = Color(0xFF353A50);
+
+const Color kDarkError = Color(0xFFFF7A7A);
+const Color kDarkSuccess = Color(0xFF34D39F);
+const Color kDarkWarning = Color(0xFFFFC76F);
+
+//
+// ────────────────────────────────────────────────
+//  COMPLETE COLOR SCHEMES
+// ────────────────────────────────────────────────
+//
+
+// ------------------ LIGHT SCHEME ------------------
+final ColorScheme lightColorScheme = ColorScheme(
   brightness: Brightness.light,
   primary: kLightPrimary,
   onPrimary: Colors.white,
@@ -43,10 +67,10 @@ const ColorScheme lightColorScheme = ColorScheme(
   onBackground: kLightTextPrimary,
   surface: kLightSurface,
   onSurface: kLightTextPrimary,
-
 );
 
-const ColorScheme darkColorScheme = ColorScheme(
+// ------------------ DARK SCHEME ------------------
+final ColorScheme darkColorScheme = ColorScheme(
   brightness: Brightness.dark,
   primary: kDarkPrimary,
   onPrimary: Colors.black,
@@ -60,35 +84,56 @@ const ColorScheme darkColorScheme = ColorScheme(
   onSurface: kDarkTextPrimary,
 );
 
-// LIGHT THEME CONFIGURATION
+//
+// ────────────────────────────────────────────────
+//  LIGHT THEME
+// ────────────────────────────────────────────────
+//
+
 ThemeData buildLightTheme() {
   return ThemeData(
     brightness: Brightness.light,
     colorScheme: lightColorScheme,
     scaffoldBackgroundColor: kLightBackground,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: kLightPrimary,
-      foregroundColor: Colors.white,
+    useMaterial3: true,
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+
+    // AppBar
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.transparent,
       elevation: 0,
+      titleTextStyle: TextStyle(
+        color: kLightTextPrimary,
+        fontSize: 18.sp,
+        fontWeight: FontWeight.bold,
+      ),
+      iconTheme: const IconThemeData(color: kLightTextPrimary),
     ),
+
+    // Buttons
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: kLightPrimary,
         foregroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
+        textStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
         ),
       ),
     ),
+
+    // Text
     textTheme: TextTheme(
       bodyMedium: TextStyle(color: kLightTextSecondary, fontSize: 14.sp),
       bodyLarge: TextStyle(color: kLightTextPrimary, fontSize: 16.sp),
       titleLarge: TextStyle(
         color: kLightTextPrimary,
-        fontWeight: FontWeight.w600,
-        fontSize: 18.sp,
+        fontWeight: FontWeight.w700,
+        fontSize: 20.sp,
       ),
     ),
+
+    // Inputs
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: kLightSurface,
@@ -106,36 +151,69 @@ ThemeData buildLightTheme() {
         borderSide: const BorderSide(color: kLightPrimary, width: 2),
       ),
     ),
-    dividerColor: kLightBorder,
-    snackBarTheme: const SnackBarThemeData(
+
+    dividerColor: kLightDivider,
+
+    // Snackbar
+    snackBarTheme: SnackBarThemeData(
       backgroundColor: kLightPrimary,
-      contentTextStyle: TextStyle(color: Colors.white),
+      contentTextStyle: TextStyle(color: Colors.white, fontSize: 14.sp),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
-    visualDensity: VisualDensity.adaptivePlatformDensity,
-    useMaterial3: true,
   );
 }
 
-// DARK THEME CONFIGURATION
+//
+// ────────────────────────────────────────────────
+//  DARK THEME
+// ────────────────────────────────────────────────
+//
+
 ThemeData buildDarkTheme() {
   return ThemeData(
     brightness: Brightness.dark,
     colorScheme: darkColorScheme,
     scaffoldBackgroundColor: kDarkBackground,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: kDarkSurface,
-      foregroundColor: Colors.white,
+    useMaterial3: true,
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+
+    // AppBar
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.transparent,
       elevation: 0,
+      titleTextStyle: TextStyle(
+        color: kDarkTextPrimary,
+        fontSize: 18.sp,
+        fontWeight: FontWeight.bold,
+      ),
+      iconTheme: const IconThemeData(color: kDarkTextPrimary),
     ),
+
+    // Buttons
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: kDarkPrimary,
         foregroundColor: Colors.black,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
+        textStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
         ),
       ),
     ),
+
+    // Text
+    textTheme: TextTheme(
+      bodyMedium: TextStyle(color: kDarkTextSecondary, fontSize: 14.sp),
+      bodyLarge: TextStyle(color: kDarkTextPrimary, fontSize: 16.sp),
+      titleLarge: TextStyle(
+        color: kDarkTextPrimary,
+        fontWeight: FontWeight.w700,
+        fontSize: 20.sp,
+      ),
+    ),
+
+    // Inputs
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: kDarkSurface,
@@ -153,12 +231,14 @@ ThemeData buildDarkTheme() {
         borderSide: const BorderSide(color: kDarkPrimary, width: 2),
       ),
     ),
+
     dividerColor: kDarkDivider,
-    snackBarTheme: const SnackBarThemeData(
+
+    snackBarTheme: SnackBarThemeData(
       backgroundColor: kDarkPrimary,
-      contentTextStyle: TextStyle(color: Colors.black),
+      contentTextStyle: TextStyle(color: Colors.black, fontSize: 14.sp),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
-    visualDensity: VisualDensity.adaptivePlatformDensity,
-    useMaterial3: true,
   );
 }
