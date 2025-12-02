@@ -1,15 +1,21 @@
+import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
-import 'package:screenshot/screenshot.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:screenshot/screenshot.dart';
+
+// ----------------------------------------------------------------------
 
 enum TransactionResultType { success, failed, inProgress }
 
@@ -30,9 +36,91 @@ class TransactionResultScreen extends StatefulWidget {
       _TransactionResultScreenState();
 }
 
+// ----------------------------------------------------------------------
+
 class _TransactionResultScreenState extends State<TransactionResultScreen> {
   final ScreenshotController _ssController = ScreenshotController();
 
+  // -------------------------------- PDF CREATION --------------------------------
+  Future<void> _savePDF() async {
+    final tx = widget.transaction;
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        margin: const pw.EdgeInsets.all(24),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                "Transaction Receipt",
+                style: pw.TextStyle(
+                  fontSize: 22,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Divider(),
+
+              pw.SizedBox(height: 12),
+              _pdfRow("Transaction ID", tx.id),
+              _pdfRow("Date", tx.date.toLocal().toString()),
+              _pdfRow("Recipient", tx.recipientName),
+              _pdfRow("Amount", "₹${tx.amount.toStringAsFixed(2)}"),
+              _pdfRow("Tax", "₹${tx.tax.toStringAsFixed(2)}"),
+              _pdfRow("Total Payment", "₹${tx.total.toStringAsFixed(2)}"),
+              _pdfRow("Currency", tx.currency),
+              _pdfRow("Category", tx.category ?? "-"),
+              if (tx.note != null && tx.note!.isNotEmpty)
+                _pdfRow("Note", tx.note!),
+              _pdfRow("Status", tx.status ?? "-"),
+
+              pw.SizedBox(height: 24),
+              pw.Text(
+                "Generated using Money Control App",
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  color: PdfColors.grey600,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File("${directory.path}/Transaction_${tx.id}.pdf");
+    await file.writeAsBytes(await pdf.save());
+
+    await Share.shareXFiles(
+      [
+        XFile(
+          file.path,
+          mimeType: "application/pdf",
+        ),
+      ],
+      text: "Your Transaction Receipt",
+    );
+  }
+
+  pw.Widget _pdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label,
+              style:
+              pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+          pw.Text(value, style: const pw.TextStyle(fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  // -------------------------------- SHARE --------------------------------
   Future<void> _shareScreenshot() async {
     try {
       final Uint8List? image = await _ssController.capture();
@@ -50,367 +138,294 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     }
   }
 
-  Future<void> _printScreenshot() async {
-    try {
-      final Uint8List? image = await _ssController.capture();
-      if (image != null) {
-        await Printing.layoutPdf(onLayout: (_) => Future.value(image));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to print: $e')));
-      }
-    }
-  }
-
+  // -------------------------------- DELETE --------------------------------
   Future<void> _deleteTransaction() async {
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete Transaction'),
-        content: Text('Are you sure you want to delete this transaction?'),
+        title: const Text("Delete Transaction"),
+        content: const Text("Are you sure you want to delete this transaction?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Cancel")),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text("Delete")),
         ],
       ),
     );
-    if (confirmed == true) {
+
+    if (confirm == true) {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(FirebaseAuth.instance.currentUser?.email)
           .collection('transactions')
           .doc(widget.transaction.id)
           .delete();
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Transaction deleted')));
-      }
+
+      if (mounted) Navigator.pop(context);
     }
   }
+
+  // ----------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
+    final light = scheme.brightness == Brightness.light;
 
-    final type = widget.type;
-    final transaction = widget.transaction;
+    final t = widget.type;
+    final tx = widget.transaction;
 
-    final isSuccess = type == TransactionResultType.success;
-    final isFailed = type == TransactionResultType.failed;
-    final isProgress = type == TransactionResultType.inProgress;
-
-    final title = isSuccess
-        ? "Transaction Success!"
-        : isFailed
-        ? "Transaction Failed!"
-        : "Transaction is Processing...";
-
-    final subtitle = isSuccess
-        ? "Your payment is confirmed. Email confirmation sent."
-        : isFailed
-        ? "Your payment couldn’t be completed. Please try again later."
-        : "Your payment is being processed. Please wait for confirmation email.";
-
-    final gradColors = isFailed
-        ? [Colors.red.shade200, Colors.red.shade400]
-        : isProgress
-        ? [Colors.orange.shade200, Colors.orange.shade400]
-        : [const Color(0xFFF36C1D), const Color(0xFFFC48AD)];
-
-    // Main page background: smoothly blend with scaffold in both modes
-    final List<Color> bgGrad = isFailed
-        ? [Colors.red.shade50.withOpacity(isLight ? 0.85 : 0.20), Colors.red.shade100.withOpacity(isLight ? 0.92 : 0.18)]
-        : isProgress
-        ? [Colors.orange.shade50.withOpacity(isLight ? 0.85 : 0.19), Colors.orange.shade100.withOpacity(isLight ? 0.92 : 0.172)]
-        : [
-      (isLight ? kLightGradientTop : kDarkGradientTop).withOpacity(isLight ? 0.3 : 0.5),
-      (isLight ? kLightGradientBottom : kDarkGradientBottom).withOpacity(isLight ? 0.5 : 0.59),
-    ];
-
-    final icon = isSuccess
-        ? Icons.check_circle_rounded
-        : isFailed
+    final icon =
+    t == TransactionResultType.success ? Icons.check_circle_rounded : t ==
+        TransactionResultType.failed
         ? Icons.cancel_rounded
         : Icons.hourglass_empty_rounded;
 
-    final iconColor = Colors.white;
-    final actionLabel = isSuccess
-        ? "Back"
-        : isFailed
-        ? "Try Again"
-        : "Back Home";
+    final iconGrad = t == TransactionResultType.success
+        ? [Colors.green.shade600, Colors.green.shade400]
+        : t == TransactionResultType.failed
+        ? [Colors.red.shade600, Colors.red.shade400]
+        : [Colors.orange.shade600, Colors.orange.shade400];
+
+    final title = t == TransactionResultType.success
+        ? "Transaction Success!"
+        : t == TransactionResultType.failed
+        ? "Transaction Failed!"
+        : "Processing Transaction";
+
+    final subtitle = t == TransactionResultType.success
+        ? "Your payment has been confirmed."
+        : t == TransactionResultType.failed
+        ? "Payment could not be completed."
+        : "Your payment is being processed.";
 
     return Scaffold(
+      backgroundColor: light ? const Color(0xFFF5F7FB) : scheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text("Transaction Details"),
+        elevation: 0,
+        title: const Text("Transaction Details"),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () => Get.to(
-                    () => TransactionEditScreen(transaction: transaction),
-                curve: Curves.easeOut,
-                transition: Transition.cupertino,
-                duration: const Duration(milliseconds: 250)),
-            tooltip: "Edit Transaction",
+            onPressed: () =>
+                Get.to(() => TransactionEditScreen(transaction: tx)),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: _deleteTransaction,
-            tooltip: "Delete Transaction",
           ),
         ],
       ),
+
+      // ----------------------------- BODY -----------------------------
       body: Screenshot(
         controller: _ssController,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: bgGrad,
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          width: double.infinity,
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 8.h),
+          child: Column(
+            children: [
+              SizedBox(height: 18.h),
+
+              // ---------------- STATUS ICON ----------------
+              Container(
+                width: 90.r,
+                height: 90.r,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: iconGrad,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                      color: iconGrad.last.withOpacity(0.3),
+                    )
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 46.sp),
+              ),
+
+              SizedBox(height: 16.h),
+
+              Text(title,
+                  style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface)),
+              SizedBox(height: 6.h),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: scheme.onSurface.withOpacity(0.65),
+                    fontSize: 14.sp),
+              ),
+
+              SizedBox(height: 22.h),
+
+              // ---------------- SHARE + PDF BUTTONS ----------------
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(height: 28.h),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(height: 74.h),
-                      if (isSuccess) ...[
-                        Positioned(top: 7.h, left: 32.w, child: Icon(Icons.star, color: Colors.orangeAccent.shade100, size: 19.sp)),
-                        Positioned(top: 0.h, right: 30.w, child: Icon(Icons.star, color: Colors.pinkAccent.shade100, size: 16.5.sp)),
-                        Positioned(bottom: 8.h, left: 24.w, child: Icon(Icons.star, color: Colors.pinkAccent.shade100, size: 13.sp)),
-                      ],
-                      Container(
-                        width: 66.r,
-                        height: 66.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: gradColors,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: gradColors.last.withOpacity(0.18),
-                              blurRadius: 19,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Icon(icon, color: iconColor, size: 46.sp),
-                        ),
-                      ),
-                    ],
+                  _capsuleButton(
+                    icon: Icons.share_outlined,
+                    label: "Share",
+                    onTap: _shareScreenshot,
+                    scheme: scheme,
                   ),
-                  SizedBox(height: 18.h),
-                  Text(
-                    title,
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18.sp, color: scheme.onBackground),
-                    textAlign: TextAlign.center,
+                  SizedBox(width: 12.w),
+                  _capsuleButton(
+                    icon: Icons.picture_as_pdf,
+                    label: "Save PDF",
+                    onTap: _savePDF,
+                    scheme: scheme,
                   ),
-                  SizedBox(height: 7.h),
-                  Text(
-                    subtitle,
-                    style: TextStyle(color: scheme.onBackground.withOpacity(0.7), fontSize: 13.5.sp),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 23.h),
-                  if (isSuccess || isFailed)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _SuccessActionBtn(
-                          icon: Icons.share_outlined,
-                          label: "Share",
-                          color: scheme.surface,
-                          textColor: scheme.onSurface,
-                          border: true,
-                          onPressed: _shareScreenshot,
-                        ),
-                        SizedBox(width: 15.w),
-                        _SuccessActionBtn(
-                          icon: isSuccess ? Icons.print : Icons.error_outline_rounded,
-                          label: isSuccess ? "Print" : "Report",
-                          color: scheme.surface,
-                          textColor: scheme.onSurface,
-                          border: true,
-                          onPressed: isSuccess ? _printScreenshot : null,
-                        ),
-                      ],
-                    ),
-                  if (isProgress) SizedBox(height: 5.h),
-                  SizedBox(height: 23.h),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Transaction Details",
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5.sp, color: scheme.onBackground),
-                    ),
-                  ),
-                  SizedBox(height: 13.h),
-                  _DetailRow(label: "Transaction Number", value: transaction.id),
-                  _DetailRow(label: "Transaction Date", value: transaction.date.toLocal().toString()),
-                  _DetailRow(label: "Recipient", value: transaction.recipientName),
-                  _DetailRow(label: "Nominal", value: transaction.amount.toStringAsFixed(2)),
-                  _DetailRow(label: "Tax", value: transaction.tax.toStringAsFixed(2)),
-                  _DetailRow(label: "Total Payment", value: transaction.total.toStringAsFixed(2), bold: true),
-                  _DetailRow(label: "Currency", value: transaction.currency),
-                  _DetailRow(label: "Category", value: transaction.category ?? '-'),
-                  if (transaction.note != null && transaction.note!.isNotEmpty)
-                    SizedBox(height: 10.h, child: _DetailRow(label: "Note", value: transaction.note!)),
-                  if (transaction.status != null)
-                    _DetailRow(label: "Status", value: transaction.status!),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52.h,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(34.r),
-                        ),
-                      ),
-                      onPressed: widget.onAction ?? () => Get.back(),
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: bgGrad,
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(34.r),
-                        ),
-                        child: Center(
-                          child: Text(
-                            actionLabel,
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17.sp),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 14.h),
                 ],
               ),
-            ),
+
+              SizedBox(height: 25.h),
+
+              // ---------------- DETAILS CARD ----------------
+              _detailsCard(tx, scheme),
+
+              SizedBox(height: 25.h),
+
+              SizedBox(
+                width: double.infinity,
+                height: 54.h,
+                child: ElevatedButton(
+                  onPressed: widget.onAction ?? () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28.r),
+                    ),
+                  ),
+                  child: Text(
+                    "Back",
+                    style: TextStyle(
+                        fontSize: 16.sp,
+                        color: scheme.onPrimary,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20.h),
+            ],
           ),
         ),
       ),
     );
   }
-}
 
-class _SuccessActionBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final Color textColor;
-  final bool border;
-  final VoidCallback? onPressed;
-
-  const _SuccessActionBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.textColor,
-    required this.border,
-    this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 120.w,
-      height: 39.h,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: color,
-          side: border ? BorderSide(color: textColor.withOpacity(0.09), width: 1.3) : BorderSide.none,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24.r),
+  // --------------------------- Capsule Button ---------------------------
+  Widget _capsuleButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required ColorScheme scheme,
+  }) {
+    return Container(
+      height: 40.h,
+      width: 125.w,
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(24.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
-          elevation: 0,
-          foregroundColor: textColor,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 19.sp, color: textColor.withOpacity(0.84)),
-            SizedBox(width: 7.w),
-            Text(
-              label,
-              style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 15.sp),
-            ),
-          ],
+        ],
+      ),
+      child: TextButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, color: scheme.primary, size: 18.sp),
+        label: Text(
+          label,
+          style: TextStyle(
+              color: scheme.onSurface, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
-}
 
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool bold;
+  // --------------------------- Details Card ---------------------------
+  Widget _detailsCard(TransactionModel tx, ColorScheme scheme) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(18.r),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 12,
+              offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Transaction Details",
+              style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface)),
+          SizedBox(height: 12.h),
+          Divider(color: scheme.onSurface.withOpacity(0.2)),
 
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-  });
+          SizedBox(height: 12.h),
 
-  @override
-  Widget build(BuildContext context) {
+          _detailRow("Transaction ID", tx.id),
+          _detailRow("Date", tx.date.toLocal().toString()),
+          _detailRow("Recipient", tx.recipientName),
+          _detailRow("Amount", tx.amount.toStringAsFixed(2)),
+          _detailRow("Tax", tx.tax.toStringAsFixed(2)),
+          _detailRow("Total", tx.total.toStringAsFixed(2), bold: true),
+          _detailRow("Currency", tx.currency),
+          _detailRow("Category", tx.category ?? "-"),
+          if (tx.note != null && tx.note!.isNotEmpty)
+            _detailRow("Note", tx.note!),
+          _detailRow("Status", tx.status ?? "-"),
+        ],
+      ),
+    );
+  }
+
+  // --------------------------- Detail Row ---------------------------
+  Widget _detailRow(String name, String value, {bool bold = false}) {
     final scheme = Theme.of(context).colorScheme;
+
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 50,
             child: Text(
-              label,
-              style: TextStyle(color: scheme.onSurface.withOpacity(0.9), fontSize: 13.sp),
+              name,
+              style: TextStyle(
+                  fontSize: 13.sp,
+                  color: scheme.onSurface.withOpacity(0.75)),
             ),
           ),
           Expanded(
-            flex: 49,
             child: Text(
               value,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: scheme.onSurface,
-                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                 fontSize: bold ? 14.sp : 13.sp,
+                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                color: scheme.onSurface,
               ),
             ),
           ),

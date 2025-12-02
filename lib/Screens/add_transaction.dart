@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Models/cateogary.dart';
@@ -14,9 +15,12 @@ enum PaymentType { send, receive }
 class PaymentScreen extends StatefulWidget {
   final PaymentType type;
   final String? cateogary;
-  // Removed recipientId
 
-  const PaymentScreen({super.key, required this.type, this.cateogary});
+  const PaymentScreen({
+    super.key,
+    required this.type,
+    this.cateogary,
+  });
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -26,106 +30,96 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _personController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
-  final TextEditingController _newCategoryController = TextEditingController();
+  final TextEditingController _amount = TextEditingController();
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _note = TextEditingController();
+  final TextEditingController _newCategory = TextEditingController();
 
   List<CategoryModel> _categories = [];
   String? selectedCategory;
 
-  DateTime selectedDate = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
-    DateTime.now().hour,
-    DateTime.now().minute,
-    DateTime.now().second,
-    DateTime.now().millisecond,
-  );
+  DateTime selectedDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    loadCategories();
   }
 
-  Future<void> _loadCategories() async {
+  // ——————————————————————————————————————
+  //  LOAD CATEGORIES
+  // ——————————————————————————————————————
+  Future<void> loadCategories() async {
     try {
       final snapshot = await _firestore
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.email)
+          .collection("users")
+          .doc(_auth.currentUser!.email)
           .collection("categories")
           .get();
 
-      List<CategoryModel> fetchedCategories = snapshot.docs
-          .map((doc) => CategoryModel.fromMap(doc.id, doc.data()))
-          .toList();
+      final data =
+      snapshot.docs.map((d) => CategoryModel.fromMap(d.id, d.data())).toList();
 
-      // Reorder so widget.cateogary comes first, if present
-      if (widget.cateogary != null && widget.cateogary!.isNotEmpty) {
-        final idx = fetchedCategories.indexWhere(
-              (cat) => cat.name == widget.cateogary,
-        );
-        if (idx != -1) {
-          // Remove and insert at front
-          final cat = fetchedCategories.removeAt(idx);
-          fetchedCategories.insert(0, cat);
-        }
+      if (widget.cateogary != null) {
+        data.sort((a, b) =>
+        a.name == widget.cateogary ? -1 : b.name == widget.cateogary ? 1 : 0);
       }
 
       setState(() {
-        _categories = fetchedCategories;
-        // Always set selectedCategory; cateogary will appear first if present
-        selectedCategory = widget.cateogary ?? (_categories.isNotEmpty ? _categories.first.name : null);
+        _categories = data;
+        selectedCategory =
+            widget.cateogary ?? (data.isNotEmpty ? data.first.name : null);
       });
     } catch (e) {
-      debugPrint("Failed to load categories: $e");
+      debugPrint("Error loading categories: $e");
     }
   }
 
+  // ——————————————————————————————————————
+  //  ADD CATEGORY
+  // ——————————————————————————————————————
+  Future<void> _addCategoryDialog() async {
+    _newCategory.clear();
 
-  Future<void> _showAddCategoryDialog() async {
-    _newCategoryController.clear();
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text("Add New Category"),
         content: TextField(
-          controller: _newCategoryController,
+          controller: _newCategory,
           decoration: const InputDecoration(hintText: "Category name"),
           autofocus: true,
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Cancel"),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              final newName = _newCategoryController.text.trim();
-              if (newName.isEmpty) {
-                Get.snackbar("Validation", "Category name can't be empty");
+              final text = _newCategory.text.trim();
+
+              if (text.isEmpty) {
+                Get.snackbar("Error", "Category name cannot be empty");
                 return;
               }
-              if (_categories.any(
-                (cat) => cat.name.toLowerCase() == newName.toLowerCase(),
-              )) {
-                Get.snackbar("Validation", "Category already exists");
+              if (_categories
+                  .any((c) => c.name.toLowerCase() == text.toLowerCase())) {
+                Get.snackbar("Error", "Category already exists");
                 return;
               }
-              try {
-                final docRef = await _firestore.collection('users').doc(FirebaseAuth.instance.currentUser!.email).collection("categories").add({
-                  'name': newName,
-                });
-                setState(() {
-                  _categories.add(CategoryModel(id: docRef.id, name: newName));
-                  selectedCategory = newName;
-                });
-                Navigator.of(ctx).pop();
-              } catch (e) {
-                Get.snackbar("Error", "Failed to add category");
-              }
+
+              final doc = await _firestore
+                  .collection("users")
+                  .doc(_auth.currentUser!.email)
+                  .collection("categories")
+                  .add({"name": text});
+
+              setState(() {
+                _categories.add(CategoryModel(id: doc.id, name: text));
+                selectedCategory = text;
+              });
+
+              Navigator.pop(context);
             },
             child: const Text("Add"),
           ),
@@ -134,119 +128,133 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  //TODO: Remove usage warning
-  // Future<void> _deleteCategory(CategoryModel category) async {
-  //   try {
-  //     await _firestore.collection('categories').doc(category.id).delete();
-  //     debugPrint("Category deleted successfully ${category.name}");
-  //     setState(() {
-  //       _categories.removeWhere((cat) => cat.id == category.id);
-  //       if (selectedCategory == category.name) {
-  //         selectedCategory = _categories.isNotEmpty
-  //             ? _categories.first.name
-  //             : null;
-  //       }
-  //     });
-  //     Get.snackbar("Deleted", "Category removed successfully");
-  //   } catch (e) {
-  //     Get.snackbar("Error", "Failed to delete category");
-  //   }
-  // }
-
-  Future<void> _saveTransaction() async {
+  // ——————————————————————————————————————
+  //  DELETE CATEGORY (long press)
+  // ——————————————————————————————————————
+  Future<void> _deleteCategory(CategoryModel category) async {
     final user = _auth.currentUser;
-    if (user == null) {
-      Get.snackbar('Error', 'User not logged in');
+    if (user == null) return;
+
+    if (_categories.length == 1) {
+      Get.snackbar("Action blocked", "At least one category must exist.");
       return;
     }
 
-    final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
+    final confirm = await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Category"),
+        content: Text(
+          "Do you want to delete '${category.name}'?\n\n"
+              "• This will NOT delete existing transactions.\n"
+              "• Category will simply be removed from your list.",
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _firestore
+          .collection("users")
+          .doc(user.email)
+          .collection("categories")
+          .doc(category.id)
+          .delete();
+
+      setState(() {
+        _categories.removeWhere((c) => c.id == category.id);
+
+        if (selectedCategory == category.name) {
+          selectedCategory = _categories.first.name;
+        }
+      });
+
+      Get.snackbar(
+        "Deleted",
+        "'${category.name}' removed successfully",
+        snackPosition: SnackPosition.BOTTOM,
+        colorText: Colors.white,
+        backgroundColor: Colors.redAccent,
+        icon: const Icon(Icons.delete, color: Colors.white),
+      );
+    } catch (e) {
+      Get.snackbar("Error", "Failed to delete category");
+    }
+  }
+
+  // ——————————————————————————————————————
+  //  SAVE TRANSACTION
+  // ——————————————————————————————————————
+  Future<void> saveTransaction() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final amount = double.tryParse(_amount.text.trim()) ?? 0;
     if (amount <= 0) {
-      Get.snackbar('Error', 'Enter a valid amount');
+      Get.snackbar("Error", "Enter valid amount");
       return;
     }
-    if (_personController.text.trim().isEmpty) {
-      Get.snackbar('Error', 'Enter recipient/sender name');
+
+    if (_name.text.trim().isEmpty) {
+      Get.snackbar("Error", "Enter valid name");
       return;
     }
-    if (selectedCategory == null || selectedCategory!.isEmpty) {
-      Get.snackbar('Error', 'Select a category');
+
+    if (selectedCategory == null) {
+      Get.snackbar("Error", "Select a category");
       return;
     }
 
     try {
-      final transaction = TransactionModel(
-        id: '',
-        senderId: widget.type == PaymentType.send ? user.uid : '',
-        recipientId: widget.type == PaymentType.send ? '' : user.uid,
-        recipientName: _personController.text.trim(),
+      final tx = TransactionModel(
+        id: "",
+        senderId: widget.type == PaymentType.send ? user.uid : "",
+        recipientId: widget.type == PaymentType.send ? "" : user.uid,
+        recipientName: _name.text.trim(),
         amount: amount,
-        currency: 'INR',
+        currency: "INR",
         tax: 0.0,
-        note: _noteController.text.trim(),
+        note: _note.text.trim(),
         category: selectedCategory,
         date: selectedDate,
-        status: 'success',
+        status: "success",
         createdAt: Timestamp.now(),
       );
 
-      await _firestore.collection("users").doc(user.email).collection('transactions').add(transaction.toMap());
+      await _firestore
+          .collection("users")
+          .doc(user.email)
+          .collection("transactions")
+          .add(tx.toMap());
 
-      // Show confirmation dialog after successful save
-      // await showDialog(
-      //   context: context,
-      //   builder: (ctx) => AlertDialog(
-      //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      //     title: Row(
-      //       children: [
-      //         Icon(Icons.check_circle, color: Colors.green, size: 30),
-      //         SizedBox(width: 8),
-      //         Text("Transaction Successful"),
-      //       ],
-      //     ),
-      //     content: Column(
-      //       mainAxisSize: MainAxisSize.min,
-      //       children: [
-      //         Text(
-      //           "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? "sent to" : "received from"} ${_personController.text.trim()}",
-      //           textAlign: TextAlign.center,
-      //           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-      //         ),
-      //         SizedBox(height: 8),
-      //         Text("Category: $selectedCategory"),
-      //         Text("Date: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"),
-      //       ],
-      //     ),
-      //     actions: [
-      //       TextButton(
-      //         onPressed: () {
-      //           Navigator.of(ctx).pop();
-      //           goBack(); // Return to previous page after dismissing
-      //         },
-      //         child: const Text("Done", style: TextStyle(color: Colors.blue, fontSize: 15)),
-      //       )
-      //     ],
-      //   ),
-      // );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.snackbar(
-          "Transaction Successful",
-          "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? "sent to" : "received from"} ${_personController.text.trim()}",
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          borderRadius: 8,
-          icon: Icon(Icons.check_circle, color: Colors.white),
-          duration: Duration(seconds: 3),
-        );
-        // Optional: Delay navigation, or allow user to back manually
-      });
+      Get.snackbar(
+        "Success",
+        "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? 'sent' : 'received'}",
+        snackPosition: SnackPosition.BOTTOM,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+
       goBack();
     } catch (e) {
-      debugPrint("Error saving transaction: $e");
-      Get.snackbar('Error', 'Failed to save transaction');
+      debugPrint("Error: $e");
+      Get.snackbar("Error", "Unable to save transaction");
     }
   }
 
+  // ——————————————————————————————————————
+  //  UI BUILD
+  // ——————————————————————————————————————
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -255,19 +263,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
     final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
 
-    final title = widget.type == PaymentType.send
-        ? "Send Money"
-        : "Receive Money";
-    final personLabel = widget.type == PaymentType.send
-        ? "Recipient"
-        : "Sender";
-    final personHint = widget.type == PaymentType.send
-        ? "Enter recipient name"
-        : "Enter sender name";
-    //TODO: Remove usage warning
-    // final actionButtonLabel = widget.type == PaymentType.send
-    //     ? "Send"
-    //     : "Receive";
+    final title =
+    widget.type == PaymentType.send ? "Send Money" : "Receive Money";
+    final nameLabel =
+    widget.type == PaymentType.send ? "Recipient" : "Sender";
 
     return Scaffold(
       body: Container(
@@ -281,343 +280,44 @@ class _PaymentScreenState extends State<PaymentScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                title: Text(
-                  title,
-                  style: TextStyle(
-                    color: scheme.onBackground,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 17.sp,
-                  ),
-                ),
-                centerTitle: true,
-                leading: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios,
-                    color: scheme.onBackground,
-                    size: 20.sp,
-                  ),
-                  onPressed: () => goBack(),
-                ),
-                
-                actions: [
-                  if(widget.type == PaymentType.send) ...[
-                    IconButton(
-                      icon: Icon(
-                        Icons.qr_code_scanner,
-                        color: scheme.onBackground,
-                      ), onPressed: () { Get.to(() => ReceiptScanPage(), curve: curve, transition: transition, duration: duration); },
-                    )
-                  ]
-                ],
-              ),
+              _buildAppBar(scheme, title),
+
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 18.w,
-                    vertical: 8.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 18.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Amount",
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: 13.sp,
-                        ),
+                      _FieldLabel("Amount", scheme),
+                      _AmountField(_amount, scheme),
+
+                      _FieldLabel(nameLabel, scheme),
+                      _InputField(
+                          controller: _name,
+                          hint: "Enter name",
+                          scheme: scheme),
+
+                      _FieldLabel("Select Category", scheme),
+                      _CategorySelector(),
+
+                      _FieldLabel("Note", scheme),
+                      _InputField(
+                        controller: _note,
+                        hint: "Add a note...",
+                        scheme: scheme,
+                        maxLines: 2,
                       ),
-                      SizedBox(height: 8.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: scheme.surface,
-                          borderRadius: BorderRadius.circular(13.r),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12.w,
-                          vertical: 4.h,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              "INR",
-                              style: TextStyle(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15.sp,
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: TextField(
-                                controller: _amountController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  isCollapsed: true,
-                                  hintText: "0",
-                                  hintStyle: TextStyle(
-                                    color: scheme.onSurface.withOpacity(0.4),
-                                  ),
-                                ),
-                                style: TextStyle(
-                                  color: scheme.onSurface,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18.sp,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+
+                      _FieldLabel("Date", scheme),
+                      _DateSelector(),
+
+                      SizedBox(height: 32.h),
+                      _SubmitButton(
+                        label: widget.type == PaymentType.send ? "Send" : "Receive",
+                        onTap: saveTransaction,
+                        scheme: scheme,
                       ),
-                      SizedBox(height: 20.h),
-                      Text(
-                        personLabel,
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: 13.sp,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: scheme.surface,
-                          borderRadius: BorderRadius.circular(13.r),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12.w,
-                          vertical: 4.h,
-                        ),
-                        child: TextField(
-                          controller: _personController,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            isCollapsed: true,
-                            hintText: personHint,
-                            hintStyle: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.4),
-                            ),
-                          ),
-                          style: TextStyle(
-                            color: scheme.onSurface,
-                            fontWeight: FontWeight.normal,
-                            fontSize: 16.sp,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-                      Text(
-                        "Select Category",
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: 13.sp,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            ..._categories.map(
-                              (cat) => Padding(
-                                padding: EdgeInsets.only(right: 8.w),
-                                child: ChoiceChip(
-                                  labelPadding: EdgeInsets.zero,
-                                  label: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8.w,
-                                        ),
-                                        child: Text(
-                                          cat.name,
-                                          style: TextStyle(fontSize: 13.sp),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 6.w,
-                                        ),
-                                        child: Icon(
-                                          Icons.close,
-                                          size: 15.sp,
-                                          color: selectedCategory == cat.name
-                                              ? scheme.onPrimary
-                                              : scheme.onSurface,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  selected: selectedCategory == cat.name,
-                                  selectedColor: scheme.primary,
-                                  backgroundColor: scheme.surface,
-                                  labelStyle: TextStyle(
-                                    color: selectedCategory == cat.name
-                                        ? scheme.onPrimary
-                                        : scheme.onSurface,
-                                  ),
-                                  onSelected: (sel) => setState(
-                                    () => selectedCategory = cat.name,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18.r),
-                                    side: BorderSide(
-                                      color: selectedCategory == cat.name
-                                          ? scheme.primary
-                                          : (isLight
-                                                ? kLightBorder
-                                                : kDarkBorder),
-                                      width: 1.3,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              margin: EdgeInsets.only(left: 2.w),
-                              child: ActionChip(
-                                labelPadding: EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                ),
-                                label: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.add,
-                                      color: scheme.primary,
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      "Add category",
-                                      style: TextStyle(
-                                        color: scheme.primary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                backgroundColor: scheme.surface,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  side: BorderSide(
-                                    color: scheme.primary.withOpacity(0.35),
-                                  ),
-                                ),
-                                onPressed: _showAddCategoryDialog,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-                      Text(
-                        "Write Note",
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: 13.sp,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: scheme.surface,
-                          borderRadius: BorderRadius.circular(13.r),
-                        ),
-                        padding: EdgeInsets.only(left: 12.w),
-                        child: TextField(
-                          controller: _noteController,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "Enter a note...",
-                            hintStyle: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.4),
-                            ),
-                          ),
-                          minLines: 1,
-                          maxLines: 2,
-                          style: TextStyle(
-                            color: scheme.onSurface,
-                            fontSize: 13.5.sp,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-                      Text(
-                        "Set Date",
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: 13.sp,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      GestureDetector(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime(2015),
-                            lastDate: DateTime(2101),
-                          );
-                          if (picked != null)
-                            setState(() => selectedDate = picked);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: scheme.surface,
-                            borderRadius: BorderRadius.circular(13.r),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            vertical: 13.h,
-                            horizontal: 12.w,
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                "${selectedDate.day.toString().padLeft(2, '0')} ${_monthAbbr(selectedDate.month)}, ${selectedDate.year}",
-                                style: TextStyle(
-                                  color: scheme.onSurface,
-                                  fontSize: 14.sp,
-                                ),
-                              ),
-                              const Spacer(),
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                color: scheme.primary,
-                                size: 18.sp,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 40.h),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52.h,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: scheme.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24.r),
-                            ),
-                          ),
-                          onPressed: _saveTransaction,
-                          child: Text(
-                            widget.type == PaymentType.send
-                                ? "Send"
-                                : "Receive",
-                            style: TextStyle(
-                              color: scheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15.5.sp,
-                            ),
-                          ),
-                        ),
-                      ),
+
                       SizedBox(height: 20.h),
                     ],
                   ),
@@ -630,21 +330,219 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  String _monthAbbr(int month) {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return months[month - 1];
+  // ——————————————————————————————————————
+  //  WIDGETS
+  // ——————————————————————————————————————
+
+  Widget _buildAppBar(ColorScheme scheme, String title) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      title: Text(
+        title,
+        style: TextStyle(
+          color: scheme.onBackground,
+          fontWeight: FontWeight.w600,
+          fontSize: 17.sp,
+        ),
+      ),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground),
+        onPressed: goBack,
+      ),
+      actions: [
+        if (widget.type == PaymentType.send)
+          IconButton(
+            icon: Icon(Icons.qr_code_scanner, color: scheme.onBackground),
+            onPressed: () {
+              Get.to(() => ReceiptScanPage(),
+                  curve: curve, transition: transition, duration: duration);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _FieldLabel(String text, ColorScheme scheme) {
+    return Padding(
+      padding: EdgeInsets.only(top: 20.h, bottom: 6.h),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: scheme.onSurface,
+          fontSize: 13.sp,
+        ),
+      ),
+    );
+  }
+
+  Widget _AmountField(TextEditingController c, ColorScheme scheme) {
+    return _Box(
+      scheme,
+      Row(
+        children: [
+          Text("INR",
+              style: TextStyle(
+                color: scheme.primary,
+                fontWeight: FontWeight.w700,
+                fontSize: 15.sp,
+              )),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: TextField(
+              controller: c,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(border: InputBorder.none),
+              style: TextStyle(
+                fontSize: 18.sp,
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _InputField({
+    required TextEditingController controller,
+    required String hint,
+    required ColorScheme scheme,
+    int maxLines = 1,
+  }) {
+    return _Box(
+      scheme,
+      TextField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.4)),
+        ),
+        style: TextStyle(fontSize: 15.sp, color: scheme.onSurface),
+      ),
+    );
+  }
+
+  Widget _CategorySelector() {
+    final scheme = Theme.of(context).colorScheme;
+    final isLight = scheme.brightness == Brightness.light;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ..._categories.map(
+                (cat) => Padding(
+              padding: EdgeInsets.only(right: 8.w),
+              child: GestureDetector(
+                onLongPress: () => _deleteCategory(cat),   // <<< DELETE FEATURE
+                child: ChoiceChip(
+                  label: Text(cat.name),
+                  selected: selectedCategory == cat.name,
+                  onSelected: (_) =>
+                      setState(() => selectedCategory = cat.name),
+                  selectedColor: scheme.primary,
+                  labelStyle: TextStyle(
+                    color: selectedCategory == cat.name
+                        ? scheme.onPrimary
+                        : scheme.onSurface,
+                  ),
+                  backgroundColor: scheme.surface,
+                  shape: StadiumBorder(
+                    side: BorderSide(
+                      color: selectedCategory == cat.name
+                          ? scheme.primary
+                          : (isLight ? kLightBorder : kDarkBorder),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          ActionChip(
+            label: Row(
+              children: [
+                Icon(Icons.add, color: scheme.primary, size: 17),
+                Text(" Add", style: TextStyle(color: scheme.primary)),
+              ],
+            ),
+            backgroundColor: scheme.surface,
+            onPressed: _addCategoryDialog,
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _DateSelector() {
+    final scheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: selectedDate,
+          firstDate: DateTime(2015),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) setState(() => selectedDate = picked);
+      },
+      child: _Box(
+        scheme,
+        Row(
+          children: [
+            Text(
+              "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+              style: TextStyle(fontSize: 15.sp, color: scheme.onSurface),
+            ),
+            const Spacer(),
+            Icon(Icons.calendar_today_outlined, color: scheme.primary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _SubmitButton({
+    required String label,
+    required VoidCallback onTap,
+    required ColorScheme scheme,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52.h,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: scheme.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24.r),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: scheme.onPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 16.sp,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _Box(ColorScheme scheme, Widget child) {
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(14.r),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      child: child,
+    );
   }
 }

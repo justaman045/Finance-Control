@@ -3,8 +3,52 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Components/colors.dart';
 
-class HelpFAQScreen extends StatelessWidget {
+class HelpFAQScreen extends StatefulWidget {
   const HelpFAQScreen({super.key});
+
+  @override
+  State<HelpFAQScreen> createState() => _HelpFAQScreenState();
+}
+
+class _HelpFAQScreenState extends State<HelpFAQScreen> {
+  int? openedIndex;
+
+  final List<Map<String, String>> faqs = [
+    {
+      "q": "How do I add a new transaction?",
+      "a":
+      "Tap the '+' or 'Add Transaction' button on the Home screen or the Quick Send section. Fill the details and tap 'Save'."
+    },
+    {
+      "q": "How do I edit or delete an existing transaction?",
+      "a":
+      "Open any transaction in your history and use the edit or delete options on the top right."
+    },
+    {
+      "q": "How do I manage or add custom categories?",
+      "a":
+      "You can add categories when adding/editing a transaction using the category dropdown."
+    },
+    {
+      "q": "Does the app work offline?",
+      "a":
+      "Yes! All changes will be saved locally and synced automatically once you're online again."
+    },
+    {
+      "q": "How do I switch between Dark and Light mode?",
+      "a": "Go to Settings → Dark Mode to toggle theme appearance."
+    },
+    {
+      "q": "Can I export or download my transaction history?",
+      "a":
+      "Data export is coming soon! For now, you can share screenshots of individual transactions."
+    },
+    {
+      "q": "How do I reset my password?",
+      "a":
+      "Go to Settings → Change Password. A reset link will be emailed to you."
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -13,48 +57,10 @@ class HelpFAQScreen extends StatelessWidget {
 
     final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
     final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
-    final surface = scheme.surface;
     final border = isLight ? kLightBorder : kDarkBorder;
-    final secondaryText = isLight ? kLightTextSecondary : kDarkTextSecondary;
-
-    final List<Map<String, String>> faqs = [
-      {
-        "q": "How do I add a new transaction?",
-        "a":
-        "Tap on the '+' or 'Add Transaction' button on the Home screen or the quick send row. Fill in the details and press 'Save'."
-      },
-      {
-        "q": "How do I edit or delete an existing transaction?",
-        "a":
-        "Tap any transaction in your history to view details. From the detail page, use edit or delete icons in the corner."
-      },
-      {
-        "q": "How do I manage or add custom categories?",
-        "a":
-        "You can add a new category while adding/editing a transaction using the dropdown menu on the transaction form."
-      },
-      {
-        "q": "Will my data sync if I lose connection?",
-        "a":
-        "Yes, Money Control supports offline mode. Your changes will be saved locally and synced to the cloud once you reconnect."
-      },
-      {
-        "q": "How do I switch between dark and light modes?",
-        "a":
-        "Go to Settings > Dark Mode to toggle between appearance modes."
-      },
-      {
-        "q": "Can I export or share my transactions?",
-        "a":
-        "You can share screenshots for individual transactions from the details view. Data export features are coming soon."
-      },
-      {
-        "q": "How do I reset my password?",
-        "a":
-        "Go to Settings > Change Password. Enter your email address to receive a password reset link."
-      },
-      // Add more FAQs as needed!
-    ];
+    final surface = scheme.surface;
+    final secondaryText =
+    isLight ? kLightTextSecondary : kDarkTextSecondary;
 
     return Container(
       decoration: BoxDecoration(
@@ -79,59 +85,37 @@ class HelpFAQScreen extends StatelessWidget {
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
-            onPressed: () => Navigator.of(context).pop(),
+            icon: Icon(Icons.arrow_back_ios,
+                color: scheme.onBackground, size: 20.sp),
+            onPressed: () => Navigator.pop(context),
           ),
           toolbarHeight: 64.h,
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...faqs.map((faq) => Padding(
-                padding: EdgeInsets.only(bottom: 17.h),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: surface,
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(color: border, width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.017),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        faq["q"] ?? "",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp,
-                          color: scheme.primary,
-                        ),
-                      ),
-                      SizedBox(height: 5.h),
-                      Text(
-                        faq["a"] ?? "",
-                        style: TextStyle(
-                          color: scheme.onSurface.withOpacity(0.91),
-                          fontSize: 13.5.sp,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
+              ...List.generate(
+                faqs.length,
+                    (index) => _FAQTile(
+                  question: faqs[index]["q"]!,
+                  answer: faqs[index]["a"]!,
+                  isOpen: openedIndex == index,
+                  border: border,
+                  surface: surface,
+                  onTap: () {
+                    setState(() {
+                      openedIndex = openedIndex == index ? null : index;
+                    });
+                  },
                 ),
-              )),
+              ),
               SizedBox(height: 30.h),
+
+              // Contact section
               Center(
                 child: Text(
-                  "Still have questions?\nContact support at work.amanojha30@gmail.com",
+                  "Still have questions?\nContact support at:",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: secondaryText,
@@ -139,12 +123,107 @@ class HelpFAQScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              SizedBox(height: 6.h),
+              SelectableText(
+                "work.amanojha30@gmail.com",
+                style: TextStyle(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.sp,
+                ),
+              ),
               SizedBox(height: 24.h),
             ],
           ),
         ),
-        bottomNavigationBar: BottomNavBar(
-          currentIndex: 2,
+        bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+      ),
+    );
+  }
+}
+
+class _FAQTile extends StatelessWidget {
+  final String question;
+  final String answer;
+  final bool isOpen;
+  final VoidCallback onTap;
+  final Color border;
+  final Color surface;
+
+  const _FAQTile({
+    required this.question,
+    required this.answer,
+    required this.isOpen,
+    required this.onTap,
+    required this.border,
+    required this.surface,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        margin: EdgeInsets.only(bottom: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Question Row
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    question,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15.sp,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+                Icon(
+                  isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  color: scheme.primary,
+                )
+              ],
+            ),
+
+            // Animated Answer
+            AnimatedCrossFade(
+              firstChild: const SizedBox(),
+              secondChild: Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Text(
+                  answer,
+                  style: TextStyle(
+                    color: scheme.onSurface.withOpacity(0.9),
+                    fontSize: 13.5.sp,
+                    height: 1.38,
+                  ),
+                ),
+              ),
+              crossFadeState: isOpen
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 220),
+            ),
+          ],
         ),
       ),
     );
