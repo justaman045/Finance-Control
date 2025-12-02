@@ -4,27 +4,52 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/firebase_options.dart';
-import 'package:money_control/Services/background_worker.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+/// Single global notification plugin instance
+final FlutterLocalNotificationsPlugin notificationsPlugin =
+FlutterLocalNotificationsPlugin();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Firebase init
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   FirebaseFirestore.instance.settings =
   const Settings(persistenceEnabled: true);
 
-  // Background worker + local notifications
-  await BackgroundWorker.init();
+  // Local notifications init
+  const AndroidInitializationSettings androidInit =
+  AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  await FlutterLocalNotificationsPlugin().resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()?.requestNotificationsPermission();
+  await notificationsPlugin.initialize(
+    const InitializationSettings(android: androidInit),
+    onDidReceiveNotificationResponse: (response) {
+      // Handle notification tap
+      if (response.payload == "home") {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const BankingHomeScreen()),
+              (route) => false,
+        );
+      }
+    },
+  );
+
+  // Request notification permission (Android 13+)
+  await notificationsPlugin
+      .resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>()
+      ?.requestNotificationsPermission();
 
   runApp(const MoneyControlApp());
 }
@@ -36,6 +61,7 @@ class MoneyControlApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScreenUtilInit(
       designSize: const Size(390, 844),
+      minTextAdapt: true,
       builder: (_, __) => GetMaterialApp(
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
@@ -44,22 +70,6 @@ class MoneyControlApp extends StatelessWidget {
         theme: _buildLightTheme(),
         darkTheme: _buildDarkTheme(),
         home: const AuthChecker(),
-        // Handle notification click
-        // builder: (context, child) {
-        //   FlutterLocalNotificationsPlugin().initialize(
-        //     const InitializationSettings(
-        //       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        //     ),
-        //     onDidReceiveNotificationResponse: (response) {
-        //       if (response.payload == "home") {
-        //         navigatorKey.currentState?.push(
-        //           MaterialPageRoute(builder: (_) => const BankingHomeScreen()),
-        //         );
-        //       }
-        //     },
-        //   );
-        //   return child!;
-        // },
       ),
     );
   }
@@ -73,24 +83,31 @@ class AuthChecker extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Waiting for Firebase auth
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
+
+        // User logged in
         if (snapshot.hasData && snapshot.data != null) {
-          if (snapshot.data!.emailVerified) {
+          final user = snapshot.data!;
+          if (user.emailVerified) {
             return const BankingHomeScreen();
           } else {
             FirebaseAuth.instance.signOut();
             return const AnimatedSplashScreen();
           }
         }
+
+        // Not logged in
         return const AnimatedSplashScreen();
       },
     );
   }
 }
+
 // LIGHT THEME CONFIGURATION
 ThemeData _buildLightTheme() {
   return ThemeData(
@@ -109,32 +126,6 @@ ThemeData _buildLightTheme() {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
-      ),
-    ),
-    textTheme: TextTheme(
-      bodyMedium: TextStyle(color: kLightTextSecondary, fontSize: 14.sp),
-      bodyLarge: TextStyle(color: kLightTextPrimary, fontSize: 16.sp),
-      titleLarge: TextStyle(
-        color: kLightTextPrimary,
-        fontWeight: FontWeight.w600,
-        fontSize: 18.sp,
-      ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: kLightSurface,
-      hintStyle: const TextStyle(color: kLightTextSecondary),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kLightBorder, width: 1),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kLightBorder, width: 1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kLightPrimary, width: 2),
       ),
     ),
     dividerColor: kLightBorder,
@@ -165,23 +156,6 @@ ThemeData _buildDarkTheme() {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
-      ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: kDarkSurface,
-      hintStyle: const TextStyle(color: kDarkTextSecondary),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kDarkDivider, width: 1),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kDarkDivider, width: 1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kDarkPrimary, width: 2),
       ),
     ),
     dividerColor: kDarkDivider,

@@ -1,80 +1,78 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String taskName = "check_inactivity";
-
-final FlutterLocalNotificationsPlugin _notifications =
-FlutterLocalNotificationsPlugin();
-
-/// 🔥 THIS MUST BE TOP-LEVEL (NOT INSIDE ANY CLASS)
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    if (task == taskName) {
-      final prefs = await SharedPreferences.getInstance();
-
-      final lastOpened = prefs.getInt('lastOpened') ?? 0;
-      final now = DateTime.now().millisecondsSinceEpoch;
-
-      // 6 hours = 6 * 60 * 60 * 1000
-      // For testing:
-      const sixHoursMs = 5 * 1000; // 5 seconds
-
-      if (lastOpened != 0 && now - lastOpened > sixHoursMs) {
-        await _showReminder();
-      }
-    }
-
-    return Future.value(true);
-  });
-}
-
-/// 🔔 Show notification
-Future<void> _showReminder() async {
-  const androidDetails = AndroidNotificationDetails(
-    'reminder_channel',
-    'App Reminders',
-    importance: Importance.max,
-    priority: Priority.high,
-  );
-
-  const notificationDetails = NotificationDetails(android: androidDetails);
-
-  await _notifications.show(
-    1,
-    "Money Reminder 💸",
-    "You haven’t added your expenses in a while — track them now!",
-    notificationDetails,
-  );
-}
-
-/// 🚀 Call this from main.dart during app start
+/// Background worker to check inactivity and show reminder notifications
 class BackgroundWorker {
+  static bool _initialized = false;
+
+  /// Task name used by WorkManager
+  static const String taskName = "check_inactivity_task";
+
+  /// This function is called in the background isolate.
+  @pragma('vm:entry-point')
+  static void callbackDispatcher() {
+    Workmanager().executeTask((task, inputData) async {
+      if (task == taskName) {
+        final prefs = await SharedPreferences.getInstance();
+        final lastOpened = prefs.getInt('lastOpened') ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch;
+
+        // 6 hours in milliseconds
+        final sixHoursMs = const Duration(hours: 6).inMilliseconds;
+
+        if (lastOpened != 0 && (now - lastOpened) > sixHoursMs) {
+          await _showNotification();
+        }
+      }
+
+      // Must return true when the task is completed
+      return Future.value(true);
+    });
+  }
+
+  /// Initialize WorkManager only once
   static Future<void> init() async {
-    // Notification initialization
-    const androidSettings =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+    if (_initialized) return;
+    _initialized = true;
 
-    const initSettings = InitializationSettings(android: androidSettings);
-
-    await _notifications.initialize(initSettings);
-
-    // WorkManager init
+    // Initialize WorkManager with our callback dispatcher
     await Workmanager().initialize(
-      callbackDispatcher, // MUST MATCH the top-level function
-      isInDebugMode: true, // set true for testing
+      callbackDispatcher,
+      isInDebugMode: false,
     );
 
-    // Register periodic task
+    // Register periodic task (Android min is 15 minutes)
     await Workmanager().registerPeriodicTask(
-      "inactivity_task_id",
+      'check_inactivity_unique', // unique name
       taskName,
-      frequency: const Duration(minutes: 15), // minimum allowed
+      frequency: const Duration(hours: 1),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-      constraints: Constraints(
-        networkType: NetworkType.notRequired,
-      ),
+    );
+  }
+
+  /// Show inactivity notification
+  static Future<void> _showNotification() async {
+    final plugin = FlutterLocalNotificationsPlugin();
+
+    const AndroidNotificationDetails androidDetails =
+    AndroidNotificationDetails(
+      'reminder_channel',
+      'Reminders',
+      channelDescription: 'Inactivity reminders to add your expenses',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails details =
+    NotificationDetails(android: androidDetails);
+
+    await plugin.show(
+      42,
+      "Money reminder 💸",
+      "You haven’t added your expenses in a while — track them now!",
+      details,
+      payload: "home", // Used in main.dart to navigate to home
     );
   }
 }

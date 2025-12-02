@@ -16,6 +16,8 @@ import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Screens/transaction_history.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// 🔥 import background worker
+import 'package:money_control/Services/background_worker.dart';
 
 class BankingHomeScreen extends StatefulWidget {
   const BankingHomeScreen({super.key});
@@ -32,23 +34,29 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
   void initState() {
     super.initState();
     _updateLastOpenedLocal();
+
+    // Start WorkManager after first frame to avoid startup issues
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BackgroundWorker.init();
+    });
   }
 
+  /// Save last time the home screen was opened
   Future<void> _updateLastOpenedLocal() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt("lastOpened", DateTime.now().millisecondsSinceEpoch);
   }
 
-
   Future<void> _onRefresh() async {
-    _updateLastOpenedLocal();
+    await _updateLastOpenedLocal();
+
     setState(() {
       _balanceKey = UniqueKey();
       _quickSendKey = UniqueKey();
     });
+
     await Future.delayed(const Duration(milliseconds: 400));
   }
-
 
   Future<List<String>> fetchCategoriesSortedByUsage() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -64,6 +72,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     try {
       final snapshot = await txRef.get();
       Map<String, int> categoryCounts = {};
+
       for (var doc in snapshot.docs) {
         final category = doc['category'] as String?;
         if (category != null && category.isNotEmpty) {
@@ -73,6 +82,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
 
       final sortedCategories = categoryCounts.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
+
       return sortedCategories.map((e) => e.key).toList();
     } catch (e) {
       debugPrint('Error fetching categories sorted by usage: $e');
