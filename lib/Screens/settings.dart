@@ -6,14 +6,15 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:money_control/Screens/about_application.dart';
-import 'package:money_control/Screens/budget.dart';
-import 'package:money_control/Screens/deactivate_account.dart';
-import 'package:money_control/Screens/help_faq.dart';
-import 'package:money_control/Screens/loginscreen.dart';
-import 'package:money_control/Screens/notifications.dart';
-import 'package:money_control/Screens/edit_profile.dart';
-import 'package:money_control/Screens/terms_and_policy.dart'; // import your notification screen here
+
+import 'about_application.dart';
+import 'budget.dart';
+import 'deactivate_account.dart';
+import 'help_faq.dart';
+import 'loginscreen.dart';
+import 'notifications.dart';
+import 'edit_profile.dart';
+import 'terms_and_policy.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -23,8 +24,10 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool darkMode = false;
   final User? currentUser = FirebaseAuth.instance.currentUser;
+
+  bool darkMode = false;
+  bool loading = true;
 
   @override
   void initState() {
@@ -32,39 +35,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadDarkModeSetting();
   }
 
+  /// Load theme setting from Firestore
   Future<void> _loadDarkModeSetting() async {
     if (currentUser == null) return;
-    final doc = await FirebaseFirestore.instance.collection('users').doc(currentUser!.email).get();
-    if (doc.exists) {
-      final data = doc.data();
-      debugPrint('Dark mode setting loaded: ${data?["darkMode"]}');
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser!.email)
+          .get();
+
+      bool savedDarkMode = doc.data()?['darkMode'] ?? false;
+
       setState(() {
-        darkMode = data?['darkMode'] ?? false;
+        darkMode = savedDarkMode;
+        loading = false;
       });
+
+      // Apply theme globally
+      Get.changeThemeMode(savedDarkMode ? ThemeMode.dark : ThemeMode.light);
+    } catch (e) {
+      debugPrint("Error loading dark mode: $e");
+      loading = false;
     }
   }
 
+  /// Update theme & Firestore
   Future<void> _updateDarkModeSetting(bool value) async {
     if (currentUser == null) return;
-    await FirebaseFirestore.instance.collection('users').doc(currentUser!.email).set(
-      {'darkMode': value},
-      SetOptions(merge: true),
-    );
-    setState(() {
-      darkMode = value;
-    });
-    // Integrate your app's theme management logic here:
-    // For example, if you use GetX:
-    // if (darkMode) Get.changeTheme(ThemeData.dark()) else Get.changeTheme(ThemeData.light())
+
+    await FirebaseFirestore.instance.collection('users').doc(currentUser!.email)
+        .set({'darkMode': value}, SetOptions(merge: true));
+
+    setState(() => darkMode = value);
+
+    Get.changeThemeMode(value ? ThemeMode.dark : ThemeMode.light);
   }
 
   Future<void> _sendPasswordResetEmail() async {
     if (currentUser == null) return;
+
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: currentUser!.email!);
-      Get.snackbar("Password Reset","Password reset email sent to ${currentUser!.email}");
+      Get.snackbar("Password Reset", "Email sent to ${currentUser!.email}");
     } catch (e) {
-      Get.snackbar("Password Reset","Failed to send password reset email: $e");
+      Get.snackbar("Password Reset", "Failed: $e");
     }
   }
 
@@ -78,6 +93,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final surface = scheme.surface;
     final border = isLight ? kLightBorder : kDarkBorder;
     final secondaryText = isLight ? kLightTextSecondary : kDarkTextSecondary;
+
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -103,220 +122,188 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
-            onPressed: () {
-              goBack();
-            },
+            onPressed: goBack,
           ),
           toolbarHeight: 64.h,
         ),
+
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile Card
-              Container(
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 4,
-                    ),
-                  ],
-                  border: Border.all(color: border, width: 1),
+              /// PROFILE CARD
+              _profileCard(surface, border, scheme),
+
+              SizedBox(height: 20.h),
+              Text("Other settings",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.sp,
+                    color: secondaryText,
+                  )),
+              SizedBox(height: 12.h),
+
+              /// MAIN OPTIONS
+              _settingsGroup(surface, border, [
+                _SettingsTile(
+                  icon: Icons.person_outline,
+                  title: "Profile details",
+                  onTap: () => gotoPage(const EditProfileScreen()),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: surface,
-                    radius: 26.r,
-                    backgroundImage: const AssetImage("assets/profile.png"),
-                  ),
-                  title: Text(
-                    FirebaseAuth.instance.currentUser!.displayName ?? "User",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp, color: scheme.onSurface),
-                  ),
-                  // subtitle: Text(
-                  //   "Product/UI Designer",
-                  //   style: TextStyle(fontSize: 12.sp, color: secondaryText),
-                  // ),
-                  trailing: Icon(Icons.chevron_right, color: secondaryText, size: 24.sp),
-                  contentPadding: EdgeInsets.zero,
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.lock_outline,
+                  title: "Change Password",
+                  onTap: _sendPasswordResetEmail,
+                ),
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.monetization_on_outlined,
+                  title: "Set Budget",
+                  onTap: () => gotoPage(const CategoryBudgetScreen()),
+                ),
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.notifications_none,
+                  title: "Notifications",
+                  onTap: () => gotoPage(const NotificationsScreen()),
+                ),
+                _divider(border),
+                _SwitchSettingsTile(
+                  icon: Icons.nights_stay_outlined,
+                  title: "Dark mode",
+                  value: darkMode,
+                  onChanged: _updateDarkModeSetting,
+                ),
+              ]),
+
+              SizedBox(height: 20.h),
+
+              /// ABOUT / HELP / SIGN OUT
+              _settingsGroup(surface, border, [
+                _SettingsTile(
+                  icon: Icons.info_outline,
+                  title: "About application",
+                  onTap: () => gotoPage(const AboutApplicationScreen()),
+                ),
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.help_outline,
+                  title: "Help / FAQ",
+                  onTap: () => gotoPage(const HelpFAQScreen()),
+                ),
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.privacy_tip_outlined,
+                  title: "Privacy & Policies",
+                  onTap: () => gotoPage(const LegalTrustPage()),
+                ),
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.logout,
+                  title: "Sign Out",
+                  iconColor: scheme.error,
+                  textColor: scheme.error,
                   onTap: () {
-                    gotoPage(const EditProfileScreen());
+                    FirebaseAuth.instance.signOut();
+                    gotoPage(const LoginScreen());
                   },
                 ),
-              ),
-              SizedBox(height: 19.h),
-              Text(
-                "Other settings",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13.sp,
-                  color: secondaryText,
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.delete_outline,
+                  title: "Deactivate my account",
+                  iconColor: scheme.error,
+                  textColor: scheme.error,
+                  onTap: () => gotoPage(const DeactivateAccountScreen()),
                 ),
-              ),
-              SizedBox(height: 11.h),
-              // Main Settings section
-              Container(
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: border, width: 1),
-                ),
-                child: Column(
-                  children: [
-                    _SettingsTile(
-                      Icons.person_outline,
-                      "Profile details",
-                      onTap: () {
-                        gotoPage(const EditProfileScreen());
-                      },
-                    ),
-                    Divider(height: 0, color: border),
-                    _SettingsTile(
-                      Icons.lock_outline,
-                      "Change Password",
-                      onTap: _sendPasswordResetEmail,
-                    ),
-                    Divider(height: 0, color: border),
-                    _SettingsTile(
-                      Icons.monetization_on_outlined,
-                      "Set Budget",
-                      onTap: () {
-                        gotoPage(const CategoryBudgetScreen());
-                      },
-                    ),
-                    Divider(height: 0, color: border),
-                    _SettingsTile(
-                      Icons.notifications_none,
-                      "Notifications",
-                      onTap: () {
-                        gotoPage(const NotificationsScreen()); // create NotificationScreen accordingly
-                      },
-                    ),
-                    Divider(height: 0, color: border),
-                    _SwitchSettingsTile(
-                      icon: Icons.nights_stay_outlined,
-                      title: "Dark mode",
-                      value: darkMode,
-                      onChanged: (bool v) => _updateDarkModeSetting(v),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 19.h),
-              // About / FAQ / Deactivate
-              Container(
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: border, width: 1),
-                ),
-                child: Column(
-                  children: [
-                    _SettingsTile(
-                      Icons.info_outline,
-                      "About application",
-                      onTap: () {
-                        gotoPage(const AboutApplicationScreen());
-                      },
-                    ),
-                    Divider(height: 0, color: border),
-                    _SettingsTile(
-                      Icons.help_outline,
-                      "Help / FAQ",
-                      onTap: () {
-                        gotoPage(const HelpFAQScreen());
-                      },
-                    ),
-                    Divider(height: 0, color: border),
-                    _SettingsTile(
-                      Icons.privacy_tip_outlined,
-                      "Privacy and Policies",
-                      onTap: () {
-                        gotoPage(const LegalTrustPage());
-                      },
-                    ),
-                    Divider(height: 0, color: border),
-                    Padding(
-                      padding: EdgeInsetsGeometry.only(left: 4.w),
-                      child: _SettingsTile(
-                        Icons.logout,
-                        "Sign Out",
-                        onTap: () {
-                          FirebaseAuth.instance.signOut();
-                          gotoPage(const LoginScreen());
-                        },
-                        iconColor: scheme.error,
-                        textColor: scheme.error,
-                      ),
-                    ),
-                    Divider(height: 0, color: border),
-                    _SettingsTile(
-                      Icons.delete_outline,
-                      "Deactivate my account",
-                      onTap: () {
-                        gotoPage(const DeactivateAccountScreen());
-                      },
-                      iconColor: scheme.error,
-                      textColor: scheme.error,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 24.h),
+              ]),
+              SizedBox(height: 30.h),
             ],
           ),
         ),
-        bottomNavigationBar: BottomNavBar(
-          currentIndex: 2,
+
+        bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+      ),
+    );
+  }
+
+  /// Helper Methods
+  Widget _divider(Color border) => Divider(height: 0, color: border);
+
+  Widget _settingsGroup(Color surface, Color border, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: border),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _profileCard(Color surface, Color border, ColorScheme scheme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: border),
+      ),
+      child: ListTile(
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+        leading: CircleAvatar(
+          backgroundColor: surface,
+          radius: 26.r,
+          backgroundImage: const AssetImage("assets/profile.png"),
         ),
+        title: Text(
+          currentUser?.displayName ?? "User",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16.sp,
+            color: scheme.onSurface,
+          ),
+        ),
+        trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withOpacity(0.6)),
+        onTap: () => gotoPage(const EditProfileScreen()),
       ),
     );
   }
 }
 
+/// GENERAL SETTING TILE
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
-  final Color? iconColor;
   final String title;
-  final VoidCallback? onTap;
+  final Color? iconColor;
   final Color? textColor;
+  final VoidCallback? onTap;
 
-  const _SettingsTile(
-      this.icon,
-      this.title, {
-        this.iconColor,
-        this.onTap,
-        this.textColor,
-      });
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    this.iconColor,
+    this.textColor,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final secondaryText = scheme.brightness == Brightness.light ? kLightTextSecondary : kDarkTextSecondary;
+
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? secondaryText, size: 23.sp),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14.5.sp,
-          color: textColor ?? scheme.onSurface,
-        ),
-      ),
-      trailing: Icon(Icons.chevron_right, color: secondaryText, size: 23.sp),
-      contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0),
-      horizontalTitleGap: 12.w,
-      minVerticalPadding: 0,
-      dense: true,
+      leading: Icon(icon, color: iconColor ?? scheme.onSurface.withOpacity(0.7)),
+      title: Text(title, style: TextStyle(color: textColor ?? scheme.onSurface, fontSize: 14.5.sp)),
+      trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withOpacity(0.5)),
       onTap: onTap,
+      dense: true,
+      minLeadingWidth: 0,
     );
   }
 }
 
+/// SWITCH TILE
 class _SwitchSettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -333,19 +320,20 @@ class _SwitchSettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final secondaryText = scheme.brightness == Brightness.light ? kLightTextSecondary : kDarkTextSecondary;
+
     return ListTile(
-      leading: Icon(icon, color: secondaryText, size: 23.sp),
-      title: Text(title, style: TextStyle(fontSize: 14.5.sp, color: scheme.onSurface)),
+      leading: Icon(icon, color: scheme.onSurface.withOpacity(0.7)),
+      title: Text(
+        title,
+        style: TextStyle(fontSize: 14.5.sp, color: scheme.onSurface),
+      ),
       trailing: Switch(
         value: value,
-        onChanged: onChanged,
         activeColor: scheme.primary,
+        onChanged: onChanged,
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0),
-      horizontalTitleGap: 12.w,
-      minVerticalPadding: 0,
       dense: true,
+      minLeadingWidth: 0,
     );
   }
 }

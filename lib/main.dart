@@ -4,77 +4,111 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'package:money_control/firebase_options.dart';
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Components/colors.dart';
-import 'package:money_control/firebase_options.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:money_control/Services/background_worker.dart';
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final navigatorKey = GlobalKey<NavigatorState>();
 
-/// Single global notification plugin instance
-final FlutterLocalNotificationsPlugin notificationsPlugin =
-FlutterLocalNotificationsPlugin();
+// ---- THEME CONTROLLER ----
+class ThemeController extends GetxController {
+  RxBool isDark = false.obs;
 
+  ThemeMode get themeMode => isDark.value ? ThemeMode.dark : ThemeMode.light;
+
+  void setTheme(bool dark) {
+    isDark.value = dark;
+  }
+}
+
+final ThemeController themeController = Get.put(ThemeController());
+
+// ---- MAIN ----
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase init
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   FirebaseFirestore.instance.settings =
   const Settings(persistenceEnabled: true);
 
-  // Local notifications init
-  const AndroidInitializationSettings androidInit =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
+  await _loadThemeFromFirebase();
 
-  await notificationsPlugin.initialize(
-    const InitializationSettings(android: androidInit),
-    onDidReceiveNotificationResponse: (response) {
-      // Handle notification tap
-      if (response.payload == "home") {
-        navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const BankingHomeScreen()),
-              (route) => false,
-        );
-      }
-    },
-  );
+  await BackgroundWorker.init();
 
-  // Request notification permission (Android 13+)
-  await notificationsPlugin
+  await FlutterLocalNotificationsPlugin()
       .resolvePlatformSpecificImplementation<
       AndroidFlutterLocalNotificationsPlugin>()
       ?.requestNotificationsPermission();
 
-  runApp(const MoneyControlApp());
+  runApp(const RootApp());
 }
 
-class MoneyControlApp extends StatelessWidget {
-  const MoneyControlApp({super.key});
+// Load theme BEFORE app builds
+Future<void> _loadThemeFromFirebase() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.email)
+        .get();
+
+    final isDark = doc.data()?["darkMode"] ?? false;
+    themeController.setTheme(isDark);
+  } catch (_) {}
+}
+
+// ---- ROOT APP ----
+class RootApp extends StatelessWidget {
+  const RootApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
       designSize: const Size(390, 844),
-      minTextAdapt: true,
-      builder: (_, __) => GetMaterialApp(
-        navigatorKey: navigatorKey,
-        debugShowCheckedModeBanner: false,
-        title: 'Money Control',
-        themeMode: ThemeMode.system,
-        theme: _buildLightTheme(),
-        darkTheme: _buildDarkTheme(),
-        home: const AuthChecker(),
-      ),
+      builder: (_, __) {
+        return GetMaterialApp(
+          navigatorKey: navigatorKey,
+          debugShowCheckedModeBanner: false,
+          title: "Money Control",
+
+          // Only this part reacts 🔥
+          themeMode: themeController.themeMode,
+
+          theme: _buildLightTheme(),
+          darkTheme: _buildDarkTheme(),
+
+          home: const AuthChecker(),
+
+          builder: (context, child) {
+            FlutterLocalNotificationsPlugin().initialize(
+              const InitializationSettings(
+                android: AndroidInitializationSettings("@mipmap/ic_launcher"),
+              ),
+              onDidReceiveNotificationResponse: (response) {
+                if (response.payload == "home") {
+                  navigatorKey.currentState?.push(
+                    MaterialPageRoute(
+                        builder: (_) => const BankingHomeScreen()),
+                  );
+                }
+              },
+            );
+            return child!;
+          },
+        );
+      },
     );
   }
 }
 
+// ---- AUTH CHECK ----
 class AuthChecker extends StatelessWidget {
   const AuthChecker({super.key});
 
@@ -82,33 +116,29 @@ class AuthChecker extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // Waiting for Firebase auth
+      builder: (_, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // User logged in
         if (snapshot.hasData && snapshot.data != null) {
-          final user = snapshot.data!;
-          if (user.emailVerified) {
+          if (snapshot.data!.emailVerified) {
             return const BankingHomeScreen();
-          } else {
-            FirebaseAuth.instance.signOut();
-            return const AnimatedSplashScreen();
           }
+          FirebaseAuth.instance.signOut();
         }
 
-        // Not logged in
         return const AnimatedSplashScreen();
       },
     );
   }
 }
 
-// LIGHT THEME CONFIGURATION
+/// -------------------------
+///       THEMES
+/// -------------------------
 ThemeData _buildLightTheme() {
   return ThemeData(
     brightness: Brightness.light,
@@ -117,28 +147,13 @@ ThemeData _buildLightTheme() {
     appBarTheme: const AppBarTheme(
       backgroundColor: kLightPrimary,
       foregroundColor: Colors.white,
-      elevation: 0,
     ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: kLightPrimary,
-        foregroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-      ),
-    ),
-    dividerColor: kLightBorder,
-    snackBarTheme: const SnackBarThemeData(
-      backgroundColor: kLightPrimary,
-      contentTextStyle: TextStyle(color: Colors.white),
-    ),
+
     visualDensity: VisualDensity.adaptivePlatformDensity,
     useMaterial3: true,
   );
 }
 
-// DARK THEME CONFIGURATION
 ThemeData _buildDarkTheme() {
   return ThemeData(
     brightness: Brightness.dark,
@@ -147,22 +162,8 @@ ThemeData _buildDarkTheme() {
     appBarTheme: const AppBarTheme(
       backgroundColor: kDarkSurface,
       foregroundColor: Colors.white,
-      elevation: 0,
     ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: kDarkPrimary,
-        foregroundColor: Colors.black,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-      ),
-    ),
-    dividerColor: kDarkDivider,
-    snackBarTheme: const SnackBarThemeData(
-      backgroundColor: kDarkPrimary,
-      contentTextStyle: TextStyle(color: Colors.black),
-    ),
+
     visualDensity: VisualDensity.adaptivePlatformDensity,
     useMaterial3: true,
   );
