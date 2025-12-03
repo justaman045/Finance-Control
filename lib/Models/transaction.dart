@@ -36,22 +36,37 @@ class TransactionModel {
   String? get recipientAvatar => attachmentUrl;
 
   factory TransactionModel.fromMap(String id, Map<String, dynamic> map) {
+    DateTime parsedDate;
+
+    final rawDate = map['date'];
+
+    if (rawDate is Timestamp) {
+      parsedDate = rawDate.toDate();
+    } else if (rawDate is String) {
+      parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
+    } else {
+      parsedDate = DateTime.now();
+    }
+
     return TransactionModel(
       id: id,
-      senderId: map['senderId'],
-      recipientId: map['recipientId'],
+      senderId: map['senderId'] ?? '',
+      recipientId: map['recipientId'] ?? '',
       recipientName: map['recipientName'] ?? '',
       amount: (map['amount'] ?? 0).toDouble(),
-      currency: map['currency'] ?? '',
+      currency: map['currency'] ?? 'INR',
       tax: (map['tax'] ?? 0).toDouble(),
       note: map['note'],
       category: map['category'],
-      date: (map['date'] as Timestamp).toDate(),
+      date: parsedDate,
       attachmentUrl: map['attachmentUrl'],
-      status: map['status'] ?? 'success',
-      createdAt: map['createdAt'],
+      status: map['status'],
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp)
+          : Timestamp.now(),
     );
   }
+
 
   Map<String, dynamic> toMap() {
     return {
