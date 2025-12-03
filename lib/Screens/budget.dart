@@ -279,7 +279,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
           },
         ),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 2),
+      bottomNavigationBar: BottomNavBar(currentIndex: 3),
     );
   }
 }
