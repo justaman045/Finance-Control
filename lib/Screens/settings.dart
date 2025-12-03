@@ -120,10 +120,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               fontSize: 18.sp,
             ),
           ),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
-            onPressed: goBack,
-          ),
           toolbarHeight: 64.h,
         ),
 
@@ -224,7 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       ),
     );
   }

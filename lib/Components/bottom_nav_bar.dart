@@ -43,9 +43,15 @@ class BottomNavBar extends StatelessWidget {
           ),
           NavItem(
             active: currentIndex == 2,
+            icon: Icons.insights_rounded,
+            label: 'AI Insights',
+            onTap: () => gotoScreen(2, currentIndex),
+          ),
+          NavItem(
+            active: currentIndex == 3,
             icon: Icons.settings,
             label: 'Settings',
-            onTap: () => gotoScreen(2, currentIndex),
+            onTap: () => gotoScreen(3, currentIndex),
           ),
         ],
       ),
