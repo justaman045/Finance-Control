@@ -1,8 +1,16 @@
+// lib/Screens/edit_transaction.dart
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Services/offline_queue.dart';
+import 'package:money_control/Services/local_backup_service.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -24,14 +32,19 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   List<String> _categories = [];
   String? _selectedCategory;
   bool _loadingCategories = true;
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _recipientNameController = TextEditingController(text: widget.transaction.recipientName);
-    _amountController = TextEditingController(text: widget.transaction.amount.toString());
-    _taxController = TextEditingController(text: widget.transaction.tax.toString());
-    _noteController = TextEditingController(text: widget.transaction.note ?? '');
+    _recipientNameController =
+        TextEditingController(text: widget.transaction.recipientName);
+    _amountController =
+        TextEditingController(text: widget.transaction.amount.toString());
+    _taxController =
+        TextEditingController(text: widget.transaction.tax.toString());
+    _noteController =
+        TextEditingController(text: widget.transaction.note ?? '');
     _loadCategories();
   }
 
@@ -44,124 +57,131 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     super.dispose();
   }
 
+  // ------------------------------------------------------------------
+  // LOAD CATEGORIES
+  // ------------------------------------------------------------------
   Future<void> _loadCategories() async {
-    setState(() {
-      _loadingCategories = true;
-    });
-    try {
-      final userEmail = FirebaseAuth.instance.currentUser?.email;
-      if (userEmail == null) return;
+    final userEmail = FirebaseAuth.instance.currentUser?.email;
+    if (userEmail == null) return;
 
+    try {
       final catSnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(userEmail)
           .collection('categories')
           .get();
 
-      final fetchedCategories = <String>{}; // Use Set to avoid duplicates
+      final fetched = <String>{};
       for (var doc in catSnap.docs) {
         final name = doc.data()['name'] ?? '';
-        if (name.isNotEmpty) {
-          fetchedCategories.add(name);
-        }
+        if (name.isNotEmpty) fetched.add(name);
       }
 
       setState(() {
-        _categories = fetchedCategories.toList();
-        _selectedCategory = _categories.contains(widget.transaction.category) ? widget.transaction.category : null;
+        _categories = fetched.toList();
+        if (_categories.contains(widget.transaction.category)) {
+          _selectedCategory = widget.transaction.category;
+        }
         _loadingCategories = false;
       });
     } catch (e) {
       setState(() {
-        _categories = [];
         _loadingCategories = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load categories: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Load category error: $e")));
     }
   }
 
+  // ------------------------------------------------------------------
+  // ADD NEW CATEGORY
+  // ------------------------------------------------------------------
   Future<void> _addNewCategoryDialog() async {
-    final newCategoryController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+    final controller = TextEditingController();
+    final fKey = GlobalKey<FormState>();
 
-    final result = await showDialog<String>(
+    final newCat = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Category'),
+      builder: (_) => AlertDialog(
+        title: const Text("Add Category"),
         content: Form(
-          key: formKey,
+          key: fKey,
           child: TextFormField(
-            controller: newCategoryController,
-            decoration: const InputDecoration(
-              labelText: 'Category Name',
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Category name cannot be empty';
-              }
-              if (_categories.contains(value.trim())) {
-                return 'Category already exists';
-              }
+            controller: controller,
+            decoration: const InputDecoration(labelText: "Category name"),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return "Required";
+              if (_categories.contains(v.trim())) return "Already exists";
               return null;
             },
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(context, newCategoryController.text.trim());
+              if (fKey.currentState!.validate()) {
+                Navigator.pop(context, controller.text.trim());
               }
             },
-            child: const Text('Add'),
-          ),
+            child: const Text("Add"),
+          )
         ],
       ),
     );
 
-    if (result != null && result.isNotEmpty) {
+    if (newCat != null && newCat.isNotEmpty) {
       try {
-        final userEmail = FirebaseAuth.instance.currentUser?.email;
-        if (userEmail == null) return;
+        final email = FirebaseAuth.instance.currentUser?.email;
+        if (email == null) return;
         await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userEmail)
-            .collection('categories')
-            .add({'name': result});
+            .collection("users")
+            .doc(email)
+            .collection("categories")
+            .add({"name": newCat});
         await _loadCategories();
-        setState(() {
-          _selectedCategory = result;
-        });
+        setState(() => _selectedCategory = newCat);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add category: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Add category error: $e')));
       }
     }
   }
 
+  // ------------------------------------------------------------------
+  // SAVE TRANSACTION (ONLINE + OFFLINE)
+  // ------------------------------------------------------------------
   Future<void> _saveTransaction() async {
+    if (_saving) return;
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCategory == null || _selectedCategory!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select or add a category')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Select category")));
       return;
     }
 
-    final updatedTransaction = TransactionModel(
+    _saving = true;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _saving = false;
+      return;
+    }
+
+    final updated = TransactionModel(
       id: widget.transaction.id,
       senderId: widget.transaction.senderId,
       recipientId: widget.transaction.recipientId,
       recipientName: _recipientNameController.text.trim(),
-      amount: double.tryParse(_amountController.text.trim()) ?? 0.0,
+      amount: double.tryParse(_amountController.text.trim()) ?? 0,
       currency: widget.transaction.currency,
-      tax: double.tryParse(_taxController.text.trim()) ?? 0.0,
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+      tax: double.tryParse(_taxController.text.trim()) ?? 0,
+      note: _noteController.text.trim().isEmpty
+          ? null
+          : _noteController.text.trim(),
       category: _selectedCategory,
       date: widget.transaction.date,
       attachmentUrl: widget.transaction.attachmentUrl,
@@ -169,32 +189,59 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       createdAt: widget.transaction.createdAt,
     );
 
+    final txMap = updated.toMap();
+
     try {
-      final userEmail = FirebaseAuth.instance.currentUser?.email;
-      if (userEmail == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('User not logged in')));
-        return;
+      // Try online save with timeout
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.email)
+          .collection("transactions")
+          .doc(updated.id)
+          .set(txMap)
+          .timeout(const Duration(seconds: 3));
+
+      // JSON backup (non-blocking)
+      if (user.email != null) {
+        LocalBackupService.backupUserTransactions(user.email!);
       }
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userEmail)
-          .collection('transactions')
-          .doc(updatedTransaction.id)
-          .set(updatedTransaction.toMap());
+      _saving = false;
 
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Transaction updated successfully')));
-        Navigator.of(context).pop(true); // Indicate success
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Transaction updated successfully")),
+        );
+        Navigator.pop(context, true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to save transaction: $e')));
+      // ----------------- OFFLINE PATH: queue update -----------------
+      final Map<String, dynamic> updateJson = {
+        "operation": "update",
+        "transactionId": updated.id,
+        "user": user.email,
+        "newData": txMap,
+      };
+
+      await OfflineQueueService.savePending(txMap);
+
+      _saving = false;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+            Text("Saved offline! Changes will sync when you're online."),
+          ),
+        );
+        Navigator.pop(context, true);
+      }
     }
   }
 
+  // ------------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -279,18 +326,19 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         ),
                         value: _selectedCategory,
                         items: _categories
-                            .map((category) => DropdownMenuItem<String>(
-                          value: category,
-                          child: Text(category),
-                        ))
+                            .map(
+                              (category) => DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(category),
+                          ),
+                        )
                             .toList(),
                         onChanged: (val) {
                           setState(() {
                             _selectedCategory = val;
                           });
                         },
-                        validator: (val) =>
-                        (val == null || val.isEmpty)
+                        validator: (val) => (val == null || val.isEmpty)
                             ? 'Please select a category'
                             : null,
                       ),

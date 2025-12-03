@@ -6,6 +6,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Screens/settings_backup_restore.dart';
 
 import 'about_application.dart';
 import 'budget.dart';
@@ -64,7 +65,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _updateDarkModeSetting(bool value) async {
     if (currentUser == null) return;
 
-    await FirebaseFirestore.instance.collection('users').doc(currentUser!.email)
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser!.email)
         .set({'darkMode': value}, SetOptions(merge: true));
 
     setState(() => darkMode = value);
@@ -76,7 +79,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (currentUser == null) return;
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: currentUser!.email!);
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: currentUser!.email!,
+      );
       Get.snackbar("Password Reset", "Email sent to ${currentUser!.email}");
     } catch (e) {
       Get.snackbar("Password Reset", "Failed: $e");
@@ -120,10 +125,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               fontSize: 18.sp,
             ),
           ),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
-            onPressed: goBack,
-          ),
           toolbarHeight: 64.h,
         ),
 
@@ -136,12 +137,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _profileCard(surface, border, scheme),
 
               SizedBox(height: 20.h),
-              Text("Other settings",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.sp,
-                    color: secondaryText,
-                  )),
+              Text(
+                "Other settings",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.sp,
+                  color: secondaryText,
+                ),
+              ),
               SizedBox(height: 12.h),
 
               /// MAIN OPTIONS
@@ -175,6 +178,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: "Dark mode",
                   value: darkMode,
                   onChanged: _updateDarkModeSetting,
+                ),
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.import_export,
+                  title: "Export Data",
+                  onTap: () => Get.to(() => const BackupRestorePage()),
                 ),
               ]),
 
@@ -224,7 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       ),
     );
   }
@@ -265,7 +274,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             color: scheme.onSurface,
           ),
         ),
-        trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withOpacity(0.6)),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: scheme.onSurface.withOpacity(0.6),
+        ),
         onTap: () => gotoPage(const EditProfileScreen()),
       ),
     );
@@ -293,9 +305,21 @@ class _SettingsTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? scheme.onSurface.withOpacity(0.7)),
-      title: Text(title, style: TextStyle(color: textColor ?? scheme.onSurface, fontSize: 14.5.sp)),
-      trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withOpacity(0.5)),
+      leading: Icon(
+        icon,
+        color: iconColor ?? scheme.onSurface.withOpacity(0.7),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: textColor ?? scheme.onSurface,
+          fontSize: 14.5.sp,
+        ),
+      ),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: scheme.onSurface.withOpacity(0.5),
+      ),
       onTap: onTap,
       dense: true,
       minLeadingWidth: 0,

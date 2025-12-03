@@ -1,3 +1,5 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -5,13 +7,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:money_control/Services/update_checker.dart.dart';
+import 'package:money_control/Components/methods.dart';
 
 import 'package:money_control/firebase_options.dart';
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/background_worker.dart';
+import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/update_checker.dart.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -34,6 +38,7 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Firestore offline persistence 👇
   FirebaseFirestore.instance.settings =
   const Settings(persistenceEnabled: true);
 
@@ -45,6 +50,10 @@ Future<void> main() async {
       .resolvePlatformSpecificImplementation<
       AndroidFlutterLocalNotificationsPlugin>()
       ?.requestNotificationsPermission();
+
+  FirebaseFirestore.instance.enableNetwork().then((_) {
+    syncPendingTransactions();
+  });
 
   runApp(const RootApp());
 }
@@ -77,11 +86,9 @@ class RootApp extends StatelessWidget {
         return GetMaterialApp(
           navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
-          title: "Money Control",
+          title: "Finance Control",
 
-          // Only this part reacts 🔥
           themeMode: themeController.themeMode,
-
           theme: buildLightTheme(),
           darkTheme: buildDarkTheme(),
 
@@ -96,7 +103,8 @@ class RootApp extends StatelessWidget {
                 if (response.payload == "home") {
                   navigatorKey.currentState?.push(
                     MaterialPageRoute(
-                        builder: (_) => const BankingHomeScreen()),
+                      builder: (_) => const BankingHomeScreen(),
+                    ),
                   );
                 }
               },
@@ -118,10 +126,10 @@ class AuthChecker extends StatefulWidget {
 }
 
 class _AuthCheckerState extends State<AuthChecker> {
+  bool _didInitialBackup = false;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     UpdateChecker.checkForUpdate(context);
   }
@@ -137,8 +145,15 @@ class _AuthCheckerState extends State<AuthChecker> {
           );
         }
 
-        if (snapshot.hasData && snapshot.data != null) {
-          if (snapshot.data!.emailVerified) {
+        final user = snapshot.data;
+
+        if (user != null) {
+          if (user.emailVerified) {
+            // Trigger one-time backup when logged in
+            if (!_didInitialBackup && user.email != null) {
+              _didInitialBackup = true;
+              LocalBackupService.backupUserTransactions(user.email!);
+            }
             return const BankingHomeScreen();
           }
           FirebaseAuth.instance.signOut();

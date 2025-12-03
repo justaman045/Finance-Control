@@ -34,6 +34,8 @@ class RecentPaymentList extends StatelessWidget {
     final txStream = FirebaseFirestore.instance
         .collection('users').doc(FirebaseAuth.instance.currentUser?.email).collection('transactions')
         .orderBy('createdAt', descending: true)
+        //transaction for today's date only starting from midnight 12 AM
+        .where('createdAt', isGreaterThanOrEqualTo: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 0, 0, 0))
         .snapshots();
 
     return StreamBuilder<QuerySnapshot>(
@@ -53,7 +55,7 @@ class RecentPaymentList extends StatelessWidget {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(
             child: Text(
-              "No transactions found.",
+              "You haven't made any Transaction today",
               style: TextStyle(
                 color: scheme.onSurface.withOpacity(0.6),
                 fontSize: 13.sp,
