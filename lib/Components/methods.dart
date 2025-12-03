@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +9,7 @@ import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/analytics.dart';
 import 'package:money_control/Screens/settings.dart';
 import 'package:money_control/Screens/transaction_details.dart';
+import 'package:money_control/Services/offline_queue.dart';
 
 Curve curve = Curves.easeOutCubic;
 Transition transition = Transition.cupertino;
@@ -53,3 +56,29 @@ void goBack() {
 }
 
 TransactionResultType getTransactionTypeFromStatus(String? status) { switch (status?.toLowerCase()) { case 'success': case 'completed': case 'paid': return TransactionResultType.success; case 'pending': case 'in_progress': case 'processing': return TransactionResultType.inProgress; case 'failed': case 'declined': case 'cancelled': return TransactionResultType.failed; default: return TransactionResultType.inProgress; } }
+
+
+Future<void> syncPendingTransactions() async {
+  final pending = await OfflineQueueService.loadPending();
+  if (pending.isEmpty) return;
+
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  for (var tx in pending) {
+    try {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.email)
+          .collection("transactions")
+          .add(tx);
+    } catch (e) {
+      // still no internet → stop syncing
+      return;
+    }
+  }
+
+  // Clear only after successful sync
+  await OfflineQueueService.clearPending();
+  print("Pending transactions synced");
+}

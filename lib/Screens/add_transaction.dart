@@ -1,3 +1,8 @@
+// lib/Screens/add_transaction.dart
+
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -9,6 +14,8 @@ import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/add_transaction_from_recipt.dart';
+import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/offline_queue.dart';
 
 enum PaymentType { send, receive }
 
@@ -39,6 +46,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? selectedCategory;
 
   DateTime selectedDate = DateTime.now();
+  bool _saving = false;
 
   @override
   void initState() {
@@ -92,8 +100,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () async {
               final text = _newCategory.text.trim();
@@ -108,18 +117,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 return;
               }
 
-              final doc = await _firestore
-                  .collection("users")
-                  .doc(_auth.currentUser!.email)
-                  .collection("categories")
-                  .add({"name": text});
+              try {
+                final doc = await _firestore
+                    .collection("users")
+                    .doc(_auth.currentUser!.email)
+                    .collection("categories")
+                    .add({"name": text});
 
-              setState(() {
-                _categories.add(CategoryModel(id: doc.id, name: text));
-                selectedCategory = text;
-              });
+                setState(() {
+                  _categories.add(CategoryModel(id: doc.id, name: text));
+                  selectedCategory = text;
+                });
 
-              Navigator.pop(context);
+                Navigator.pop(context);
+              } catch (e) {
+                debugPrint('Add category error: $e');
+                Get.snackbar("Error", "Failed to add category");
+              }
             },
             child: const Text("Add"),
           ),
@@ -151,8 +165,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete"),
@@ -193,64 +208,84 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ——————————————————————————————————————
-  //  SAVE TRANSACTION
+  //  SAVE TRANSACTION  +  JSON BACKUP
   // ——————————————————————————————————————
   Future<void> saveTransaction() async {
+    if (_saving) return;
+    _saving = true;
+
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      _saving = false;
+      return;
+    }
 
     final amount = double.tryParse(_amount.text.trim()) ?? 0;
     if (amount <= 0) {
+      _saving = false;
       Get.snackbar("Error", "Enter valid amount");
       return;
     }
 
     if (_name.text.trim().isEmpty) {
+      _saving = false;
       Get.snackbar("Error", "Enter valid name");
       return;
     }
 
     if (selectedCategory == null) {
+      _saving = false;
       Get.snackbar("Error", "Select a category");
       return;
     }
 
-    try {
-      final tx = TransactionModel(
-        id: "",
-        senderId: widget.type == PaymentType.send ? user.uid : "",
-        recipientId: widget.type == PaymentType.send ? "" : user.uid,
-        recipientName: _name.text.trim(),
-        amount: amount,
-        currency: "INR",
-        tax: 0.0,
-        note: _note.text.trim(),
-        category: selectedCategory,
-        date: selectedDate,
-        status: "success",
-        createdAt: Timestamp.now(),
-      );
+    final tx = TransactionModel(
+      id: "",
+      senderId: widget.type == PaymentType.send ? user.uid : "",
+      recipientId: widget.type == PaymentType.send ? "" : user.uid,
+      recipientName: _name.text.trim(),
+      amount: amount,
+      currency: "INR",
+      tax: 0.0,
+      note: _note.text.trim(),
+      category: selectedCategory,
+      date: selectedDate,
+      status: "success",
+      createdAt: Timestamp.now(),
+    );
 
-      await _firestore
+    final txMap = tx.toMap();
+
+    try {
+      // 🔥 FIRESTORE WRITE WITH TIMEOUT FIX
+      await FirebaseFirestore.instance
           .collection("users")
           .doc(user.email)
           .collection("transactions")
-          .add(tx.toMap());
+          .add(txMap)
+          .timeout(const Duration(seconds: 5)); // <<<<<< IMPORTANT
 
-      Get.snackbar(
-        "Success",
-        "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? 'sent' : 'received'}",
-        snackPosition: SnackPosition.BOTTOM,
-        colorText: Colors.white,
-        icon: const Icon(Icons.check_circle, color: Colors.white),
-      );
-
-      goBack();
-    } catch (e) {
-      debugPrint("Error: $e");
-      Get.snackbar("Error", "Unable to save transaction");
+    } on TimeoutException catch (e) {
+      print("Firebase error: $e");
+      await OfflineQueueService.savePending(txMap);
+      Get.snackbar("Offline", "Saved locally. Will sync later.");
     }
+
+    // Backup JSON
+    LocalBackupService.backupUserTransactions(user.email!);
+
+    Get.snackbar(
+      "Success",
+      "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? 'sent' : 'received'}",
+      snackPosition: SnackPosition.BOTTOM,
+      colorText: Colors.white,
+      icon: const Icon(Icons.check_circle, color: Colors.white),
+    );
+
+    _saving = false;
+    goBack();
   }
+
 
   // ——————————————————————————————————————
   //  UI BUILD
@@ -281,7 +316,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           child: Column(
             children: [
               _buildAppBar(scheme, title),
-
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.symmetric(horizontal: 18.w),
@@ -293,9 +327,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                       _FieldLabel(nameLabel, scheme),
                       _InputField(
-                          controller: _name,
-                          hint: "Enter name",
-                          scheme: scheme),
+                        controller: _name,
+                        hint: "Enter name",
+                        scheme: scheme,
+                      ),
 
                       _FieldLabel("Select Category", scheme),
                       _CategorySelector(),
@@ -313,7 +348,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                       SizedBox(height: 32.h),
                       _SubmitButton(
-                        label: widget.type == PaymentType.send ? "Send" : "Receive",
+                        label:
+                        widget.type == PaymentType.send ? "Send" : "Receive",
                         onTap: saveTransaction,
                         scheme: scheme,
                       ),
@@ -356,8 +392,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
           IconButton(
             icon: Icon(Icons.qr_code_scanner, color: scheme.onBackground),
             onPressed: () {
-              Get.to(() => ReceiptScanPage(),
-                  curve: curve, transition: transition, duration: duration);
+              Get.to(
+                    () => ReceiptScanPage(),
+                curve: curve,
+                transition: transition,
+                duration: duration,
+              );
             },
           ),
       ],
@@ -382,12 +422,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
       scheme,
       Row(
         children: [
-          Text("INR",
-              style: TextStyle(
-                color: scheme.primary,
-                fontWeight: FontWeight.w700,
-                fontSize: 15.sp,
-              )),
+          Text(
+            "INR",
+            style: TextStyle(
+              color: scheme.primary,
+              fontWeight: FontWeight.w700,
+              fontSize: 15.sp,
+            ),
+          ),
           SizedBox(width: 10.w),
           Expanded(
             child: TextField(
@@ -439,7 +481,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 (cat) => Padding(
               padding: EdgeInsets.only(right: 8.w),
               child: GestureDetector(
-                onLongPress: () => _deleteCategory(cat),   // <<< DELETE FEATURE
+                onLongPress: () => _deleteCategory(cat),
                 child: ChoiceChip(
                   label: Text(cat.name),
                   selected: selectedCategory == cat.name,
