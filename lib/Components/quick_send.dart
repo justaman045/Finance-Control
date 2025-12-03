@@ -31,21 +31,25 @@ class _QuickSendRowState extends State<QuickSendRow> {
 
   Future<List<String>> fetchCategoriesSortedByUsage() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return [];
-    }
+    if (user == null) return [];
 
     final txRef = FirebaseFirestore.instance
         .collection('users')
-        .doc(user.email) // or user.uid
+        .doc(user.email)
         .collection('transactions');
 
     try {
       final snapshot = await txRef.get();
-
       Map<String, int> categoryCounts = {};
+
       for (var doc in snapshot.docs) {
-        final category = doc['category'] as String?;
+        final data = doc.data();
+
+        // Safe category reading
+        final category = data.containsKey('category')
+            ? data['category'] as String?
+            : null;
+
         if (category != null && category.isNotEmpty) {
           categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
         }
@@ -53,12 +57,14 @@ class _QuickSendRowState extends State<QuickSendRow> {
 
       final sortedCategories = categoryCounts.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
+
       return sortedCategories.map((e) => e.key).toList();
     } catch (e) {
       debugPrint('Error fetching categories sorted by usage: $e');
       return [];
     }
   }
+
 
   Future<void> _loadCategoriesSortedByUsage() async {
     setState(() {
