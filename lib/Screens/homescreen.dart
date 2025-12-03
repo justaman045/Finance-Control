@@ -14,6 +14,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Screens/transaction_history.dart';
+import 'package:money_control/Screens/transaction_search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 🔥 import background worker
@@ -177,6 +178,24 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             ),
           ),
           actions: [
+            // 🔍 NEW SEARCH BUTTON
+            Container(
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(25.r),
+              ),
+              width: 45.w,
+              height: 40.h,
+              child: IconButton(
+                icon: Icon(Icons.search, color: scheme.onSurface.withOpacity(0.9), size: 22.sp),
+                onPressed: () {
+                  gotoPage(const TransactionSearchPage());
+                },
+              ),
+            ),
+            SizedBox(width: 8.w),
+
+            // 📈 FORECAST BUTTON
             Container(
               decoration: BoxDecoration(
                 color: scheme.surface,
@@ -190,13 +209,12 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   color: scheme.onSurface.withOpacity(0.8),
                   size: 24.sp,
                 ),
-                onPressed: () {
-                  gotoPage(const ForecastScreen());
-                },
+                onPressed: () => gotoPage(const ForecastScreen()),
               ),
             ),
             SizedBox(width: 6.w),
           ],
+
           toolbarHeight: 64.h,
         ),
         body: SafeArea(
