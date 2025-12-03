@@ -223,7 +223,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
           ),
         ),
         bottomNavigationBar: BottomNavBar(
-          currentIndex: 2,
+          currentIndex: 3,
         ),
       ),
     );

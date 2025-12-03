@@ -136,7 +136,7 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       ),
     );
   }
