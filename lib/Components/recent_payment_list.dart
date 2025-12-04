@@ -35,7 +35,7 @@ class RecentPaymentList extends StatelessWidget {
         .collection('users').doc(FirebaseAuth.instance.currentUser?.email).collection('transactions')
         .orderBy('createdAt', descending: true)
         //transaction for today's date only starting from midnight 12 AM
-        .where('createdAt', isGreaterThanOrEqualTo: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 0, 0, 0))
+        // .where('createdAt', isGreaterThanOrEqualTo: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 0, 0, 0))
         .snapshots();
 
     return StreamBuilder<QuerySnapshot>(

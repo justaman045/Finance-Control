@@ -58,16 +58,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     setState(() => _loading = true);
 
-    final snap = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(email)
-        .collection('transactions')
-        .orderBy('date', descending: false)
-        .get();
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(email)
+          .collection('transactions')
+          .orderBy('date', descending: false)
+          .get();
 
-    _all = snap.docs
-        .map((e) => TransactionModel.fromMap(e.id, e.data()))
-        .toList();
+      _all = snap.docs
+          .map((e) => TransactionModel.fromMap(e.id, e.data()))
+          .toList();
+    } catch (_) {
+      _all = [];
+    }
 
     setState(() => _loading = false);
   }
@@ -145,10 +149,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // ---------------- QUICK OVERVIEW AGGREGATION ----------------
 
-// Daily totals
+  // Daily totals
   (double income, double expense) get _todayTotals {
     final today = DateTime.now();
-
     final filtered = _all.where((tx) =>
     tx.date.year == today.year &&
         tx.date.month == today.month &&
@@ -162,14 +165,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return (i, e);
   }
 
-// Weekly totals
+  // Weekly totals
   (double income, double expense) get _thisWeekTotals {
     final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1)); // Monday
+    final weekStart = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1)); // Monday start
     final weekEnd = weekStart.add(const Duration(days: 7));
 
     final filtered = _all.where(
-            (tx) => tx.date.isAfter(weekStart) && tx.date.isBefore(weekEnd));
+            (tx) => !tx.date.isBefore(weekStart) && tx.date.isBefore(weekEnd));
 
     double i = 0, e = 0;
     for (var tx in filtered) {
@@ -179,7 +183,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return (i, e);
   }
 
-// Monthly totals
+  // Monthly totals
   (double income, double expense) get _thisMonthTotals {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, 1);
@@ -381,7 +385,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
           SizedBox(height: 14.h),
 
-          // ------------ QUICK OVERVIEW CARD ------------------
+          // ------------ QUICK OVERVIEW (histograms) ------------------
           _quickOverviewCard(scheme),
 
           SizedBox(height: 14.h),
@@ -409,21 +413,33 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
           SizedBox(height: 16.h),
 
-          // ------------- CHARTS -------------------
+          // ------------- TREND CHART -------------------
           _buildTrendChart(scheme),
+
           SizedBox(height: 16.h),
+
+          // ------------- PIE CHART -------------------
           _buildPieChart(scheme),
         ],
       ),
     );
   }
 
-  // ---------- QUICK OVERVIEW CARD UI -----------
+  // ---------- QUICK OVERVIEW CARD UI (histogram style) -----------
 
   Widget _quickOverviewCard(ColorScheme scheme) {
     final (dIncome, dExpense) = _todayTotals;
     final (wIncome, wExpense) = _thisWeekTotals;
     final (mIncome, mExpense) = _thisMonthTotals;
+
+    final maxVal = [
+      dIncome,
+      dExpense,
+      wIncome,
+      wExpense,
+      mIncome,
+      mExpense,
+    ].fold<double>(0, (p, e) => e > p ? e : p);
 
     return Container(
       padding: EdgeInsets.all(14.w),
@@ -443,51 +459,92 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           SizedBox(height: 12.h),
 
-          _quickRow("Today", dIncome, dExpense, scheme),
-          SizedBox(height: 8.h),
+          _quickHistogramRow("Today", dIncome, dExpense, maxVal, scheme),
+          SizedBox(height: 12.h),
 
-          _quickRow("This Week", wIncome, wExpense, scheme),
-          SizedBox(height: 8.h),
+          _quickHistogramRow("This Week", wIncome, wExpense, maxVal, scheme),
+          SizedBox(height: 12.h),
 
-          _quickRow("This Month", mIncome, mExpense, scheme),
+          _quickHistogramRow("This Month", mIncome, mExpense, maxVal, scheme),
         ],
       ),
     );
   }
 
-  Widget _quickRow(
-      String label, double inc, double exp, ColorScheme scheme) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _quickHistogramRow(
+      String label,
+      double inc,
+      double exp,
+      double maxVal,
+      ColorScheme scheme,
+      ) {
+    final safeMax = maxVal <= 0 ? 1 : maxVal;
+    final incRatio = inc / safeMax;
+    final expRatio = exp / safeMax;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            color: scheme.onSurface.withOpacity(0.9),
-          ),
-        ),
+        // header row
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "+₹${inc.toStringAsFixed(0)}  ",
+              label,
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.green,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface.withOpacity(0.9),
               ),
             ),
             Text(
-              "-₹${exp.toStringAsFixed(0)}",
+              "+₹${inc.toStringAsFixed(0)} / -₹${exp.toStringAsFixed(0)}",
               style: TextStyle(
-                fontSize: 12.sp,
-                color: Colors.red,
-                fontWeight: FontWeight.w700,
+                fontSize: 11.sp,
+                color: scheme.onSurface.withOpacity(0.7),
               ),
             ),
           ],
-        )
+        ),
+        SizedBox(height: 6.h),
+
+        // bar row
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final totalWidth = constraints.maxWidth;
+            final barMaxWidth = totalWidth; // full width bars stacked
+
+            return Column(
+              children: [
+                // income bar
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    height: 6.h,
+                    width: barMaxWidth * incRatio,
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                // expense bar
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    height: 6.h,
+                    width: barMaxWidth * expRatio,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ],
     );
   }
@@ -583,6 +640,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       return _emptyCard(scheme, "Not enough data for trend.");
     }
 
+    // If only 1 month -> show bar chart comparison instead of weird 2 dots
+    if (data.length == 1) {
+      return _buildSingleMonthComparisonCard(scheme, data.first);
+    }
+
     final maxY = data.fold<double>(
       0,
           (v, e) => [v, e.income, e.expense].reduce((a, b) => a > b ? a : b),
@@ -599,7 +661,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Income vs Expense",
+            "Income vs Expense (Monthly)",
             style: TextStyle(
               fontSize: 13.sp,
               fontWeight: FontWeight.w600,
@@ -630,10 +692,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: LineChart(
               LineChartData(
                 minY: 0,
-                maxY: maxY * 1.2,
+                maxY: maxY <= 0 ? 1 : maxY * 1.2,
                 gridData: FlGridData(show: true),
                 borderData: FlBorderData(show: false),
-
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -661,7 +722,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
-
                 lineBarsData: [
                   // Income
                   LineChartBarData(
@@ -674,7 +734,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     barWidth: 3,
                     dotData: FlDotData(show: true),
                   ),
-
                   // Expense
                   LineChartBarData(
                     spots: [
@@ -685,6 +744,111 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     isCurved: true,
                     barWidth: 3,
                     dotData: FlDotData(show: true),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleMonthComparisonCard(
+      ColorScheme scheme, _MonthPoint point) {
+    final maxY =
+    [point.income, point.expense].reduce((a, b) => a > b ? a : b);
+    final safeMax = maxY <= 0 ? 1.0 : maxY;
+
+    return Container(
+      height: 240.h,
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(18.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Income vs Expense (${point.label})",
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            "Detailed bar comparison for this period.",
+            style: TextStyle(
+              fontSize: 11.sp,
+              color: scheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Expanded(
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: safeMax * 1.2,
+                gridData: FlGridData(show: true),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles:
+                    SideTitles(showTitles: true, reservedSize: 40),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (v, meta) {
+                        switch (v.toInt()) {
+                          case 0:
+                            return Text(
+                              "Income",
+                              style: TextStyle(fontSize: 11.sp),
+                            );
+                          case 1:
+                            return Text(
+                              "Expense",
+                              style: TextStyle(fontSize: 11.sp),
+                            );
+                          default:
+                            return const SizedBox();
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: [
+                  BarChartGroupData(
+                    x: 0,
+                    barRods: [
+                      BarChartRodData(
+                        toY: point.income,
+                        color: Colors.green,
+                        width: 28.w,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ],
+                  ),
+                  BarChartGroupData(
+                    x: 1,
+                    barRods: [
+                      BarChartRodData(
+                        toY: point.expense,
+                        color: Colors.red,
+                        width: 28.w,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -735,7 +899,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
           ),
           SizedBox(height: 8.h),
-
           Expanded(
             child: Row(
               children: [
@@ -796,7 +959,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               "₹${e.value.toStringAsFixed(0)}",
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: scheme.onSurface.withOpacity(0.7),
+                                color:
+                                scheme.onSurface.withOpacity(0.7),
                               ),
                             ),
                           ],

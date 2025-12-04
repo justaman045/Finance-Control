@@ -244,7 +244,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                         ),
                         SizedBox(height: 18.h),
                         SectionTitle(
-                          title: 'Today\'s Transactions',
+                          title: 'Recent Transactions',
                           color: scheme.onSurface,
                           accentColor: scheme.primary,
                           onTap: () => gotoPage(TransactionHistoryScreen()),
