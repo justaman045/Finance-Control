@@ -246,7 +246,6 @@ class _ForecastScreenState extends State<ForecastScreen> {
             ),
           ),
         ),
-        bottomNavigationBar: BottomNavBar(currentIndex: 3),
       ),
     );
   }

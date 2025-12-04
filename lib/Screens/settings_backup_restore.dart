@@ -54,7 +54,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
     final file = await LocalBackupService.exportBackupFile(user.email!);
 
-    await Share.shareXFiles([XFile(file.path)], text: "Money Control Backup");
+    await Share.shareXFiles([XFile(file.path)], text: "Finance Control Backup");
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Backup exported!")),
