@@ -21,11 +21,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   String formatDateLabel(DateTime date) {
     final now = DateTime.now();
-    final diff = now.difference(date).inDays;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final txDay = DateTime(date.year, date.month, date.day);
+
+    final diff = today.difference(txDay).inDays;
+
     if (diff == 0) return "Today";
     if (diff == 1) return "Yesterday";
+
     return "${date.day} ${_monthAbbr(date.month)}";
   }
+
 
   String _monthAbbr(int month) {
     const months = [
