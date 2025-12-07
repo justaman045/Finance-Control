@@ -6,6 +6,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/settings_backup_restore.dart';
 
 import 'about_application.dart';
@@ -195,6 +196,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.info_outline,
                   title: "About application",
                   onTap: () => gotoPage(const AboutApplicationScreen()),
+                ),
+                _divider(border),
+                _SettingsTile(
+                  icon: Icons.feedback_outlined,
+                  title: "Feedback / Report a Bug",
+                  onTap: () => gotoPage(const FeedbackScreen()),
                 ),
                 _divider(border),
                 _SettingsTile(
