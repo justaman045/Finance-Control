@@ -38,6 +38,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
           .collection("users")
           .doc(user.email)
           .collection("transactions")
+          .orderBy("date", descending: true)
           .get();
 
       final List<TransactionModel> all = snap.docs
