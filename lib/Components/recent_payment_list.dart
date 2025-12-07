@@ -33,7 +33,7 @@ class RecentPaymentList extends StatelessWidget {
     // Fetch all transactions involving this user (sent or received)
     final txStream = FirebaseFirestore.instance
         .collection('users').doc(FirebaseAuth.instance.currentUser?.email).collection('transactions')
-        .orderBy('createdAt', descending: true)
+        .orderBy('date', descending: true)
         //transaction for today's date only starting from midnight 12 AM
         // .where('createdAt', isGreaterThanOrEqualTo: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 0, 0, 0))
         .snapshots();

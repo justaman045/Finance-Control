@@ -66,8 +66,8 @@ class _CategoryTransactionsScreenState extends State<CategoryTransactionsScreen>
             .doc(user.email)
             .collection('transactions')
             .where('category', isEqualTo: widget.categoryName)
-            .where('date', isGreaterThanOrEqualTo: _startOfMonth)
-            .where('date', isLessThanOrEqualTo: _endOfMonth)
+            // .where('date', isGreaterThanOrEqualTo: _startOfMonth)
+            // .where('date', isLessThanOrEqualTo: _endOfMonth)
             .orderBy('date', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
