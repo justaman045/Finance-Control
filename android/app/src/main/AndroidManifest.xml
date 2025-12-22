@@ -52,6 +52,11 @@
             android:name="flutterBackgroundExecutor"
             android:value="dev.fluttercommunity.workmanager.WorkManagerBackgroundExecutor" />
 
+        <meta-data
+            android:name="google_analytics_automatic_screen_reporting_enabled"
+            android:value="true" />
+
+
     </application>
 
     <!-- Required to query activities that can process text -->
