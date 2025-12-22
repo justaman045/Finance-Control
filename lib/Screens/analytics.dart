@@ -221,8 +221,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   // Spending by category
   Map<String, double> get spendingByCategory {
     final Map<String, double> map = {};
-    for (var tx
-    in _filtered.where((t) => t.senderId == uid || t.recipientId == uid)) {
+    for (var tx in _filtered.where((t) => t.senderId == uid)) {
       map[tx.category ?? "Other"] =
           (map[tx.category ?? "Other"] ?? 0) + tx.amount + tx.tax;
     }

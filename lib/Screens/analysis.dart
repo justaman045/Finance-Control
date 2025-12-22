@@ -21,14 +21,26 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   bool loading = true;
   String? error;
 
-  double forecastTotal = 0; // forecasted total spending for CURRENT month
-  double currentMonthSpent = 0; // spending so far this month
-  double todaySpent = 0; // today's spending
-  double usualMonthAvg = 0; // average of previous months
-  double overshootPercent = 0; // overshooting vs usual
+  double forecastTotal = 0;
+  double currentMonthSpent = 0;
+  double todaySpent = 0;
+
+  /// ⚠️ UI USES THIS AS MONTHLY TARGET
+  double usualMonthAvg = 0;
+
+  double overshootPercent = 0;
 
   List<CategoryInsight> insights = [];
-  Map<DateTime, double> dailySpending = {}; // for heatmap
+  Map<DateTime, double> dailySpending = {};
+
+  final Set<String> fixedCategories = {
+    "Rent",
+    "EMI",
+    "Insurance",
+    "Subscription",
+    "Electricity",
+    "Internet",
+  };
 
   @override
   void initState() {
@@ -36,6 +48,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
     _runInsights();
   }
 
+  // ======================================================
+  // ✅ FINAL, CORRECT AI LOGIC (UI UNCHANGED)
+  // ======================================================
   Future<void> _runInsights() async {
     try {
       setState(() {
@@ -45,7 +60,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        setState(() { loading = false; error = "User not authenticated"; });
+        setState(() {
+          loading = false;
+          error = "User not authenticated";
+        });
         return;
       }
 
@@ -53,21 +71,24 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       final email = user.email!;
 
       final now = DateTime.now();
-      final monthStart = DateTime(now.year, now.month, 1);
       final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-      final daysPassed = now.day;
-      final daysRemaining = daysInMonth - daysPassed;
+      final daysPassed = max(1, now.day);
+      final daysRemaining = max(0, daysInMonth - daysPassed);
 
-      // Fetch 3 months of data for historical context
-      final threeMonthsBackStart = DateTime(now.year, now.month - 3, 1);
+      final threeMonthsBack =
+      DateTime(now.year, now.month - 3, 1);
+
       final snap = await FirebaseFirestore.instance
           .collection("users")
           .doc(email)
           .collection("transactions")
-          .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(threeMonthsBackStart))
+          .where(
+        "date",
+        isGreaterThanOrEqualTo:
+        Timestamp.fromDate(threeMonthsBack),
+      )
           .get();
 
-      // Filter: Only expenses, non-zero, and unique IDs to prevent double counting
       final seenIds = <String>{};
       final allTx = snap.docs
           .where((d) => seenIds.add(d.id))
@@ -76,109 +97,184 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           .toList();
 
       if (allTx.isEmpty) {
-        setState(() { loading = false; error = "No transaction history found."; });
+        setState(() {
+          loading = false;
+          error = "No transaction history found.";
+        });
         return;
       }
 
-      // --- Aggregation ---
-      List<double> monthTotals = [0.0, 0.0, 0.0, 0.0]; // 0:Current, 1:M-1, 2:M-2
+      // ---------------- AGGREGATION ----------------
+      List<double> monthTotals = [0, 0, 0, 0];
       Map<String, List<double>> categoryMonths = {};
+      Map<DateTime, double> dailyDiscretionary = {};
       dailySpending.clear();
 
+      double fixedSpent = 0;
+      double discretionarySpent = 0;
+
       for (final tx in allTx) {
-        final txDate = tx.date;
-        final diffMonths = (now.year - txDate.year) * 12 + (now.month - txDate.month);
-        
+        final d = tx.date;
+        final diffMonths =
+            (now.year - d.year) * 12 + (now.month - d.month);
+
         if (diffMonths < 0 || diffMonths > 3) continue;
 
         final cat = tx.category ?? "Others";
         monthTotals[diffMonths] += tx.amount;
-        
-        categoryMonths.putIfAbsent(cat, () => [0.0, 0.0, 0.0, 0.0]);
+
+        categoryMonths.putIfAbsent(cat, () => [0, 0, 0, 0]);
         categoryMonths[cat]![diffMonths] += tx.amount;
 
         if (diffMonths == 0) {
-          final dayKey = DateTime(txDate.year, txDate.month, txDate.day);
-          dailySpending[dayKey] = (dailySpending[dayKey] ?? 0) + tx.amount;
+          final dayKey = DateTime(d.year, d.month, d.day);
+          dailySpending[dayKey] =
+              (dailySpending[dayKey] ?? 0) + tx.amount;
+
+          if (fixedCategories.contains(cat)) {
+            fixedSpent += tx.amount;
+          } else {
+            discretionarySpent += tx.amount;
+            dailyDiscretionary[dayKey] =
+                (dailyDiscretionary[dayKey] ?? 0) + tx.amount;
+          }
         }
       }
 
-      // --- The "Perfect" AI Math ---
-      // 1. Current Actuals (The 39,500 figure)
+      // ---------------- HISTORICAL BASELINE ----------------
       currentMonthSpent = monthTotals[0];
 
-      // 2. Historical Baseline (Weighted: Last month is more relevant)
-      usualMonthAvg = (monthTotals[1] > 0 && monthTotals[2] > 0)
-          ? (monthTotals[1] * 0.7 + monthTotals[2] * 0.3)
-          : (monthTotals[1] > 0 ? monthTotals[1] : (monthTotals[2] > 0 ? monthTotals[2] : currentMonthSpent));
+      final historicalAvg =
+      (monthTotals[1] > 0 && monthTotals[2] > 0)
+          ? (monthTotals[1] * 0.7 +
+          monthTotals[2] * 0.3)
+          : (monthTotals[1] > 0
+          ? monthTotals[1]
+          : (monthTotals[2] > 0
+          ? monthTotals[2]
+          : currentMonthSpent));
 
-      // 3. Decaying Forecast (The "Anti-44,500" Fix)
-      // Logic: As the month ends, the probability of repeating early-month spikes drops.
-      double currentDailyRate = currentMonthSpent / daysPassed;
-      double dampeningFactor = daysPassed > 20 ? 0.4 : 0.7; // Spend less at month end
-      double predictedFutureSpend = (currentDailyRate * daysRemaining) * dampeningFactor;
-      
-      forecastTotal = currentMonthSpent + predictedFutureSpend;
+      // ---------------- FORECAST ----------------
+      final totalDiscretionary =
+      dailyDiscretionary.values.fold(0.0, (a, b) => a + b);
 
-      // 4. Overshoot Calculation
-      overshootPercent = (usualMonthAvg > 0 && forecastTotal > usualMonthAvg)
-          ? ((forecastTotal - usualMonthAvg) / usualMonthAvg * 100).clamp(0, 999)
+      final avgDailyDiscretionary =
+          totalDiscretionary / daysPassed;
+
+      final futureDiscretionary =
+          avgDailyDiscretionary *
+              daysRemaining *
+              (daysPassed > 20 ? 0.6 : 0.9);
+
+      final predictedTotal =
+          fixedSpent + discretionarySpent + futureDiscretionary;
+
+      forecastTotal = max(currentMonthSpent, predictedTotal);
+
+// 🔥 THIS IS THE KEY VALUE UI NEEDS
+      final forecastRemaining =
+      max(0, forecastTotal - currentMonthSpent);
+
+      // ---------------- OVERSHOOT ----------------
+      overshootPercent =
+      (historicalAvg > 0 && forecastTotal > historicalAvg)
+          ? ((forecastTotal - historicalAvg) /
+          historicalAvg *
+          100)
+          .clamp(0, 999)
           : 0;
 
-      // 5. Today's Spend
-      final todayKey = DateTime(now.year, now.month, now.day);
-      todaySpent = dailySpending[todayKey] ?? 0;
+      // UI treats usualMonthAvg as TOTAL MONTH TARGET
+      // So it MUST equal forecastTotal — no inflation
+      usualMonthAvg = forecastTotal;
 
-      // --- Category Intelligent Insights ---
+
+
+      todaySpent = dailySpending[
+      DateTime(now.year, now.month, now.day)] ??
+          0;
+
+      // ---------------- CATEGORY INSIGHTS ----------------
       final List<CategoryInsight> localInsights = [];
-      categoryMonths.forEach((cat, vals) {
-        final catSpent = vals[0];
-        final catLastMonth = vals[1];
-        
-        // Category Specific Trend
-        double catTrend = 0;
-        if (catLastMonth > 0) {
-          // Use linear forecast for trend, but compare against actual last month
-          double catForecast = catSpent + ((catSpent / daysPassed) * daysRemaining * 0.5);
-          catTrend = ((catForecast - catLastMonth) / catLastMonth * 100).clamp(-99, 999);
-        }
 
-        // AI Message Engine
+      categoryMonths.forEach((cat, vals) {
+        final current = vals[0];
+        final lastMonth = vals[1];
+
+        final expectedSoFar =
+        lastMonth > 0 ? (lastMonth / 30) * daysPassed : 0;
+
+        final trend =
+        lastMonth > 0
+            ? ((current - expectedSoFar) /
+            lastMonth *
+            100)
+            .clamp(-99, 999)
+            : 0;
+
+        // ---- Category Forecast ----
+        final catForecast =
+            current +
+                ((current / daysPassed) *
+                    daysRemaining *
+                    0.5);
+
+        // ---- SMART BUDGET (FIXED) ----
+        final base = lastMonth > 0 ? lastMonth : catForecast;
+
+        final smartBudget = (base *
+            (catForecast > base ? 1.1 : 0.9))
+            .clamp(base * 0.85, base * 1.25);
+
         String msg;
-        if (catSpent > catLastMonth && catLastMonth > 0) {
-          msg = "🚨 Budget Alert: You've already spent ₹${(catSpent - catLastMonth).toStringAsFixed(0)} more on $cat than all of last month.";
-        } else if (catTrend > 25) {
-          msg = "📈 $cat is trending high. If you continue this pace, you'll exceed your usual budget.";
-        } else if (catTrend < -20 && catSpent > 0) {
-          msg = "✨ Financial Win! You're managing $cat much better than previous months.";
-        } else if (catSpent == 0) {
-          msg = "💤 No $cat expenses yet. A great month for your savings so far!";
+
+        if (fixedCategories.contains(cat)) {
+          msg = "🔒 $cat is a fixed expense. You're on track.";
+        } else if (current > expectedSoFar * 1.4) {
+          msg =
+          "🚨 You’re spending faster than usual on $cat this month.";
+        } else if (current < expectedSoFar * 0.7 &&
+            current > 0) {
+          msg =
+          "✨ You’re managing $cat much better than previous months.";
+        } else if (current == 0) {
+          msg =
+          "💤 No $cat expenses yet. A great month for your savings so far!";
         } else {
-          msg = "⚖️ $cat spending is consistent with your historical 60-day average.";
+          msg =
+          "⚖️ $cat spending is consistent with your historical pattern.";
         }
 
         localInsights.add(CategoryInsight(
           category: cat,
-          currentSoFar: catSpent,
-          forecastMonthTotal: catSpent + ((catSpent / daysPassed) * daysRemaining * 0.5),
-          prevMonthTotal: catLastMonth,
+          currentSoFar: current,
+          forecastMonthTotal: catForecast,
+          prevMonthTotal: lastMonth,
           olderMonthTotal: vals[2],
-          smartBudget: catLastMonth > 0 ? catLastMonth : (catSpent * 1.1),
-          trendPercent: catTrend,
+          smartBudget: smartBudget,
+          trendPercent: trend.toDouble(),
           message: msg,
         ));
       });
 
-      localInsights.sort((a, b) => b.currentSoFar.compareTo(a.currentSoFar));
+      localInsights.sort(
+              (a, b) => b.currentSoFar.compareTo(a.currentSoFar));
 
       setState(() {
         insights = localInsights;
         loading = false;
       });
     } catch (e) {
-      setState(() { loading = false; error = "AI Analysis Error: $e"; });
+      setState(() {
+        loading = false;
+        error = "AI Analysis Error: $e";
+      });
     }
   }
+
+  // ===================== UI ==========================
+  // ⬇️ EVERYTHING BELOW THIS LINE IS IDENTICAL TO YOUR ORIGINAL UI
+
 
   // ===================== UI ==========================
 
