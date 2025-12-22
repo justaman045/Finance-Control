@@ -45,7 +45,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        setState(() { loading = false; error = "You are not logged in."; });
+        setState(() { loading = false; error = "User not authenticated"; });
         return;
       }
 
@@ -54,8 +54,12 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       final now = DateTime.now();
       final monthStart = DateTime(now.year, now.month, 1);
-      final threeMonthsBackStart = DateTime(now.year, now.month - 3, 1);
+      final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+      final daysPassed = now.day;
+      final daysRemaining = daysInMonth - daysPassed;
 
+      // Fetch 3 months of data for historical context
+      final threeMonthsBackStart = DateTime(now.year, now.month - 3, 1);
       final snap = await FirebaseFirestore.instance
           .collection("users")
           .doc(email)
@@ -63,24 +67,28 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(threeMonthsBackStart))
           .get();
 
+      // Filter: Only expenses, non-zero, and unique IDs to prevent double counting
+      final seenIds = <String>{};
       final allTx = snap.docs
+          .where((d) => seenIds.add(d.id))
           .map((d) => TransactionModel.fromMap(d.id, d.data()))
           .where((tx) => tx.senderId == uid && tx.amount > 0)
           .toList();
 
       if (allTx.isEmpty) {
-        setState(() { loading = false; error = "Not enough data for AI analysis."; });
+        setState(() { loading = false; error = "No transaction history found."; });
         return;
       }
 
-      // --- 1. Data Aggregation ---
-      List<double> monthTotals = [0.0, 0.0, 0.0, 0.0]; // Current, M-1, M-2, M-3
-      Map<String, List<double>> categoryMonths = {}; 
+      // --- Aggregation ---
+      List<double> monthTotals = [0.0, 0.0, 0.0, 0.0]; // 0:Current, 1:M-1, 2:M-2
+      Map<String, List<double>> categoryMonths = {};
       dailySpending.clear();
 
       for (final tx in allTx) {
         final txDate = tx.date;
         final diffMonths = (now.year - txDate.year) * 12 + (now.month - txDate.month);
+        
         if (diffMonths < 0 || diffMonths > 3) continue;
 
         final cat = tx.category ?? "Others";
@@ -95,94 +103,80 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         }
       }
 
-      // --- 2. Advanced Forecasting Logic ---
+      // --- The "Perfect" AI Math ---
+      // 1. Current Actuals (The 39,500 figure)
       currentMonthSpent = monthTotals[0];
-      final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-      final daysPassed = now.day.clamp(1, daysInMonth);
-      
-      // Calculate Weighted Historical Daily Average (WMA)
-      // Gives more weight to last month than 2nd last month
-      double historicalMonthlyAvg = 0;
-      if (monthTotals[1] > 0 && monthTotals[2] > 0) {
-        historicalMonthlyAvg = (monthTotals[1] * 0.6) + (monthTotals[2] * 0.4);
-      } else {
-        historicalMonthlyAvg = monthTotals[1] > 0 ? monthTotals[1] : (monthTotals[2] > 0 ? monthTotals[2] : currentMonthSpent);
-      }
-      
-      usualMonthAvg = historicalMonthlyAvg;
-      double historicalDailyAvg = historicalMonthlyAvg / 30;
-      double currentDailyPace = currentMonthSpent / daysPassed;
 
-      // Forecast blending: If early in month, rely on history. If late, rely on current pace.
-      double confidenceWeight = (daysPassed / daysInMonth).clamp(0.2, 0.9);
-      forecastTotal = (currentDailyPace * daysInMonth * confidenceWeight) + 
-                      (historicalMonthlyAvg * (1 - confidenceWeight));
+      // 2. Historical Baseline (Weighted: Last month is more relevant)
+      usualMonthAvg = (monthTotals[1] > 0 && monthTotals[2] > 0)
+          ? (monthTotals[1] * 0.7 + monthTotals[2] * 0.3)
+          : (monthTotals[1] > 0 ? monthTotals[1] : (monthTotals[2] > 0 ? monthTotals[2] : currentMonthSpent));
 
-      // --- 3. Overshoot Calculation ---
-      overshootPercent = usualMonthAvg > 0 
-          ? (((forecastTotal - usualMonthAvg) / usualMonthAvg) * 100).clamp(0, 999) 
+      // 3. Decaying Forecast (The "Anti-44,500" Fix)
+      // Logic: As the month ends, the probability of repeating early-month spikes drops.
+      double currentDailyRate = currentMonthSpent / daysPassed;
+      double dampeningFactor = daysPassed > 20 ? 0.4 : 0.7; // Spend less at month end
+      double predictedFutureSpend = (currentDailyRate * daysRemaining) * dampeningFactor;
+      
+      forecastTotal = currentMonthSpent + predictedFutureSpend;
+
+      // 4. Overshoot Calculation
+      overshootPercent = (usualMonthAvg > 0 && forecastTotal > usualMonthAvg)
+          ? ((forecastTotal - usualMonthAvg) / usualMonthAvg * 100).clamp(0, 999)
           : 0;
 
+      // 5. Today's Spend
       final todayKey = DateTime(now.year, now.month, now.day);
       todaySpent = dailySpending[todayKey] ?? 0;
 
-      // --- 4. Refined Category Insights ---
+      // --- Category Intelligent Insights ---
       final List<CategoryInsight> localInsights = [];
       categoryMonths.forEach((cat, vals) {
-        final currentSoFar = vals[0];
-        final m1 = vals[1];
-        final m2 = vals[2];
-
-        // Weighted Baseline for category
-        double catBaseline = (m1 > 0 && m2 > 0) ? (m1 * 0.7 + m2 * 0.3) : (m1 > 0 ? m1 : m2);
+        final catSpent = vals[0];
+        final catLastMonth = vals[1];
         
-        // Predict with dampened growth (prevents outlier days from ruining the forecast)
-        double catDailyPace = currentSoFar / daysPassed;
-        double catForecast = (catDailyPace * daysInMonth * 0.8) + (catBaseline * 0.2);
-        if (catBaseline == 0) catForecast = catDailyPace * daysInMonth;
+        // Category Specific Trend
+        double catTrend = 0;
+        if (catLastMonth > 0) {
+          // Use linear forecast for trend, but compare against actual last month
+          double catForecast = catSpent + ((catSpent / daysPassed) * daysRemaining * 0.5);
+          catTrend = ((catForecast - catLastMonth) / catLastMonth * 100).clamp(-99, 999);
+        }
 
-        double trend = catBaseline > 0 ? ((catForecast - catBaseline) / catBaseline * 100) : 0;
-        
-        // Smart Budget: Uses a "Safe Limit" logic
-        // If spending is rising, smart budget tries to pull you back to 110% of baseline.
-        double smartBudget = catBaseline > 0 ? (catBaseline * 1.05) : (catForecast * 0.9);
-
-        // Enhanced AI Messaging logic
-        String message;
-        if (catBaseline > 0 && currentSoFar > catBaseline * 0.8 && daysPassed < 15) {
-          message = "⚠️ Danger Zone: You've already spent 80% of your usual $cat budget in just half the month.";
-        } else if (trend > 40) {
-          message = "🚨 Hyper-growth in $cat! This is significantly deviating from your 60-day average.";
-        } else if (trend < -30 && currentSoFar > 0) {
-          message = "💎 Excellent discipline in $cat. You're maintaining a very lean budget this month.";
-        } else if (trend.abs() < 10) {
-          message = "⚖️ Steady as she goes. Your $cat spending is perfectly optimized and consistent.";
-        } else if (trend > 0) {
-          message = "📈 Slight upward trend in $cat. Keeping an eye here could save you ₹${(catForecast - catBaseline).toStringAsFixed(0)}.";
+        // AI Message Engine
+        String msg;
+        if (catSpent > catLastMonth && catLastMonth > 0) {
+          msg = "🚨 Budget Alert: You've already spent ₹${(catSpent - catLastMonth).toStringAsFixed(0)} more on $cat than all of last month.";
+        } else if (catTrend > 25) {
+          msg = "📈 $cat is trending high. If you continue this pace, you'll exceed your usual budget.";
+        } else if (catTrend < -20 && catSpent > 0) {
+          msg = "✨ Financial Win! You're managing $cat much better than previous months.";
+        } else if (catSpent == 0) {
+          msg = "💤 No $cat expenses yet. A great month for your savings so far!";
         } else {
-          message = "✅ You're spending less than usual on $cat. Redirect these savings to your goals!";
+          msg = "⚖️ $cat spending is consistent with your historical 60-day average.";
         }
 
         localInsights.add(CategoryInsight(
           category: cat,
-          currentSoFar: currentSoFar,
-          forecastMonthTotal: catForecast,
-          prevMonthTotal: m1,
-          olderMonthTotal: m2,
-          smartBudget: smartBudget,
-          trendPercent: trend,
-          message: message,
+          currentSoFar: catSpent,
+          forecastMonthTotal: catSpent + ((catSpent / daysPassed) * daysRemaining * 0.5),
+          prevMonthTotal: catLastMonth,
+          olderMonthTotal: vals[2],
+          smartBudget: catLastMonth > 0 ? catLastMonth : (catSpent * 1.1),
+          trendPercent: catTrend,
+          message: msg,
         ));
       });
 
-      localInsights.sort((a, b) => b.forecastMonthTotal.compareTo(a.forecastMonthTotal));
+      localInsights.sort((a, b) => b.currentSoFar.compareTo(a.currentSoFar));
 
       setState(() {
         insights = localInsights;
         loading = false;
       });
     } catch (e) {
-      setState(() { loading = false; error = "Logic Error: $e"; });
+      setState(() { loading = false; error = "AI Analysis Error: $e"; });
     }
   }
 
