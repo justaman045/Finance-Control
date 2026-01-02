@@ -26,7 +26,7 @@ This guide explains:
 Get the latest built APK from the [Releases](../../releases) page.
 
 **Direct Download:**
-- [app-release.apk](https://github.com/justaman045/Money_Control/releases/download/v1.0.85/app-release.apk
+- [app-release.apk](https://github.com/justaman045/Money_Control/releases/download/v1.0.86/app-release.apk
 
 **How to Install:**
 1. Download the APK file from the releases page
