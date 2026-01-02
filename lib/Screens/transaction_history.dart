@@ -99,12 +99,17 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               ? txs.where((tx) => tx.recipientId == user.uid).toList()
               : txs.where((tx) => tx.senderId == user.uid).toList();
 
-          final grouped = <String, List<TransactionModel>>{};
+          final grouped = <DateTime, List<TransactionModel>>{};
+
           for (var tx in filteredTxs) {
-            final label = formatDateLabel(tx.date);
-            grouped.putIfAbsent(label, () => []).add(tx);
+            final day = DateTime(tx.date.year, tx.date.month, tx.date.day);
+            grouped.putIfAbsent(day, () => []).add(tx);
           }
-          final sections = grouped.keys.toList();
+
+          // sort dates DESC (latest first)
+          final sections = grouped.keys.toList()
+            ..sort((a, b) => b.compareTo(a));
+
 
           return SingleChildScrollView(
             child: Container(
@@ -158,17 +163,19 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   ),
                   SizedBox(height: 22.h),
                   // Grouped transaction sections
-                  ...sections.map((section) {
-                    final txns = grouped[section]!;
+                  ...sections.map((sectionDate) {
+                    final txns = grouped[sectionDate]!;
+                    final label = formatDateLabel(sectionDate);
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (sections.first != section) SizedBox(height: 17.h),
+                        if (sections.first != sectionDate) SizedBox(height: 17.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              section,
+                              label,
                               style: TextStyle(
                                 color: scheme.onBackground.withOpacity(0.76),
                                 fontWeight: FontWeight.w600,
@@ -176,7 +183,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                               ),
                             ),
                             Text(
-                              "${txns.first.date.day.toString().padLeft(2, '0')} ${_monthAbbr(txns.first.date.month)}, ${txns.first.date.year}",
+                              "${sectionDate.day.toString().padLeft(2, '0')} "
+                                  "${_monthAbbr(sectionDate.month)}, "
+                                  "${sectionDate.year}",
                               style: TextStyle(
                                 color: scheme.onBackground.withOpacity(0.38),
                                 fontWeight: FontWeight.w400,
@@ -185,6 +194,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                             ),
                           ],
                         ),
+
                         SizedBox(height: 13.h),
                         ...txns.map((tx) {
                           final received = tx.recipientId == user.uid;

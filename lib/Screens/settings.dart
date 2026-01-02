@@ -6,6 +6,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Screens/admin_screen.dart';
 import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/settings_backup_restore.dart';
 
@@ -192,6 +193,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               /// ABOUT / HELP / SIGN OUT
               _settingsGroup(surface, border, [
+                _SettingsTile(
+                  icon: Icons.supervised_user_circle_sharp,
+                  title: "Users",
+                  onTap: () => gotoPage(const AdminUsersScreen()),
+                ),
+                _divider(border),
                 _SettingsTile(
                   icon: Icons.info_outline,
                   title: "About application",
