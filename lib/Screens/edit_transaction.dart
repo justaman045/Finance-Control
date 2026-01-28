@@ -14,6 +14,7 @@ import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Services/offline_queue.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/budget_service.dart';
+import 'package:money_control/Utils/icon_helper.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -637,7 +638,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                     children: [
                       if (cat.iconCode != null) ...[
                         Icon(
-                          IconData(cat.iconCode!, fontFamily: 'MaterialIcons'),
+                          IconHelper.getIconFromCode(cat.iconCode),
                           size: 18.sp,
                           color: isSelected ? catColor : Colors.white70,
                         ),

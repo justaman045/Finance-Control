@@ -16,6 +16,7 @@ import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/offline_queue.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/budget_service.dart';
+import 'package:money_control/Utils/icon_helper.dart';
 
 enum PaymentType { send, receive }
 
@@ -639,7 +640,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     children: [
                       if (cat.iconCode != null) ...[
                         Icon(
-                          IconData(cat.iconCode!, fontFamily: 'MaterialIcons'),
+                          IconHelper.getIconFromCode(cat.iconCode),
                           size: 18.sp,
                           color: isSelected ? catColor : Colors.white60,
                         ),

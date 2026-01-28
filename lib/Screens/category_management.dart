@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Services/category_service.dart';
+import 'package:money_control/Utils/icon_helper.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -135,9 +136,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     final color = cat.color != null
         ? Color(cat.color!)
         : const Color(0xFF6C63FF);
-    final icon = cat.iconCode != null
-        ? IconData(cat.iconCode!, fontFamily: 'MaterialIcons')
-        : Icons.category;
+    final icon = IconHelper.getIconFromCode(cat.iconCode);
 
     return GestureDetector(
       onTap: () => _showCategoryDialog(category: cat),
