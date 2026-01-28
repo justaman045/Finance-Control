@@ -14,141 +14,237 @@ class AdminUsersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // ❌ NOT ADMIN UI
-    if (!_isAdmin()) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text("Admin Panel"),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.lock, size: 60.sp, color: scheme.error),
-              SizedBox(height: 12.h),
-              Text(
-                "Access Denied",
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: scheme.error,
-                ),
-              ),
-              SizedBox(height: 6.h),
-              Text(
-                "You are not authorized to view this page.",
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: scheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
-    // ✅ ADMIN UI
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("All Users (Admin)"),
-        centerTitle: true,
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final secondaryTextColor = isDark
+        ? Colors.white.withOpacity(0.6)
+        : const Color(0xFF1A1A2E).withOpacity(0.6);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: textColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            _isAdmin() ? "All Users (Admin)" : "Admin Panel",
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: !_isAdmin()
+            ? _buildAccessDenied(isDark, textColor, secondaryTextColor)
+            : _buildUserList(isDark, textColor, secondaryTextColor),
+      ),
+    );
+  }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No users found"));
-          }
+  Widget _buildAccessDenied(
+    bool isDark,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
+    return Center(
+      child: Container(
+        padding: EdgeInsets.all(24.w),
+        margin: EdgeInsets.symmetric(horizontal: 24.w),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.white.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.white.withOpacity(0.4),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 60.sp, color: Colors.pinkAccent),
+            SizedBox(height: 16.h),
+            Text(
+              "Access Denied",
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              "You are not authorized to view this page.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14.sp, color: secondaryTextColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          final users = snapshot.data!.docs;
+  Widget _buildUserList(
+    bool isDark,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: isDark ? const Color(0xFF00E5FF) : Colors.blueAccent,
+            ),
+          );
+        }
 
-          return ListView.separated(
-            padding: EdgeInsets.all(12.w),
-            itemCount: users.length,
-            separatorBuilder: (_, __) => SizedBox(height: 8.h),
-            itemBuilder: (context, index) {
-              final data =
-              users[index].data() as Map<String, dynamic>;
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Text(
+              "No users found",
+              style: TextStyle(color: secondaryTextColor),
+            ),
+          );
+        }
 
-              return Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(14.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
+        final users = snapshot.data!.docs;
+
+        return ListView.separated(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+          itemCount: users.length,
+          separatorBuilder: (_, __) => SizedBox(height: 12.h),
+          itemBuilder: (context, index) {
+            final data = users[index].data() as Map<String, dynamic>;
+            final isAdminUser = data['email'] == 'developerlife69@gmail.com';
+
+            return Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.white.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.white.withOpacity(0.4),
                 ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 22.r,
-                      backgroundColor: scheme.primary.withOpacity(0.15),
-                      child: Icon(Icons.person, color: scheme.primary),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10.w),
+                    decoration: BoxDecoration(
+                      color: isAdminUser
+                          ? Colors.purpleAccent.withOpacity(0.15)
+                          : (isDark
+                                ? Colors.white.withOpacity(0.08)
+                                : Colors.grey.withOpacity(0.1)),
+                      shape: BoxShape.circle,
                     ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            data['name'] ?? 'Unnamed User',
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    child: Icon(
+                      Icons.person,
+                      color: isAdminUser
+                          ? Colors.purpleAccent
+                          : (isDark ? Colors.white : Colors.black54),
+                      size: 24.sp,
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data['name'] ?? 'Unnamed User',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
                           ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            data['email'] ?? '',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color:
-                              scheme.onSurface.withOpacity(0.6),
-                            ),
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          data['email'] ?? '',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: secondaryTextColor,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isAdminUser)
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 4.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                          color: Colors.green.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Text(
+                        "ADMIN",
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10.sp,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
-                    if (data['email'] ==
-                        'developerlife69@gmail.com')
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 8.w, vertical: 4.h),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.15),
-                          borderRadius:
-                          BorderRadius.circular(8.r),
-                        ),
-                        child: const Text(
-                          "ADMIN",
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      )
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

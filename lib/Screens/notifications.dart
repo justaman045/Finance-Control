@@ -14,56 +14,56 @@ class NotificationsScreen extends StatelessWidget {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final user = FirebaseAuth.instance.currentUser;
 
-    final Color gradientTop =
-    scheme.brightness == Brightness.light ? kLightGradientTop : kDarkGradientTop;
-    final Color gradientBottom =
-    scheme.brightness == Brightness.light ? kLightGradientBottom : kDarkGradientBottom;
-
     if (user == null) {
-      return Scaffold(
+      return const Scaffold(
+        backgroundColor: Color(0xFF1A1A2E),
         body: Center(
-          child: Text(
-            "Not logged in",
-            style: TextStyle(color: scheme.error, fontSize: 16.sp),
-          ),
+          child: Text("Not logged in", style: TextStyle(color: Colors.white)),
         ),
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [gradientTop, gradientBottom],
-        ),
-      ),
-      child: Scaffold(
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
-            onPressed: () => Navigator.of(context).maybePop(),
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.white,
+            size: 20.sp,
           ),
-          title: Text(
-            "Notifications",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-              color: scheme.onBackground,
-            ),
-          ),
-          centerTitle: true,
-          toolbarHeight: 58.h,
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
-        body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18.w),
+        title: Text(
+          "Notifications",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+        toolbarHeight: 58.h,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF1A1A2E), // Midnight Void
+              const Color(0xFF16213E).withOpacity(0.95),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 100.h, 20.w, 0),
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('notifications')
@@ -73,25 +73,39 @@ class NotificationsScreen extends StatelessWidget {
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                );
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
-                  child: Text(
-                    "No notifications",
-                    style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.6),
-                      fontSize: 14.sp,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.notifications_off_outlined,
+                        color: Colors.white24,
+                        size: 60.sp,
+                      ),
+                      SizedBox(height: 20.h),
+                      Text(
+                        "No notifications",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.4),
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }
 
               final docs = snapshot.data!.docs;
 
-              return ListView.builder(
-                padding: EdgeInsets.only(top: 14.h),
+              return ListView.separated(
+                padding: EdgeInsets.only(bottom: 20.h),
                 itemCount: docs.length,
+                separatorBuilder: (_, __) => SizedBox(height: 16.h),
                 itemBuilder: (context, index) {
                   final doc = docs[index];
                   final data = doc.data()! as Map<String, dynamic>;
@@ -101,64 +115,69 @@ class NotificationsScreen extends StatelessWidget {
                   final timestamp = data['timestamp'] as Timestamp?;
 
                   return Container(
-                    margin: EdgeInsets.only(bottom: 20.h),
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      color: scheme.surface,
+                      color: Colors.white.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
                       boxShadow: [
                         BoxShadow(
-                          color: scheme.onSurface.withOpacity(0.03),
-                          blurRadius: 30.r,
-                          offset: Offset(0, 6.h),
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
-                    child: Column(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 22.r,
-                              backgroundColor: Colors.transparent,
-                              backgroundImage: const AssetImage('assets/profile.png'),
-                            ),
-                            SizedBox(width: 11.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15.sp,
-                                      color: scheme.onSurface,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    body,
-                                    style: TextStyle(
-                                      fontSize: 13.5.sp,
-                                      color: scheme.onSurface,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10.h),
-                        if (timestamp != null)
-                          Text(
-                            formatTimestamp(timestamp),
-                            style: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.48),
-                              fontSize: 11.5.sp,
-                            ),
+                        Container(
+                          padding: EdgeInsets.all(10.w),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6C63FF).withOpacity(0.1),
+                            shape: BoxShape.circle,
                           ),
+                          child: Icon(
+                            Icons.notifications,
+                            color: const Color(0xFF6C63FF),
+                            size: 24.sp,
+                          ),
+                        ),
+                        SizedBox(width: 14.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16.sp,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                body,
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.white70,
+                                  height: 1.4,
+                                ),
+                              ),
+                              SizedBox(height: 10.h),
+                              if (timestamp != null)
+                                Text(
+                                  formatTimestamp(timestamp),
+                                  style: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 12.sp,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   );

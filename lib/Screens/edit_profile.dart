@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:money_control/Components/colors.dart';
+import 'package:get/get.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,6 +19,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
 
   bool _isLoading = false;
 
@@ -35,6 +36,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _lastNameController.text = data['lastName'] ?? '';
         _phoneController.text = data['phone'] ?? '';
         _addressController.text = data['address'] ?? '';
+        _ageController.text = data['age']?.toString() ?? '';
       }
     } catch (e) {
       debugPrint("Error loading user data: $e");
@@ -53,13 +55,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'lastName': _lastNameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'address': _addressController.text.trim(),
+        'age': int.tryParse(_ageController.text.trim()),
         'email': user.email, // auto from auth
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true)); // keep existing fields
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
+        Get.snackbar(
+          "Success",
+          "Profile updated successfully",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF1A1A2E).withOpacity(0.9),
+          colorText: Colors.white,
+          margin: EdgeInsets.all(20.w),
+          borderRadius: 20.r,
+          borderColor: Colors.white.withOpacity(0.1),
+          borderWidth: 1,
+          icon: Icon(
+            Icons.check_circle,
+            color: const Color(0xFF00E5FF),
+            size: 30.sp,
+          ),
+          duration: const Duration(seconds: 3),
+          forwardAnimationCurve: Curves.easeOutBack,
+          backgroundGradient: const LinearGradient(
+            colors: [Color(0xFF2E1A47), Color(0xFF1A1A2E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadows: [
+            BoxShadow(
+              color: const Color(0xFF00E5FF).withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 5),
+            ),
+          ],
         );
         setState(() => _isLoading = false);
       }
@@ -67,8 +97,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       debugPrint("Error saving user data: $e");
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error saving profile: $e")),
+      Get.snackbar(
+        "Error",
+        "Error saving profile: $e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.1),
+        colorText: Colors.white,
+        margin: EdgeInsets.all(20.w),
+        borderRadius: 20.r,
+        borderColor: Colors.redAccent.withOpacity(0.3),
+        borderWidth: 1,
+        icon: Icon(Icons.error_outline, color: Colors.redAccent, size: 30.sp),
+        duration: const Duration(seconds: 4),
       );
     }
   }
@@ -81,212 +121,261 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
-    final hintColor =
-    (isLight ? kLightTextSecondary : kDarkTextSecondary).withOpacity(0.85);
-    final labelColor = scheme.onSurface;
-    final border = BorderSide(
-        color: isLight ? kLightBorder : kDarkBorder, width: 1.1.w);
-
     final user = _auth.currentUser;
 
-    return Scaffold(
-      backgroundColor: scheme.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        titleSpacing: 0,
-        iconTheme: IconThemeData(color: scheme.onBackground),
-        title: Text(
-          "Edit Profile",
-          style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: scheme.onBackground,
-              fontSize: 17.sp),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF1A1A2E), // Midnight Void Top
+            const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios,
-              size: 19.sp, color: scheme.onBackground),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        centerTitle: false,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 4.h),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              SizedBox(height: 12.h),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          titleSpacing: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: Text(
+            "Edit Profile",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontSize: 18.sp,
+              letterSpacing: 0.5,
+            ),
+          ),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, size: 19.sp, color: Colors.white),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          centerTitle: true,
+        ),
+        body: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+              )
+            : SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                child: Column(
+                  children: [
+                    SizedBox(height: 20.h),
 
-              // Avatar
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 43.r,
-                    backgroundColor: scheme.surface,
-                    backgroundImage:
-                    const AssetImage('assets/profile.png'),
-                  ),
-                  Positioned(
-                    bottom: 5,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 27.r,
-                        width: 27.r,
-                        decoration: BoxDecoration(
-                          color: scheme.primary,
-                          border: Border.all(
-                              color: scheme.surface, width: 2),
-                          shape: BoxShape.circle,
+                    // Avatar with Glow
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00E5FF).withOpacity(0.3),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 50.r,
+                            backgroundColor: Colors.white.withOpacity(0.1),
+                            backgroundImage: const AssetImage(
+                              'assets/profile.png',
+                            ),
+                          ),
                         ),
-                        child: Icon(Icons.edit,
-                            size: 15.sp, color: scheme.onPrimary),
+                        GestureDetector(
+                          onTap: () {},
+                          child: Container(
+                            height: 32.r,
+                            width: 32.r,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00E5FF),
+                              border: Border.all(
+                                color: const Color(0xFF1A1A2E),
+                                width: 3,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.edit,
+                              size: 16.sp,
+                              color: const Color(0xFF1A1A2E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 40.h),
+
+                    // Editable fields
+                    _buildGlassTextField(
+                      label: "First Name",
+                      controller: _firstNameController,
+                    ),
+                    _buildGlassTextField(
+                      label: "Last Name",
+                      controller: _lastNameController,
+                    ),
+                    _buildGlassTextField(
+                      label: "Age",
+                      controller: _ageController,
+                    ),
+                    _buildGlassTextField(
+                      label: "Email",
+                      value: user?.email ?? '',
+                      enabled: false,
+                    ),
+                    _buildGlassTextField(
+                      label: "Phone Number",
+                      controller: _phoneController,
+                    ),
+                    _buildGlassTextField(
+                      label: "Address",
+                      controller: _addressController,
+                    ),
+
+                    SizedBox(height: 32.h),
+
+                    // Save Button
+                    GestureDetector(
+                      onTap: _saveUserData,
+                      child: Container(
+                        width: double.infinity,
+                        height: 56.h,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(28.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "SAVE CHANGES",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.sp,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
                       ),
                     ),
-                  )
-                ],
-              ),
 
-              SizedBox(height: 32.h),
+                    SizedBox(height: 20.h),
 
-              // Editable fields
-              _buildEditableField(
-                  label: "First Name",
-                  controller: _firstNameController,
-                  hintColor: hintColor,
-                  labelColor: labelColor,
-                  border: border),
-              _buildEditableField(
-                  label: "Last Name",
-                  controller: _lastNameController,
-                  hintColor: hintColor,
-                  labelColor: labelColor,
-                  border: border),
-              _buildEditableField(
-                  label: "Email",
-                  value: user?.email ?? '',
-                  enabled: false,
-                  hintColor: hintColor,
-                  labelColor: labelColor,
-                  border: border),
-              _buildEditableField(
-                  label: "Phone Number",
-                  controller: _phoneController,
-                  hintColor: hintColor,
-                  labelColor: labelColor,
-                  border: border),
-              _buildEditableField(
-                  label: "Address",
-                  controller: _addressController,
-                  hintColor: hintColor,
-                  labelColor: labelColor,
-                  border: border),
-
-              SizedBox(height: 32.h),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                height: 48.h,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: scheme.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r)),
-                  ),
-                  onPressed: _saveUserData,
-                  child: Text(
-                    "Save Changes",
-                    style: TextStyle(
-                      color: scheme.onPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15.sp,
+                    // Change Password
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56.h,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF00E5FF),
+                          side: BorderSide(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28.r),
+                          ),
+                        ),
+                        onPressed: () async {
+                          if (user != null) {
+                            await _auth.sendPasswordResetEmail(
+                              email: user.email!,
+                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Password reset link sent to your email',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Text(
+                          "Change Password",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15.sp,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+
+                    SizedBox(height: 30.h),
+                  ],
                 ),
               ),
-
-              SizedBox(height: 20.h),
-
-              // Change Password
-              SizedBox(
-                width: double.infinity,
-                height: 48.h,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: scheme.primary,
-                    side: BorderSide(color: scheme.primary, width: 1.4),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14.r)),
-                  ),
-                  onPressed: () async {
-                    if (user != null) {
-                      await _auth.sendPasswordResetEmail(email: user.email!);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Password reset link sent to your email')),
-                      );
-                    }
-                  },
-                  child: Text(
-                    "Change Password",
-                    style: TextStyle(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15.sp,
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 18.h),
-            ],
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildEditableField({
+  Widget _buildGlassTextField({
     required String label,
     TextEditingController? controller,
     String? value,
     bool enabled = true,
-    required Color labelColor,
-    required Color hintColor,
-    required BorderSide border,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: TextStyle(
-                color: labelColor,
-                fontSize: 12.5.sp,
-                fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 8.h),
         Container(
-          margin: EdgeInsets.only(top: 4.h, bottom: 12.h),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
           child: TextFormField(
             controller: controller,
             enabled: enabled,
             initialValue: controller == null ? value ?? '' : null,
             style: TextStyle(
-                fontSize: 14.5.sp, color: hintColor, fontWeight: FontWeight.w500),
+              fontSize: 16.sp,
+              color: enabled ? Colors.white : Colors.white38,
+              fontWeight: FontWeight.w500,
+            ),
             decoration: InputDecoration(
-              filled: false,
-              hintText: '',
-              border: UnderlineInputBorder(borderSide: border),
-              focusedBorder: UnderlineInputBorder(borderSide: border),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 16.h,
+              ),
+              border: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
             ),
           ),
         ),
+        SizedBox(height: 20.h),
       ],
     );
   }

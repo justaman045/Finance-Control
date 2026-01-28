@@ -32,10 +32,10 @@ class RecentPaymentList extends StatelessWidget {
 
     // Fetch all transactions involving this user (sent or received)
     final txStream = FirebaseFirestore.instance
-        .collection('users').doc(FirebaseAuth.instance.currentUser?.email).collection('transactions')
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.email)
+        .collection('transactions')
         .orderBy('date', descending: true)
-        //transaction for today's date only starting from midnight 12 AM
-        // .where('createdAt', isGreaterThanOrEqualTo: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 0, 0, 0))
         .snapshots();
 
     return StreamBuilder<QuerySnapshot>(
@@ -53,12 +53,18 @@ class RecentPaymentList extends StatelessWidget {
           );
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Text(
-              "You haven't made any Transaction today",
-              style: TextStyle(
-                color: scheme.onSurface.withOpacity(0.6),
-                fontSize: 13.sp,
+          return Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 20.h),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Center(
+              child: Text(
+                "You haven't made any Transaction today",
+                style: TextStyle(color: Colors.white60, fontSize: 13.sp),
               ),
             ),
           );
@@ -66,22 +72,30 @@ class RecentPaymentList extends StatelessWidget {
 
         // Map Firestore docs to TransactionModel instances for this user only, descending order
         final txs = snapshot.data!.docs
-            .map((doc) => TransactionModel.fromMap(
-          doc.id,
-          doc.data() as Map<String, dynamic>,
-        ))
+            .map(
+              (doc) => TransactionModel.fromMap(
+                doc.id,
+                doc.data() as Map<String, dynamic>,
+              ),
+            )
             .where(
               (txn) => txn.senderId == user.uid || txn.recipientId == user.uid,
-        )
+            )
             .toList();
 
         if (txs.isEmpty) {
-          return Center(
-            child: Text(
-              "You have no transactions yet.",
-              style: TextStyle(
-                color: scheme.onSurface.withOpacity(0.6),
-                fontSize: 13.sp,
+          return Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 20.h),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Center(
+              child: Text(
+                "You have no transactions yet.",
+                style: TextStyle(color: Colors.white60, fontSize: 13.sp),
               ),
             ),
           );
@@ -90,11 +104,39 @@ class RecentPaymentList extends StatelessWidget {
         // Limit to N recent, or display all as needed (here: 8)
         final recentTxs = txs.take(8).toList();
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        final containerColor = isDark
+            ? Colors.white.withOpacity(0.05) // Dark Glass
+            : Colors.white.withOpacity(0.8);
+
+        final borderColor = isDark
+            ? Colors.white.withOpacity(0.08)
+            : Colors.grey.withOpacity(0.1);
+
+        final textColor = isDark ? Colors.white : Colors.black87;
+
         return Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
           decoration: BoxDecoration(
-            color: cardColor ?? scheme.surface,
-            borderRadius: BorderRadius.circular(18.r),
+            color: containerColor,
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: borderColor),
+            boxShadow: isDark
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
           ),
           child: Column(
             children: recentTxs.map((tx) {
@@ -103,8 +145,14 @@ class RecentPaymentList extends StatelessWidget {
                 tx: tx,
                 received: received,
                 textColor: textColor,
-                receivedColor: receivedColor,
-                sentColor: sentColor,
+                receivedColor: isDark
+                    ? const Color(0xFF00E5FF) // Neon Cyan
+                    : const Color(
+                        0xFF00C853,
+                      ), // Green for Light Mode (readable)
+                sentColor: isDark
+                    ? const Color(0xFFFF2975) // Neon Pink
+                    : const Color(0xFFD50000), // Red for Light Mode
               );
             }).toList(),
           ),
@@ -122,7 +170,7 @@ class RecentPaymentList extends StatelessWidget {
     child: Column(
       children: List.generate(
         3,
-            (i) => Padding(
+        (i) => Padding(
           padding: EdgeInsets.only(bottom: 10.h),
           child: Container(
             height: 52.h,

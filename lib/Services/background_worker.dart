@@ -7,40 +7,13 @@ class BackgroundWorker {
   static bool _initialized = false;
 
   /// Task name used by WorkManager
-  static const String taskName = "check_inactivity_task";
-
-  /// This function is called in the background isolate.
-  @pragma('vm:entry-point')
-  static void callbackDispatcher() {
-    Workmanager().executeTask((task, inputData) async {
-      if (task == taskName) {
-        final prefs = await SharedPreferences.getInstance();
-        final lastOpened = prefs.getInt('lastOpened') ?? 0;
-        final now = DateTime.now().millisecondsSinceEpoch;
-
-        // 6 hours in milliseconds
-        final sixHoursMs = const Duration(hours: 6).inMilliseconds;
-
-        if (lastOpened != 0 && (now - lastOpened) > sixHoursMs) {
-          await _showNotification();
-        }
-      }
-
-      // Must return true when the task is completed
-      return Future.value(true);
-    });
-  }
-
   /// Initialize WorkManager only once
   static Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
 
     // Initialize WorkManager with our callback dispatcher
-    await Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: false,
-    );
+    await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
 
     // Register periodic task (Android min is 15 minutes)
     await Workmanager().registerPeriodicTask(
@@ -56,16 +29,17 @@ class BackgroundWorker {
     final plugin = FlutterLocalNotificationsPlugin();
 
     const AndroidNotificationDetails androidDetails =
-    AndroidNotificationDetails(
-      'reminder_channel',
-      'Reminders',
-      channelDescription: 'Inactivity reminders to add your expenses',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
+        AndroidNotificationDetails(
+          'reminder_channel',
+          'Reminders',
+          channelDescription: 'Inactivity reminders to add your expenses',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
 
-    const NotificationDetails details =
-    NotificationDetails(android: androidDetails);
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+    );
 
     await plugin.show(
       42,
@@ -75,4 +49,29 @@ class BackgroundWorker {
       payload: "home", // Used in main.dart to navigate to home
     );
   }
+}
+
+/// Task name used by WorkManager
+const String taskName = "check_inactivity_task";
+
+/// This function is called in the background isolate.
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    if (task == taskName) {
+      final prefs = await SharedPreferences.getInstance();
+      final lastOpened = prefs.getInt('lastOpened') ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      // 6 hours in milliseconds
+      final sixHoursMs = const Duration(hours: 6).inMilliseconds;
+
+      if (lastOpened != 0 && (now - lastOpened) > sixHoursMs) {
+        await BackgroundWorker._showNotification();
+      }
+    }
+
+    // Must return true when the task is completed
+    return Future.value(true);
+  });
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutApplicationScreen extends StatefulWidget {
@@ -28,18 +28,32 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
-    final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
-    final surface = scheme.surface;
-    final border = isLight ? kLightBorder : kDarkBorder;
-    final secondary = isLight ? kLightTextSecondary : kDarkTextSecondary;
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
+
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final secondaryTextColor = isDark
+        ? Colors.white.withOpacity(0.6)
+        : const Color(0xFF1A1A2E).withOpacity(0.6);
+
+    final cardColor = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.white.withOpacity(0.6);
+
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.4);
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [gradientTop, gradientBottom],
+          colors: gradientColors,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -53,14 +67,13 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           title: Text(
             "About Application",
             style: TextStyle(
-              color: scheme.onBackground,
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios,
-                color: scheme.onBackground, size: 20.sp),
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
             onPressed: () => Navigator.pop(context),
           ),
           toolbarHeight: 64.h,
@@ -72,23 +85,39 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             children: [
               // APP HEADER CARD
               _AppInfoCard(
-                surface: surface,
-                border: border,
+                surface: cardColor,
+                border: borderColor,
                 scheme: scheme,
                 version: _appVersion,
-                secondary: secondary,
+                secondary: secondaryTextColor,
+                textColor: textColor,
+                isDark: isDark,
               ),
               SizedBox(height: 22.h),
 
-              _SectionLabel("Developer", secondary),
+              _SectionLabel("Developer", secondaryTextColor),
               SizedBox(height: 8.h),
-              _DeveloperTile(surface, border, scheme, secondary),
+              _DeveloperTile(
+                cardColor,
+                borderColor,
+                scheme,
+                secondaryTextColor,
+                textColor,
+                isDark,
+              ),
 
               SizedBox(height: 22.h),
 
-              _SectionLabel("Acknowledgements", secondary),
+              _SectionLabel("Acknowledgements", secondaryTextColor),
               SizedBox(height: 8.h),
-              _AcknowledgementCard(surface, border, scheme, secondary),
+              _AcknowledgementCard(
+                cardColor,
+                borderColor,
+                scheme,
+                secondaryTextColor,
+                textColor,
+                isDark,
+              ),
 
               SizedBox(height: 30.h),
             ],
@@ -120,6 +149,8 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
     required ColorScheme scheme,
     required String version,
     required Color secondary,
+    required Color textColor,
+    required bool isDark,
   }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -129,8 +160,9 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         border: Border.all(color: border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 7,
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -148,7 +180,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20.sp,
-              color: scheme.onSurface,
+              color: textColor,
             ),
           ),
           SizedBox(height: 6.h),
@@ -164,12 +196,12 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           Divider(color: border),
           SizedBox(height: 12.h),
           Text(
-            "Money Control helps you effortlessly manage expenses, track income, view analytics, monitor savings goals, and understand your financial habits — all in one beautiful place.",
+            "Empower your financial journey with Money Control. Seamlessly track expenses, visualize income streams, and gain profound insights into your spending habits with our AI-powered analytics. Crafted for elegance, designed for control.",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: scheme.onSurface.withOpacity(0.85),
+              color: textColor.withOpacity(0.85),
               fontSize: 13.5.sp,
-              height: 1.35,
+              height: 1.4,
             ),
           ),
           SizedBox(height: 18.h),
@@ -180,33 +212,46 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
 
   // ---------------- DEVELOPER TILE ----------------
   Widget _DeveloperTile(
-      Color surface, Color border, ColorScheme scheme, Color secondary) {
+    Color surface,
+    Color border,
+    ColorScheme scheme,
+    Color secondary,
+    Color textColor,
+    bool isDark,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
         leading: CircleAvatar(
           radius: 24.r,
-          backgroundColor: scheme.primary.withOpacity(0.12),
+          backgroundColor: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.05),
           child: const Icon(Icons.code_rounded, color: Colors.teal),
         ),
         title: Text(
-          "Developed by Aman",
+          "Developed by Aman Ojha",
           style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15.5.sp,
-              color: scheme.onSurface),
+            fontWeight: FontWeight.bold,
+            fontSize: 15.5.sp,
+            color: textColor,
+          ),
         ),
         subtitle: Text(
-          "QA Analyst • Full-stack Developer",
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: secondary,
-          ),
+          "Software Engineer & Designer",
+          style: TextStyle(fontSize: 12.sp, color: secondary),
         ),
       ),
     );
@@ -214,19 +259,32 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
 
   // ---------------- ACKNOWLEDGEMENT CARD ----------------
   Widget _AcknowledgementCard(
-      Color surface, Color border, ColorScheme scheme, Color secondary) {
+    Color surface,
+    Color border,
+    ColorScheme scheme,
+    Color secondary,
+    Color textColor,
+    bool isDark,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "This app uses open-source and ecosystem packages:",
+            "Powered by open-source technologies:",
             style: TextStyle(
               fontSize: 13.5.sp,
               fontWeight: FontWeight.w600,
@@ -235,44 +293,49 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           ),
           SizedBox(height: 10.h),
 
-          _Bullet("Flutter Framework"),
-          _Bullet("Firebase Authentication & Firestore"),
-          _Bullet("GetX – State Management & Routing"),
-          _Bullet("flutter_screenutil – Responsive UI"),
-          _Bullet("package_info_plus"),
-          _Bullet("share_plus, printing, and more"),
+          _Bullet("Flutter Framework", textColor),
+          _Bullet("Firebase Authentication & Firestore", textColor),
+          _Bullet("GetX – State Management & Routing", textColor),
+          _Bullet("flutter_screenutil – Responsive UI", textColor),
+          _Bullet("package_info_plus", textColor),
+          _Bullet("share_plus, printing, and more", textColor),
 
           SizedBox(height: 16.h),
           Row(
             children: [
-              Icon(Icons.copyright,
-                  size: 16.sp, color: secondary.withOpacity(0.9)),
+              Icon(
+                Icons.copyright,
+                size: 16.sp,
+                color: secondary.withOpacity(0.9),
+              ),
               SizedBox(width: 6.w),
               Text(
                 "2025 Money Control",
                 style: TextStyle(color: secondary, fontSize: 13.sp),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
   }
 
-  Widget _Bullet(String text) {
+  Widget _Bullet(String text, Color textColor) {
     return Padding(
       padding: EdgeInsets.only(bottom: 6.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("•  ",
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500)),
+          Text(
+            "•  ",
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500),
+          ),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
                 fontSize: 13.5.sp,
-                color: Colors.white.withOpacity(0.8),
+                color: textColor.withOpacity(0.8),
               ),
             ),
           ),

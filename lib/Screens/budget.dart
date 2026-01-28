@@ -2,9 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 
 class CategoryBudgetScreen extends StatefulWidget {
   const CategoryBudgetScreen({super.key});
@@ -25,7 +26,11 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
 
   DateTime get _endOfMonth {
     final now = DateTime.now();
-    return DateTime(now.year, now.month + 1, 1).subtract(const Duration(seconds: 1));
+    return DateTime(
+      now.year,
+      now.month + 1,
+      1,
+    ).subtract(const Duration(seconds: 1));
   }
 
   @override
@@ -97,8 +102,11 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
           amount = double.tryParse(amountRaw) ?? 0;
         }
 
-        if (category != null && amount < 0) {
-          spendMap[category] = (spendMap[category] ?? 0) + (-amount);
+        if (category != null) {
+          // Robust Fix: Sum absolute values.
+          // Assumes all categorized transactions in this context are spending (or refunds treated as activity).
+          // Handles positive/negative stored expenses consistent with new approach.
+          spendMap[category] = (spendMap[category] ?? 0) + amount.abs();
         }
       }
 
@@ -110,15 +118,19 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
         final spendAmount = spendMap[catName] ?? 0;
 
         var controller = _controllers[catName];
-        controller ??= TextEditingController(text: budgetAmount.toStringAsFixed(2));
+        controller ??= TextEditingController(
+          text: budgetAmount.toStringAsFixed(2),
+        );
         _controllers[catName] = controller;
 
-        items.add(_BudgetCategoryItem(
-          categoryName: catName,
-          budget: budgetAmount,
-          spent: spendAmount,
-          controller: controller,
-        ));
+        items.add(
+          _BudgetCategoryItem(
+            categoryName: catName,
+            budget: budgetAmount,
+            spent: spendAmount,
+            controller: controller,
+          ),
+        );
       }
 
       setState(() {
@@ -129,8 +141,12 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
       setState(() {
         loading = false;
       });
-      Get.snackbar("Error", "Failed to load budgets: $e",
-          backgroundColor: Colors.red, colorText: Colors.white);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to load budgets: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -145,141 +161,267 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
           .collection('budgets')
           .doc(categoryName)
           .set({'amount': amount});
-      Get.snackbar("Success", "Budget saved for $categoryName",
-          backgroundColor: Colors.green, colorText: Colors.white);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Budget saved for $categoryName"),
+          backgroundColor: Colors.green,
+        ),
+      );
       await _fetchBudgetsAndSpends();
     } catch (e) {
-      Get.snackbar("Error", "Failed to save budget: $e",
-          backgroundColor: Colors.red, colorText: Colors.white);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to save budget: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          "Category Budgets",
-          style: TextStyle(
-            color: scheme.onBackground,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
-          onPressed: () => Navigator.pop(context),
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
+
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final secondaryTextColor = isDark
+        ? Colors.white.withOpacity(0.6)
+        : const Color(0xFF1A1A2E).withOpacity(0.6);
+
+    final cardColor = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.white.withOpacity(0.6);
+
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.4);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
       ),
-      backgroundColor: scheme.background,
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: EdgeInsets.all(12.w),
-        child: ListView.separated(
-          itemCount: categoryBudgets.length,
-          separatorBuilder: (_, __) =>
-              Divider(color: scheme.onSurface.withOpacity(0.1)),
-          itemBuilder: (context, index) {
-            final item = categoryBudgets[index];
-            final progress = item.budget > 0
-                ? (item.spent / item.budget).clamp(0, 1)
-                : 0.0;
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            "Category Budgets",
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+            ),
+          ),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 20.sp),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: loading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+              )
+            : Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  itemCount: categoryBudgets.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 16.h),
+                  itemBuilder: (context, index) {
+                    final item = categoryBudgets[index];
+                    final progress = item.budget > 0
+                        ? (item.spent / item.budget).clamp(0.0, 1.0)
+                        : 0.0;
 
-            // Instead of ListTile, use a custom row+column layout for flexibility:
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.h),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10.w),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CategoryInitialsIcon(
-                      categoryName: item.categoryName,
-                      size: 38.r,
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
+                    // Color logic: Green if <80%, Turn Yellow/Red as it fills
+                    final progressColor = progress > 0.9
+                        ? const Color(0xFFFF4081) // Neon Pink/Red
+                        : (progress > 0.7
+                              ? Colors.orangeAccent
+                              : const Color(0xFF00E5FF)); // Cyan
+
+                    return Container(
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              isDark ? 0.2 : 0.05,
+                            ),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item.categoryName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16.sp,
-                              )),
-                          SizedBox(height: 6.h),
-                          LinearProgressIndicator(
-                            value: progress.toDouble(),
-                            color: progress < 0.8 ? Colors.green : Colors.red,
-                            backgroundColor: scheme.surfaceVariant,
-                            minHeight: 8.h,
-                          ),
-                          SizedBox(height: 4.h),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
-                                'Spent: ₹${item.spent.toStringAsFixed(2)}',
-                                style: TextStyle(fontSize: 13.sp, color: scheme.onSurfaceVariant),
+                              Container(
+                                padding: EdgeInsets.all(8.w),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.08)
+                                      : Colors.white.withOpacity(0.4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: CategoryInitialsIcon(
+                                  categoryName: item.categoryName,
+                                  size: 32.r,
+                                ),
                               ),
-                              Text(
-                                'Budget: ₹${item.budget.toStringAsFixed(2)}',
-                                style: TextStyle(fontSize: 13.sp, color: scheme.onSurfaceVariant),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 10.h),
-                          Row(
-                            children: [
+                              SizedBox(width: 12.w),
                               Expanded(
-                                child: TextFormField(
-                                  controller: item.controller,
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                  decoration: InputDecoration(
-                                    hintText: 'Set Budget',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12.r),
-                                    ),
-                                    contentPadding: EdgeInsets.symmetric(
-                                        vertical: 10.h, horizontal: 10.w),
-                                    isDense: true,
+                                child: Text(
+                                  item.categoryName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16.sp,
+                                    color: textColor,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 8.w),
-                              SizedBox(
-                                height: 41.h,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    final amount = double.tryParse(item.controller.text) ?? 0;
-                                    _saveBudget(item.categoryName, amount);
-                                  },
-                                  child: const Text("Save"),
+                              Text(
+                                "${CurrencyController.to.currencySymbol.value}${item.spent.toStringAsFixed(0)} / ${item.budget.toStringAsFixed(0)}",
+                                style: TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16.h),
+
+                          /// PROGRESS BAR
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4.h),
+                            child: LinearProgressIndicator(
+                              value: progress.toDouble(),
+                              color: progressColor,
+                              backgroundColor: isDark
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.black.withOpacity(0.05),
+                              minHeight: 6.h,
+                            ),
+                          ),
+
+                          SizedBox(height: 16.h),
+
+                          /// INPUT + SAVE
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 44.h,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.black.withOpacity(0.2)
+                                        : Colors.grey.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.white.withOpacity(0.1)
+                                          : Colors.black.withOpacity(0.05),
+                                    ),
+                                  ),
+                                  child: TextFormField(
+                                    controller: item.controller,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontSize: 14.sp,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Set Limit',
+                                      hintStyle: TextStyle(
+                                        color: secondaryTextColor.withOpacity(
+                                          0.4,
+                                        ),
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 14.w,
+                                        vertical:
+                                            0, // Centers text vertically in 44h container
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              InkWell(
+                                onTap: () {
+                                  final amount =
+                                      double.tryParse(item.controller.text) ??
+                                      0;
+                                  _saveBudget(item.categoryName, amount);
+                                },
+                                child: Container(
+                                  height: 44.h,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20.w,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF6C63FF),
+                                        Color(0xFF00E5FF),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF6C63FF,
+                                        ).withOpacity(0.4),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    "Update",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.sp,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-            );
-          },
-        ),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 3),
     );
   }
 }

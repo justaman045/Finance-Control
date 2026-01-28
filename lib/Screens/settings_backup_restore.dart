@@ -43,7 +43,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     // 🔥 Always create/update the latest backup BEFORE exporting
     await LocalBackupService.backupUserTransactions(user.email!);
 
-    final backup = await LocalBackupService.readUserTransactionsBackup(user.email!);
+    final backup = await LocalBackupService.readUserTransactionsBackup(
+      user.email!,
+    );
 
     if (backup.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,11 +58,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
     await Share.shareXFiles([XFile(file.path)], text: "Finance Control Backup");
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Backup exported!")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Backup exported!")));
   }
-
 
   Future<void> _restoreBackup() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -111,64 +112,103 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
       _setWorking(false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Restore successful!")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Restore successful!")));
     } catch (e) {
       _setWorking(false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Restore failed: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Restore failed: $e")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Backup & Restore"),
-        backgroundColor: scheme.surface,
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
+
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: working
-            ? Center(
-          child: Column(
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
-                "Processing...",
-                style:
-                TextStyle(color: scheme.onSurface.withOpacity(0.7)),
-              )
-            ],
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            "Backup & Restore",
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
           ),
-        )
-            : Column(
-          children: [
-            _item(
-              icon: Icons.backup,
-              title: "Backup Transactions",
-              subtitle: "Save a secure offline copy",
-              onTap: _backupNow,
-            ),
-            const SizedBox(height: 12),
-            _item(
-              icon: Icons.file_upload,
-              title: "Export Backup",
-              subtitle: "Share or store the backup file",
-              onTap: _exportBackup,
-            ),
-            const SizedBox(height: 12),
-            _item(
-              icon: Icons.restore,
-              title: "Restore Backup",
-              subtitle: "Import a saved JSON backup",
-              onTap: _restoreBackup,
-            ),
-          ],
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: textColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+          child: working
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        color: isDark
+                            ? const Color(0xFF00E5FF)
+                            : scheme.primary,
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        "Processing...",
+                        style: TextStyle(color: textColor.withOpacity(0.7)),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    _item(
+                      icon: Icons.cloud_upload_outlined,
+                      title: "Backup Transactions",
+                      subtitle: "Save a secure offline copy",
+                      iconBg: const Color(0xFF6C63FF),
+                      onTap: _backupNow,
+                      isDark: isDark,
+                    ),
+                    SizedBox(height: 16.h),
+                    _item(
+                      icon: Icons.ios_share_rounded,
+                      title: "Export Backup",
+                      subtitle: "Share or store the backup file",
+                      iconBg: const Color(0xFF00E5FF),
+                      onTap: _exportBackup,
+                      isDark: isDark,
+                    ),
+                    SizedBox(height: 16.h),
+                    _item(
+                      icon: Icons.restore,
+                      title: "Restore Backup",
+                      subtitle: "Import a saved JSON backup",
+                      iconBg: const Color(0xFFEA80FC),
+                      onTap: _restoreBackup,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
         ),
       ),
     );
@@ -178,51 +218,82 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     required IconData icon,
     required String title,
     required String subtitle,
+    required Color iconBg,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
-    final scheme = Theme.of(context).colorScheme;
+    final containerColor = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.white.withOpacity(0.6);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.4);
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Row(
-          children: [
-            Icon(icon, size: 30, color: scheme.primary),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: TextStyle(
-                          fontSize: 16,
-                          color: scheme.onSurface,
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(subtitle,
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: scheme.onSurface.withOpacity(0.6))),
-                ],
+        borderRadius: BorderRadius.circular(20.r),
+        splashColor: iconBg.withOpacity(0.2),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            color: containerColor,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
               ),
-            ),
-            Icon(Icons.arrow_forward_ios,
-                size: 18, color: scheme.onSurface.withOpacity(0.6))
-          ],
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: iconBg.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 28.sp, color: iconBg),
+              ),
+              SizedBox(width: 20.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: textColor.withOpacity(0.6),
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                size: 20.sp,
+                color: textColor.withOpacity(0.4),
+              ),
+            ],
+          ),
         ),
       ),
     );

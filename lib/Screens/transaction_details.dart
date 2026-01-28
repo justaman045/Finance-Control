@@ -10,8 +10,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
-import 'package:money_control/Services/offline_queue.dart';        // <── ADDED
-import 'package:money_control/Services/local_backup_service.dart';  // <── ADDED
+import 'package:money_control/Services/offline_queue.dart'; // <── ADDED
+import 'package:money_control/Services/local_backup_service.dart'; // <── ADDED
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -56,7 +57,9 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Delete Transaction"),
-        content: const Text("Are you sure you want to delete this transaction?"),
+        content: const Text(
+          "Are you sure you want to delete this transaction?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -82,7 +85,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
           .collection("transactions")
           .doc(txId)
           .delete()
-      .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 5));
 
       LocalBackupService.backupUserTransactions(user.email!);
 
@@ -125,9 +128,9 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to share screenshot: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share screenshot: $e')),
+        );
       }
     }
   }
@@ -146,16 +149,23 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text("Transaction Receipt",
-                  style: pw.TextStyle(
-                      fontSize: 22, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                "Transaction Receipt",
+                style: pw.TextStyle(
+                  fontSize: 22,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 8),
               pw.Divider(),
               pw.SizedBox(height: 12),
               _pdfRow("Transaction ID", tx.id),
               _pdfRow("Date", tx.date.toLocal().toString()),
               _pdfRow("Recipient", tx.recipientName),
-              _pdfRow("Amount", "₹${tx.amount.toStringAsFixed(2)}"),
+              _pdfRow(
+                "Amount",
+                "${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}",
+              ),
               _pdfRow("Tax", tx.tax.toStringAsFixed(2)),
               _pdfRow("Total", tx.total.toStringAsFixed(2)),
               _pdfRow("Currency", tx.currency),
@@ -164,9 +174,10 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                 _pdfRow("Note", tx.note!),
               _pdfRow("Status", tx.status ?? "-"),
               pw.SizedBox(height: 24),
-              pw.Text("Generated using Money Control App",
-                  style:
-                  pw.TextStyle(fontSize: 11, color: PdfColors.grey600)),
+              pw.Text(
+                "Generated using Money Control App",
+                style: pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+              ),
             ],
           );
         },
@@ -177,9 +188,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     final file = File("${directory.path}/Transaction_${tx.id}.pdf");
     await file.writeAsBytes(await pdf.save());
 
-    await Share.shareXFiles([
-      XFile(file.path, mimeType: "application/pdf")
-    ]);
+    await Share.shareXFiles([XFile(file.path, mimeType: "application/pdf")]);
   }
 
   pw.Widget _pdfRow(String label, String value) {
@@ -188,9 +197,10 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text(label,
-              style:
-              pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+          pw.Text(
+            label,
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13),
+          ),
           pw.Text(value, style: const pw.TextStyle(fontSize: 13)),
         ],
       ),
@@ -202,52 +212,68 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
   // ----------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tx = widget.transaction;
-
-    return Scaffold(
-      backgroundColor:
-      scheme.brightness == Brightness.light ? const Color(0xFFF5F7FB) : scheme.background,
-      appBar: AppBar(
-        title: const Text("Transaction Details"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () async {
-              // Navigate to Edit
-              await Get.to(() => TransactionEditScreen(transaction: tx));
-              if (mounted) setState(() {});
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _deleteTransaction,
-          ),
-        ],
+    // Midnight Void Gradient Background
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF1A1A2E), // Midnight Void Top
+            const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
       ),
-
-      body: Screenshot(
-        controller: _ssController,
-        child: _buildBody(context, tx, scheme),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text(
+            "Transaction Details",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              onPressed: () async {
+                await Get.to(
+                  () => TransactionEditScreen(transaction: widget.transaction),
+                );
+                if (mounted) setState(() {});
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.white),
+              onPressed: _deleteTransaction,
+            ),
+          ],
+        ),
+        body: Screenshot(
+          controller: _ssController,
+          child: _buildBody(context, widget.transaction),
+        ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, TransactionModel tx, ColorScheme scheme) {
+  Widget _buildBody(BuildContext context, TransactionModel tx) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isReceived = user != null && tx.recipientId == user.uid;
+
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 10.h),
       child: Column(
         children: [
-          SizedBox(height: 18.h),
-          _statusIcon(),
+          SizedBox(height: 20.h),
+          _statusIcon(isReceived),
           SizedBox(height: 16.h),
-          _titleText(),
+          _titleText(isReceived),
           SizedBox(height: 6.h),
-          _subtitleText(),
-          SizedBox(height: 22.h),
+          _subtitleText(isReceived),
+          SizedBox(height: 30.h),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -256,39 +282,61 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                 icon: Icons.share_outlined,
                 label: "Share",
                 onTap: _shareScreenshot,
-                scheme: scheme,
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: 16.w),
               _capsuleButton(
                 icon: Icons.picture_as_pdf,
                 label: "Save PDF",
                 onTap: _savePDF,
-                scheme: scheme,
               ),
             ],
           ),
 
-          SizedBox(height: 25.h),
-          _detailsCard(tx, scheme),
+          SizedBox(height: 30.h),
+          _detailsCard(tx, isReceived),
 
-          SizedBox(height: 25.h),
-          SizedBox(
+          SizedBox(height: 30.h),
+          Container(
             width: double.infinity,
             height: 54.h,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF6A11CB),
+                  Color(0xFF2575FC),
+                ], // Neon Blue/Purple
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(28.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2575FC).withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: scheme.primary,
-                shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28.r),
+                ),
               ),
-              child: Text("Back",
-                  style: TextStyle(
-                      color: scheme.onPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16.sp)),
+              child: Text(
+                "Back",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16.sp,
+                ),
+              ),
             ),
           ),
+          SizedBox(height: 20.h),
         ],
       ),
     );
@@ -296,62 +344,116 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
 
   // --------------------------- Icon + Title ---------------------------
 
-  Widget _statusIcon() {
+  Widget _statusIcon(bool isReceived) {
     final t = widget.type;
 
-    final icon =
-    t == TransactionResultType.success ? Icons.check_circle_rounded :
-    t == TransactionResultType.failed  ? Icons.cancel_rounded :
-    Icons.hourglass_empty_rounded;
+    if (t == TransactionResultType.failed) {
+      return _buildIconContainer(
+        Icons.close_rounded,
+        [const Color(0xFFE53935), const Color(0xFFB71C1C)], // Red for Failure
+      );
+    } else if (t == TransactionResultType.inProgress) {
+      return _buildIconContainer(
+        Icons.hourglass_empty_rounded,
+        [
+          const Color(0xFFFFA726),
+          const Color(0xFFF57C00),
+        ], // Orange for Progress
+      );
+    }
 
-    final colors =
-    t == TransactionResultType.success ? [Colors.green.shade600, Colors.green.shade400] :
-    t == TransactionResultType.failed  ? [Colors.red.shade600, Colors.red.shade400] :
-    [Colors.orange.shade600, Colors.orange.shade400];
+    // Success Case
+    if (isReceived) {
+      return _buildIconContainer(
+        Icons.arrow_downward_rounded,
+        [
+          const Color(0xFF00E5FF),
+          const Color(0xFF00BFA5),
+        ], // Neon Cyan/Green for Received
+      );
+    } else {
+      return _buildIconContainer(
+        Icons.check_rounded,
+        [
+          const Color(0xFFFF2975),
+          const Color(0xFFC2185B),
+        ], // Neon Pink/Red for Sent
+      );
+    }
+  }
 
+  Widget _buildIconContainer(IconData icon, List<Color> colors) {
     return Container(
       width: 90.r,
       height: 90.r,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(colors: colors),
+        gradient: LinearGradient(
+          colors: colors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-            color: colors.last.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            color: colors.first.withOpacity(0.4),
           ),
+          BoxShadow(blurRadius: 10, color: Colors.black.withOpacity(0.2)),
         ],
       ),
-      child: Icon(icon, size: 46.sp, color: Colors.white),
-    );
-  }
-
-  Widget _titleText() {
-    final t = widget.type;
-    return Text(
-      t == TransactionResultType.success
-          ? "Transaction Success!"
-          : t == TransactionResultType.failed
-          ? "Transaction Failed!"
-          : "Processing Transaction",
-      style: TextStyle(
-        fontSize: 18.sp,
-        fontWeight: FontWeight.w700,
+      child: Center(
+        child: Container(
+          padding: EdgeInsets.all(4.r),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: Icon(icon, size: 40.sp, color: Colors.white),
+        ),
       ),
     );
   }
 
-  Widget _subtitleText() {
+  Widget _titleText(bool isReceived) {
     final t = widget.type;
+    String text;
+    if (t == TransactionResultType.success) {
+      text = isReceived ? "Money Received!" : "Money Sent!";
+    } else if (t == TransactionResultType.failed) {
+      text = "Transaction Failed!";
+    } else {
+      text = "Processing Transaction";
+    }
+
     return Text(
-      t == TransactionResultType.success
-          ? "Your payment has been confirmed."
-          : t == TransactionResultType.failed
-          ? "Payment could not be completed."
-          : "Your payment is being processed.",
+      text,
+      style: TextStyle(
+        fontSize: 20.sp,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
+  Widget _subtitleText(bool isReceived) {
+    final t = widget.type;
+    String text;
+    if (t == TransactionResultType.success) {
+      text = isReceived
+          ? "You received money successfully."
+          : "Your payment has been sent successfully.";
+    } else if (t == TransactionResultType.failed) {
+      text = "Payment could not be completed.";
+    } else {
+      text = "Your payment is being processed.";
+    }
+
+    return Text(
+      text,
       textAlign: TextAlign.center,
-      style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+      style: TextStyle(fontSize: 14.sp, color: Colors.white.withOpacity(0.6)),
     );
   }
 
@@ -361,57 +463,107 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    required ColorScheme scheme,
   }) {
     return Container(
-      height: 40.h,
-      width: 125.w,
+      height: 48.h, // Slightly taller
+      width: 140.w,
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: Colors.white.withOpacity(0.08), // Dark Glass
         borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 6),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      child: TextButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, color: scheme.primary, size: 18.sp),
-        label: Text(label,
-            style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w600)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24.r),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: const Color(0xFF8E99F3),
+                size: 20.sp,
+              ), // Soft Purple
+              SizedBox(width: 8.w),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _detailsCard(TransactionModel tx, ColorScheme scheme) {
+  Widget _detailsCard(TransactionModel tx, bool isReceived) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(18.r),
+        color: Colors.white.withOpacity(0.05), // Dark Glass
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 12,
-              offset: const Offset(0, 4)),
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Transaction Details",
-              style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onSurface)),
-          SizedBox(height: 12.h),
-          Divider(),
-          SizedBox(height: 12.h),
+          Text(
+            "Transaction Details",
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Divider(color: Colors.white.withOpacity(0.15)),
+          SizedBox(height: 16.h),
           _detailRow("Transaction ID", tx.id),
-          _detailRow("Date", tx.date.toLocal().toString()),
-          _detailRow("Recipient", tx.recipientName),
-          _detailRow("Amount", tx.amount.toStringAsFixed(2)),
-          _detailRow("Tax", tx.tax.toStringAsFixed(2)),
-          _detailRow("Total", tx.total.toStringAsFixed(2), bold: true),
+          _detailRow("Date", tx.date.toLocal().toString().split('.')[0]),
+
+          if (isReceived)
+            _detailRow(
+              "Sender",
+              tx.recipientName.isNotEmpty ? tx.recipientName : "Unknown",
+            ),
+          if (!isReceived) _detailRow("Recipient", tx.recipientName),
+
+          _detailRow(
+            "Amount",
+            "${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}",
+            valueColor: isReceived
+                ? const Color(0xFF00E5FF)
+                : const Color(0xFFFF2975),
+          ),
+
+          _detailRow(
+            "Tax",
+            "${CurrencyController.to.currencySymbol.value}${tx.tax.toStringAsFixed(2)}",
+          ),
+          _detailRow(
+            "Total",
+            "${CurrencyController.to.currencySymbol.value}${tx.total.toStringAsFixed(2)}",
+            bold: true,
+          ),
           _detailRow("Currency", tx.currency),
           _detailRow("Category", tx.category ?? "-"),
           if (tx.note != null && tx.note!.isNotEmpty)
@@ -422,25 +574,39 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     );
   }
 
-  Widget _detailRow(String name, String value, {bool bold = false}) {
-    final scheme = Theme.of(context).colorScheme;
-
+  Widget _detailRow(
+    String name,
+    String value, {
+    bool bold = false,
+    Color? valueColor,
+  }) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6.h),
+      padding: EdgeInsets.symmetric(vertical: 10.h), // More spacing
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Text(name,
-                style: TextStyle(
-                    color: scheme.onSurface.withOpacity(0.75), fontSize: 13.sp)),
+            flex: 4,
+            child: Text(
+              name,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 13.5.sp,
+              ),
+            ),
           ),
           Expanded(
+            flex: 6,
             child: Text(
               value,
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize: bold ? 14.sp : 13.sp,
-                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                fontSize: bold ? 15.sp : 13.5.sp,
+                fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+                color:
+                    valueColor ??
+                    (bold ? Colors.white : Colors.white.withOpacity(0.9)),
+                letterSpacing: 0.3,
               ),
             ),
           ),

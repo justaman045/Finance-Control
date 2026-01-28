@@ -36,10 +36,12 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         .doc(user.email)
         .get();
 
-    setState(() {
-      consentDataProcessing = doc.data()?["consent_data"] ?? false;
-      consentMarketing = doc.data()?["consent_marketing"] ?? false;
-    });
+    if (mounted) {
+      setState(() {
+        consentDataProcessing = doc.data()?["consent_data"] ?? false;
+        consentMarketing = doc.data()?["consent_marketing"] ?? false;
+      });
+    }
   }
 
   Future<void> _toggleConsent(String key, bool value) async {
@@ -51,13 +53,12 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       if (key == 'marketing') consentMarketing = value;
     });
 
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.email)
-        .update({
-      "consent_data": consentDataProcessing,
-      "consent_marketing": consentMarketing
-    });
+    await FirebaseFirestore.instance.collection("users").doc(user.email).update(
+      {
+        "consent_data": consentDataProcessing,
+        "consent_marketing": consentMarketing,
+      },
+    );
   }
 
   /// -------------------------------------------------------
@@ -73,8 +74,9 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     });
 
     try {
-      final userDoc =
-      FirebaseFirestore.instance.collection("users").doc(user.email);
+      final userDoc = FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.email);
 
       /// Delete transactions collection
       final txSnap = await userDoc.collection("transactions").get();
@@ -111,11 +113,13 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         "consent_marketing": false,
       });
 
-      setState(() {
-        deletingData = false;
-        message =
-        "Your data deletion request is successful. All financial & personal data has been erased except your account email.";
-      });
+      if (mounted) {
+        setState(() {
+          deletingData = false;
+          message =
+              "Your data deletion request is successful. All financial & personal data has been erased except your account email.";
+        });
+      }
 
       Get.snackbar(
         "Data Cleared",
@@ -125,14 +129,19 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         colorText: Colors.white,
       );
     } catch (e) {
-      setState(() {
-        deletingData = false;
-        message = "Error deleting data: $e";
-      });
-      Get.snackbar("Error", e.toString(),
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white);
+      if (mounted) {
+        setState(() {
+          deletingData = false;
+          message = "Error deleting data: $e";
+        });
+      }
+      Get.snackbar(
+        "Error",
+        e.toString(),
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -146,24 +155,29 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     setState(() => downloadingData = true);
 
     try {
-      final userDoc =
-      FirebaseFirestore.instance.collection("users").doc(user.email);
+      final userDoc = FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.email);
 
       final txSnap = await userDoc.collection("transactions").get();
       final catSnap = await userDoc.collection("categories").get();
 
+      /// This map isn't strictly needed if using LocalBackupService, but kept for logic structure
       final export = {
         "email": user.email,
-        "transactions":
-        txSnap.docs.map((e) => {"id": e.id, ...e.data()}).toList(),
-        "categories":
-        catSnap.docs.map((e) => {"id": e.id, ...e.data()}).toList(),
+        "transactions": txSnap.docs
+            .map((e) => {"id": e.id, ...e.data()})
+            .toList(),
+        "categories": catSnap.docs
+            .map((e) => {"id": e.id, ...e.data()})
+            .toList(),
       };
 
-      /// TODO: use your LocalBackupService.exportJSON(export);
-      await LocalBackupService.exportBackupFile(FirebaseAuth.instance.currentUser!.email!);
+      await LocalBackupService.exportBackupFile(
+        FirebaseAuth.instance.currentUser!.email!,
+      );
 
-      setState(() => downloadingData = false);
+      if (mounted) setState(() => downloadingData = false);
 
       Get.snackbar(
         "Data Ready",
@@ -172,9 +186,13 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         colorText: Colors.white,
       );
     } catch (e) {
-      setState(() => downloadingData = false);
-      Get.snackbar("Error", e.toString(),
-          backgroundColor: Colors.red, colorText: Colors.white);
+      if (mounted) setState(() => downloadingData = false);
+      Get.snackbar(
+        "Error",
+        e.toString(),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -183,154 +201,342 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
   /// -------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Legal & Privacy",
-          style: TextStyle(
-            color: scheme.onBackground,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [
+            const Color(0xFFF5F7FA), // Premium Light
+            const Color(0xFFC3CFE2),
+          ];
+
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final secondaryTextColor = isDark
+        ? Colors.white.withOpacity(0.6)
+        : const Color(0xFF1A1A2E).withOpacity(0.6);
+
+    final cardColor = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.white.withOpacity(0.6);
+
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.4);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            "Legal & Privacy",
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: BackButton(color: scheme.onBackground),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGlassSection(
+                title: "Terms of Service",
+                content: _termsOfServiceText,
+                cardColor: cardColor,
+                borderColor: borderColor,
+                textColor: textColor,
+                secondaryColor: secondaryTextColor,
+                isDark: isDark,
+              ),
+              SizedBox(height: 20.h),
+              _buildGlassSection(
+                title: "Privacy Policy",
+                content: _privacyPolicyText,
+                cardColor: cardColor,
+                borderColor: borderColor,
+                textColor: textColor,
+                secondaryColor: secondaryTextColor,
+                isDark: isDark,
+              ),
+              SizedBox(height: 24.h),
+              _SectionTitle("Your Consents", textColor),
+              SizedBox(height: 10.h),
+              _buildConsentSection(
+                cardColor,
+                borderColor,
+                textColor,
+                secondaryTextColor,
+              ),
+              SizedBox(height: 24.h),
+              _SectionTitle("Data Management", textColor),
+              SizedBox(height: 10.h),
+              _buildDataActions(cardColor, borderColor, textColor, isDark),
+              SizedBox(height: 40.h),
+            ],
+          ),
+        ),
       ),
-      backgroundColor: scheme.background,
-      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
-      body: _buildBody(scheme),
     );
   }
 
-  Widget _buildBody(ColorScheme scheme) {
-    return SingleChildScrollView(
+  Widget _SectionTitle(String title, Color color) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16.sp,
+        fontWeight: FontWeight.bold,
+        color: color,
+      ),
+    );
+  }
+
+  Widget _buildGlassSection({
+    required String title,
+    required String content,
+    required Color cardColor,
+    required Color borderColor,
+    required Color textColor,
+    required Color secondaryColor,
+    required bool isDark,
+  }) {
+    return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _title("Terms of Service", scheme),
-          _body(_termsOfServiceText, scheme),
-
-          SizedBox(height: 26.h),
-
-          _title("Privacy Policy", scheme),
-          _body(_privacyPolicyText, scheme),
-
-          SizedBox(height: 30.h),
-          _title("Your Consents", scheme),
-          _consentSwitches(),
-
-          SizedBox(height: 30.h),
-          _title("Download My Data", scheme),
-          _downloadSection(),
-
-          SizedBox(height: 30.h),
-          _title("Request Permanent Data Deletion", scheme),
-          _deleteSection(),
-
-          SizedBox(height: 40.h),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 17.sp,
+              fontWeight: FontWeight.w700,
+              color: isDark ? const Color(0xFF6C63FF) : Colors.deepPurple,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 13.5.sp,
+              height: 1.5,
+              color: secondaryColor,
+            ),
+            textAlign: TextAlign.justify,
+          ),
         ],
       ),
     );
   }
 
-  Widget _title(String text, ColorScheme scheme) => Text(
-    text,
-    style: TextStyle(
-        fontSize: 17.sp, fontWeight: FontWeight.bold, color: scheme.primary),
-  );
-
-  Widget _body(String text, ColorScheme scheme) => AnimatedOpacity(
-    duration: const Duration(milliseconds: 400),
-    opacity: 1,
-    child: Text(
-      text,
-      style: TextStyle(
-        fontSize: 14.sp,
-        height: 1.45,
-        color: scheme.onSurfaceVariant,
+  Widget _buildConsentSection(
+    Color cardColor,
+    Color borderColor,
+    Color textColor,
+    Color secondaryColor,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: borderColor),
       ),
-      textAlign: TextAlign.justify,
-    ),
-  );
-
-  Widget _consentSwitches() {
-    return Column(
-      children: [
-        SwitchListTile(
-          title: Text("Consent to Data Processing"),
-          subtitle: Text("Allow the app to process data to improve services."),
-          value: consentDataProcessing,
-          onChanged: (v) => _toggleConsent('data', v),
-        ),
-        SwitchListTile(
-          title: Text("Consent to Marketing Communication"),
-          subtitle: Text("Receive optional promotional updates."),
-          value: consentMarketing,
-          onChanged: (v) => _toggleConsent('marketing', v),
-        ),
-      ],
-    );
-  }
-
-  Widget _downloadSection() {
-    return Center(
-      child: ElevatedButton.icon(
-        onPressed: downloadingData ? null : _downloadMyData,
-        icon: downloadingData
-            ? SizedBox(
-          width: 20.w,
-          height: 20.w,
-          child: CircularProgressIndicator(color: Colors.white),
-        )
-            : Icon(Icons.download),
-        label:
-        Text(downloadingData ? "Preparing..." : "Download My Data (JSON)"),
-        style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 14.h)),
+      child: Column(
+        children: [
+          _consentTile(
+            "Consent to Data Processing",
+            "Allow the app to process data to improve services.",
+            consentDataProcessing,
+            (v) => _toggleConsent('data', v),
+            textColor,
+            secondaryColor,
+          ),
+          Divider(color: borderColor, height: 1),
+          _consentTile(
+            "Marketing Communication",
+            "Receive optional promotional updates.",
+            consentMarketing,
+            (v) => _toggleConsent('marketing', v),
+            textColor,
+            secondaryColor,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _deleteSection() {
+  Widget _consentTile(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+    Color textColor,
+    Color secondaryColor,
+  ) {
+    return SwitchListTile(
+      activeColor: const Color(0xFF6C63FF),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 14.5.sp,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: secondaryColor, fontSize: 12.sp),
+      ),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildDataActions(
+    Color cardColor,
+    Color borderColor,
+    Color textColor,
+    bool isDark,
+  ) {
     return Column(
       children: [
-        Center(
-          child: ElevatedButton(
-            onPressed: deletingData ? null : _requestDataDeletion,
+        // Download Button
+        Container(
+          width: double.infinity,
+          height: 52.h,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26.r),
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF6C63FF), const Color(0xFF4834D4)]
+                  : [
+                      const Color(0xFF6C63FF).withOpacity(0.8),
+                      const Color(0xFF4834D4).withOpacity(0.8),
+                    ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6C63FF).withOpacity(0.4),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: downloadingData ? null : _downloadMyData,
+            icon: downloadingData
+                ? SizedBox(
+                    width: 24.w,
+                    height: 24.w,
+                    child: const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.download_rounded, color: Colors.white),
+            label: Text(
+              downloadingData ? "Preparing..." : "Download My Data (JSON)",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15.sp,
+              ),
+            ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 14.h),
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28.r)),
+                borderRadius: BorderRadius.circular(26.r),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 16.h),
+
+        // Delete Button
+        SizedBox(
+          width: double.infinity,
+          height: 52.h,
+          child: OutlinedButton(
+            onPressed: deletingData ? null : _requestDataDeletion,
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.redAccent, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(26.r),
+              ),
+              foregroundColor: Colors.redAccent,
             ),
             child: deletingData
                 ? SizedBox(
-              width: 24.w,
-              height: 24.w,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3,
-              ),
-            )
-                : Text("Delete My Data Permanently"),
+                    width: 24.w,
+                    height: 24.w,
+                    child: const CircularProgressIndicator(
+                      color: Colors.redAccent,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Text(
+                    "Delete My Data Permanently",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15.sp,
+                    ),
+                  ),
           ),
         ),
+
         if (message != null) ...[
           SizedBox(height: 15.h),
-          Text(
-            message!,
-            style: TextStyle(
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+            ),
+            child: Text(
+              message!,
+              style: TextStyle(
                 color: Colors.redAccent,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500),
-            textAlign: TextAlign.center,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-        ]
+        ],
       ],
     );
   }

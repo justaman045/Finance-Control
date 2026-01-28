@@ -265,6 +265,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.0"
+  firebase_crashlytics:
+    dependency: "direct main"
+    description:
+      name: firebase_crashlytics
+      sha256: "2f53d0d3c0875105b166f09bdf026026bb74f26930c6ffcd5d65b311ca5a9f58"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.3"
+  firebase_crashlytics_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_crashlytics_platform_interface
+      sha256: de5c857525fc9576cd3fc30fc72422bc2371179ecae110246c0135ae896c6de3
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.8.14"
   firebase_messaging:
     dependency: "direct main"
     description:
@@ -289,6 +305,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.3"
+  firebase_performance:
+    dependency: "direct main"
+    description:
+      name: firebase_performance
+      sha256: dcfb4d674502866f0489a8ce0d96e0d43e0129375cea8bb73183a5ea02b4c4de
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.11.1+1"
+  firebase_performance_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_performance_platform_interface
+      sha256: "0aa72711d65bf0001dbcb4ce5fa1e38549dbf97afcfc522af4a44f351a6933fa"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.6+1"
+  firebase_performance_web:
+    dependency: transitive
+    description:
+      name: firebase_performance_web
+      sha256: "7bcbe2676d225dc66aa90d28a9f4b49d75a8484be9a87171aa1263a3eb2d0693"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.7+20"
   fixnum:
     dependency: transitive
     description:
@@ -366,6 +406,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.9.3"
+  flutter_sms_inbox:
+    dependency: "direct main"
+    description:
+      name: flutter_sms_inbox
+      sha256: "50580e4265ab65b128777ea3db9b0286ef7beff12df644de42643b26e8b76ee5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -449,7 +497,7 @@ packages:
     source: hosted
     version: "1.1.0"
   http:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: http
       sha256: bb2ce4590bc2667c96f318d68cac1b5a7987ec819351d32b1c987239a815e007
@@ -576,6 +624,46 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.1"
+  local_auth:
+    dependency: "direct main"
+    description:
+      name: local_auth
+      sha256: "434d854cf478f17f12ab29a76a02b3067f86a63a6d6c4eb8fbfdcfe4879c1b7b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.0"
+  local_auth_android:
+    dependency: transitive
+    description:
+      name: local_auth_android
+      sha256: a0bdfcc0607050a26ef5b31d6b4b254581c3d3ce3c1816ab4d4f4a9173e84467
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.56"
+  local_auth_darwin:
+    dependency: transitive
+    description:
+      name: local_auth_darwin
+      sha256: "699873970067a40ef2f2c09b4c72eb1cfef64224ef041b3df9fdc5c4c1f91f49"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.1"
+  local_auth_platform_interface:
+    dependency: transitive
+    description:
+      name: local_auth_platform_interface
+      sha256: f98b8e388588583d3f781f6806e4f4c9f9e189d898d27f0c249b93a1973dd122
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
+  local_auth_windows:
+    dependency: transitive
+    description:
+      name: local_auth_windows
+      sha256: bc4e66a29b0fdf751aafbec923b5bed7ad6ed3614875d8151afe2578520b2ab5
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.11"
   matcher:
     dependency: transitive
     description:
@@ -981,6 +1069,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.10.1"
+  tutorial_coach_mark:
+    dependency: "direct main"
+    description:
+      name: tutorial_coach_mark
+      sha256: "5a325d53bcf16ce7a969e2ab8d4dc9610f39ee3eab2b3cc57d5c98936129b891"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.3"
   typed_data:
     dependency: transitive
     description:

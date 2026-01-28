@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Components/colors.dart';
 
 class HelpFAQScreen extends StatefulWidget {
   const HelpFAQScreen({super.key});
@@ -17,55 +16,70 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
     {
       "q": "How do I add a new transaction?",
       "a":
-      "Tap the '+' or 'Add Transaction' button on the Home screen or the Quick Send section. Fill the details and tap 'Save'."
+          "Tap the '+' or 'Add Transaction' button on the Home screen or the Quick Send section. Fill the details and tap 'Save'.",
     },
     {
       "q": "How do I edit or delete an existing transaction?",
       "a":
-      "Open any transaction in your history and use the edit or delete options on the top right."
+          "Open any transaction in your history and use the edit or delete options on the top right.",
     },
     {
       "q": "How do I manage or add custom categories?",
       "a":
-      "You can add categories when adding/editing a transaction using the category dropdown."
+          "You can add categories when adding/editing a transaction using the category dropdown.",
     },
     {
       "q": "Does the app work offline?",
       "a":
-      "Yes! All changes will be saved locally and synced automatically once you're online again."
+          "Yes! All changes will be saved locally and synced automatically once you're online again.",
     },
     {
       "q": "How do I switch between Dark and Light mode?",
-      "a": "Go to Settings → Dark Mode to toggle theme appearance."
+      "a": "Go to Settings → Dark Mode to toggle theme appearance.",
     },
     {
       "q": "Can I export or download my transaction history?",
       "a":
-      "Data export is coming soon! For now, you can share screenshots of individual transactions."
+          "Data export is coming soon! For now, you can share screenshots of individual transactions.",
     },
     {
       "q": "How do I reset my password?",
       "a":
-      "Go to Settings → Change Password. A reset link will be emailed to you."
+          "Go to Settings → Change Password. A reset link will be emailed to you.",
     },
   ];
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
-    final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
-    final border = isLight ? kLightBorder : kDarkBorder;
-    final surface = scheme.surface;
-    final secondaryText =
-    isLight ? kLightTextSecondary : kDarkTextSecondary;
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [
+            const Color(0xFFF5F7FA), // Premium Light
+            const Color(0xFFC3CFE2),
+          ];
+
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final secondaryTextColor = isDark
+        ? Colors.white.withOpacity(0.6)
+        : const Color(0xFF1A1A2E).withOpacity(0.6);
+
+    final cardColor = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.white.withOpacity(0.6);
+
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.4);
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [gradientTop, gradientBottom],
+          colors: gradientColors,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -79,14 +93,13 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
           title: Text(
             "Help / FAQ",
             style: TextStyle(
-              color: scheme.onBackground,
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios,
-                color: scheme.onBackground, size: 20.sp),
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
             onPressed: () => Navigator.pop(context),
           ),
           toolbarHeight: 64.h,
@@ -97,12 +110,15 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
             children: [
               ...List.generate(
                 faqs.length,
-                    (index) => _FAQTile(
+                (index) => _FAQTile(
                   question: faqs[index]["q"]!,
                   answer: faqs[index]["a"]!,
                   isOpen: openedIndex == index,
-                  border: border,
-                  surface: surface,
+                  surface: cardColor,
+                  border: borderColor,
+                  textColor: textColor,
+                  secondary: secondaryTextColor,
+                  isDark: isDark,
                   onTap: () {
                     setState(() {
                       openedIndex = openedIndex == index ? null : index;
@@ -117,17 +133,14 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
                 child: Text(
                   "Still have questions?\nContact support at:",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: secondaryText,
-                    fontSize: 13.sp,
-                  ),
+                  style: TextStyle(color: secondaryTextColor, fontSize: 13.sp),
                 ),
               ),
               SizedBox(height: 6.h),
               SelectableText(
                 "work.amanojha30@gmail.com",
                 style: TextStyle(
-                  color: scheme.primary,
+                  color: textColor, // Vibrant accent or primary color
                   fontWeight: FontWeight.w600,
                   fontSize: 14.sp,
                 ),
@@ -147,38 +160,46 @@ class _FAQTile extends StatelessWidget {
   final String answer;
   final bool isOpen;
   final VoidCallback onTap;
-  final Color border;
   final Color surface;
+  final Color border;
+  final Color textColor;
+  final Color secondary;
+  final bool isDark;
 
   const _FAQTile({
     required this.question,
     required this.answer,
     required this.isOpen,
     required this.onTap,
-    required this.border,
     required this.surface,
+    required this.border,
+    required this.textColor,
+    required this.secondary,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
         margin: EdgeInsets.only(bottom: 14.h),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         decoration: BoxDecoration(
           color: surface,
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: border, width: 1),
+          border: Border.all(
+            color: isOpen ? border.withOpacity(0.8) : border,
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 4,
-            )
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Column(
@@ -191,16 +212,26 @@ class _FAQTile extends StatelessWidget {
                   child: Text(
                     question,
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       fontSize: 15.sp,
-                      color: scheme.primary,
+                      color: isOpen
+                          ? (isDark
+                                ? const Color(0xFF6C63FF)
+                                : Colors.deepPurple)
+                          : textColor,
                     ),
                   ),
                 ),
-                Icon(
-                  isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: scheme.primary,
-                )
+                AnimatedRotation(
+                  turns: isOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 250),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: isOpen
+                        ? (isDark ? const Color(0xFF6C63FF) : Colors.deepPurple)
+                        : textColor.withOpacity(0.5),
+                  ),
+                ),
               ],
             ),
 
@@ -208,20 +239,20 @@ class _FAQTile extends StatelessWidget {
             AnimatedCrossFade(
               firstChild: const SizedBox(),
               secondChild: Padding(
-                padding: EdgeInsets.only(top: 6.h),
+                padding: EdgeInsets.only(top: 10.h),
                 child: Text(
                   answer,
                   style: TextStyle(
-                    color: scheme.onSurface.withOpacity(0.9),
+                    color: secondary,
                     fontSize: 13.5.sp,
-                    height: 1.38,
+                    height: 1.5,
                   ),
                 ),
               ),
               crossFadeState: isOpen
                   ? CrossFadeState.showSecond
                   : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 220),
+              duration: const Duration(milliseconds: 250),
             ),
           ],
         ),

@@ -17,36 +17,58 @@ class NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final activeColor = isDark
+        ? const Color(0xFF00E5FF) // Neon Cyan
+        : const Color(0xFF6C63FF); // Blurple
+
+    final inactiveColor = isDark
+        ? Colors.white.withOpacity(0.5)
+        : Colors.black.withOpacity(0.5);
+
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14.r),
+      borderRadius: BorderRadius.circular(30.r),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(30.r),
         onTap: onTap,
-        child: Container(
-          height: 38.h,
-          padding: EdgeInsets.symmetric(horizontal: active ? 12.w : 0),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          height: 42.h,
+          padding: EdgeInsets.symmetric(horizontal: active ? 16.w : 12.w),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFE9F1FF) : Colors.transparent,
-            borderRadius: BorderRadius.circular(14.r),
+            color: active ? activeColor.withOpacity(0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(30.r),
+            border: active
+                ? Border.all(color: activeColor.withOpacity(0.3), width: 1)
+                : null,
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: activeColor.withOpacity(0.2),
+                      blurRadius: 12,
+                      spreadRadius: -2,
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: EdgeInsetsGeometry.symmetric(vertical: 10.h,  horizontal:  !active ? 15.w : 0),
-                child: Icon(
-                  icon,
-                  color: active ? const Color(0xFF2F80ED) : Colors.grey,
-                  size: 22.sp,
-                ),
+              Icon(
+                icon,
+                color: active ? activeColor : inactiveColor,
+                size: 22.sp,
               ),
               if (active && label != null) ...[
-                SizedBox(width: 6.w),
+                SizedBox(width: 8.w),
                 Text(
                   label!,
                   style: TextStyle(
-                    color: const Color(0xFF2F80ED),
-                    fontWeight: FontWeight.w600,
+                    color: activeColor,
+                    fontWeight: FontWeight.w700,
                     fontSize: 13.sp,
                   ),
                 ),

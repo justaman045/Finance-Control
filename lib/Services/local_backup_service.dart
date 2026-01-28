@@ -16,6 +16,36 @@ class LocalBackupService {
   // PUBLIC API
   // ============================
 
+  static Future<void> restoreUserTransactions(String email) async {
+    final transactions = await readUserTransactionsBackup(email);
+    if (transactions.isEmpty) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    final col = FirebaseFirestore.instance
+        .collection('users')
+        .doc(email)
+        .collection('transactions');
+
+    // In a real app, we might delete existing or merge.
+    // For simplicity, we'll upsert based on ID.
+    for (var data in transactions) {
+      if (data.containsKey('id')) {
+        final docRef = col.doc(data['id']);
+        final Map<String, dynamic> writeData = Map.from(data)..remove('id');
+        // We need to restore specific types if they were stringified (DateTime)
+        // But _convertFirestoreTypes stringified them. Firestore needs standard types?
+        // Actually, if we just write strings, it stores strings.
+        // Transaction Model expects strings for date usually? No, it expects DateTime.
+        // We might need to parse invalid types if Models depend on Firestore Timestamp.
+        // For now, let's assume the app handles string dates since backup saves them as ISO.
+        // Better: Attempt to parse known date fields if possible.
+        _restoreDates(writeData); // Helper exists at bottom
+        batch.set(docRef, writeData, SetOptions(merge: true));
+      }
+    }
+    await batch.commit();
+  }
+
   static Future<void> backupUserTransactions(String userEmail) async {
     try {
       if (userEmail.isEmpty) return;
@@ -34,17 +64,15 @@ class LocalBackupService {
       final List<Map<String, dynamic>> list = docs.map((d) {
         final data = _convertFirestoreTypes(d.data());
 
-        return {
-          'id': d.id,
-          ...data,
-        };
+        return {'id': d.id, ...data};
       }).toList();
 
       final file = await _transactionsFile(userEmail);
       await file.writeAsString(jsonEncode(list));
 
       debugPrint(
-          '[LocalBackupService] Backup success: ${list.length} items for $userEmail');
+        '[LocalBackupService] Backup success: ${list.length} items for $userEmail',
+      );
     } catch (e, st) {
       debugPrint('[LocalBackupService] backupUserTransactions ERROR: $e');
       debugPrint('$st');
@@ -52,7 +80,8 @@ class LocalBackupService {
   }
 
   static Future<List<Map<String, dynamic>>> readUserTransactionsBackup(
-      String email) async {
+    String email,
+  ) async {
     try {
       final file = await _transactionsFile(email);
 
@@ -72,7 +101,6 @@ class LocalBackupService {
     }
   }
 
-
   static Future<void> clearUserBackup(String userEmail) async {
     final file = await _transactionsFile(userEmail);
     if (await file.exists()) await file.delete();
@@ -84,7 +112,8 @@ class LocalBackupService {
 
   /// Converts all Firestore-specific types into JSON-safe values
   static Map<String, dynamic> _convertFirestoreTypes(
-      Map<String, dynamic> data) {
+    Map<String, dynamic> data,
+  ) {
     final result = <String, dynamic>{};
 
     data.forEach((key, value) {
@@ -94,7 +123,8 @@ class LocalBackupService {
         result[key] = value.toIso8601String();
       } else if (value is Map) {
         result[key] = _convertFirestoreTypes(
-            Map<String, dynamic>.from(value as Map));
+          Map<String, dynamic>.from(value as Map),
+        );
       } else {
         result[key] = value;
       }
@@ -130,7 +160,6 @@ class LocalBackupService {
     }
     return file;
   }
-
 
   static String _sanitizeEmail(String email) {
     return email.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');

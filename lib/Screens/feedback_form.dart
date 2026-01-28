@@ -74,8 +74,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         _entryEmail: FirebaseAuth.instance.currentUser!.email,
         _entryFeedback: _feedbackCtrl.text.trim(),
         _entryAppVersion: _appVersionCtrl.text.trim(),
-        _entryDeviceModel: "${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}",
-        _entryOsVersion: "${DateTime.now().day} - ${DateTime.now().month} - ${DateTime.now().year}",
+        _entryDeviceModel:
+            "${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}",
+        _entryOsVersion:
+            "${DateTime.now().day} - ${DateTime.now().month} - ${DateTime.now().year}",
         // Optional extra fields like "fvv", "pageHistory" are not required
       };
 
@@ -103,16 +105,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         debugPrint(resp.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-            Text("Failed to submit feedback (code ${resp.statusCode})."),
+            content: Text(
+              "Failed to submit feedback (code ${resp.statusCode}).",
+            ),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error submitting feedback: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error submitting feedback: $e")));
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -123,103 +126,213 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Feedback",
-          style: TextStyle(
-            color: scheme.onBackground,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
+
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final secondaryTextColor = isDark
+        ? Colors.white.withOpacity(0.7)
+        : const Color(0xFF1A1A2E).withOpacity(0.7);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(color: scheme.onBackground),
       ),
-      backgroundColor: scheme.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(20.w),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Help me improve Money Control",
-                  style: TextStyle(
-                    fontSize: 17.sp,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            "Feedback",
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+            ),
+          ),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
+            onPressed: () => Navigator.pop(context),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(20.w),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Help me improve Money Control",
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
                   ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  "Share bugs, feature requests, or general feedback. "
-                      "This goes straight to my inbox via Google Forms.",
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: scheme.onSurface.withOpacity(0.7),
+                  SizedBox(height: 8.h),
+                  Text(
+                    "Share bugs, feature requests, or general feedback. "
+                    "This goes straight to my inbox via Google Forms.",
+                    style: TextStyle(
+                      fontSize: 13.5.sp,
+                      color: secondaryTextColor,
+                      height: 1.4,
+                    ),
                   ),
-                ),
-                SizedBox(height: 20.h),
+                  SizedBox(height: 30.h),
 
-                // Name
-                TextFormField(
-                  controller: _nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: "Name",
-                    border: OutlineInputBorder(),
+                  // Name
+                  _buildGlassTextField(
+                    controller: _nameCtrl,
+                    hint: "Name",
+                    isDark: isDark,
+                    icon: Icons.person_outline,
+                    textColor: textColor,
+                    hintColor: secondaryTextColor,
                   ),
-                  validator: (v) =>
-                  v == null || v.trim().isEmpty ? "Name is required" : null,
-                ),
-                SizedBox(height: 14.h),
+                  SizedBox(height: 20.h),
 
-                // Feedback
-                TextFormField(
-                  controller: _feedbackCtrl,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: "Your feedback",
-                    alignLabelWithHint: true,
-                    border: OutlineInputBorder(),
+                  // Feedback
+                  _buildGlassTextField(
+                    controller: _feedbackCtrl,
+                    hint: "Your feedback",
+                    isDark: isDark,
+                    icon: Icons.chat_bubble_outline,
+                    maxLines: 5,
+                    textColor: textColor,
+                    hintColor: secondaryTextColor,
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? "Feedback cannot be empty"
-                      : null,
-                ),
-                SizedBox(height: 20.h),
+                  SizedBox(height: 30.h),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 48.h,
-                  child: ElevatedButton(
-                    onPressed: _submitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(26.r),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(25.r),
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [
+                                  const Color(0xFF6C63FF),
+                                  const Color(0xFF4834D4),
+                                ]
+                              : [
+                                  const Color(0xFF6C63FF).withOpacity(0.8),
+                                  const Color(0xFF4834D4).withOpacity(0.8),
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6C63FF).withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _submitting ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25.r),
+                          ),
+                        ),
+                        child: _submitting
+                            ? SizedBox(
+                                width: 22.w,
+                                height: 22.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                "Submit Feedback",
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                       ),
                     ),
-                    child: _submitting
-                        ? SizedBox(
-                      width: 22.w,
-                      height: 22.w,
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                        : const Text("Submit Feedback"),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGlassTextField({
+    required TextEditingController controller,
+    required String hint,
+    required bool isDark,
+    required IconData icon,
+    required Color textColor,
+    required Color hintColor,
+    int maxLines = 1,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.white.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.white.withOpacity(0.4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        style: TextStyle(color: textColor, fontSize: 15.sp),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: hintColor.withOpacity(0.5)),
+          prefixIcon: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            child: Icon(icon, color: hintColor, size: 22.sp),
+          ),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 16.w,
+            vertical: 16.h,
+          ),
+          alignLabelWithHint: true,
+        ),
+        validator: (v) =>
+            v == null || v.trim().isEmpty ? "$hint is required" : null,
       ),
     );
   }

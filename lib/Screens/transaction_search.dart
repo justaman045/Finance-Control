@@ -8,6 +8,7 @@ import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/transaction_details.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 
 class TransactionSearchPage extends StatefulWidget {
   const TransactionSearchPage({super.key});
@@ -63,103 +64,243 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Search Transactions"),
-        backgroundColor: scheme.surface,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          "Search Transactions",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20.sp,
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          // 🔍 SEARCH FIELD
-          Padding(
-            padding: EdgeInsets.all(12.w),
-            child: TextField(
-              controller: _search,
-              onChanged: _performSearch,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: "Search by name, amount, category, note…",
-                filled: true,
-                fillColor: scheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14.r),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF1A1A2E), // Midnight Void Top
+              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            SizedBox(height: 100.h), // Spacer for AppBar
+            // 🔍 SEARCH FIELD
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(
+                        0xFF00E5FF,
+                      ).withOpacity(0.1), // Neon Cyan Glow
+                      blurRadius: 20,
+                      spreadRadius: -5,
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _search,
+                  onChanged: _performSearch,
+                  style: TextStyle(color: Colors.white, fontSize: 15.sp),
+                  cursorColor: const Color(0xFF00E5FF),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                    hintText: "Search by name, amount, category...",
+                    hintStyle: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 14.sp,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.08), // Glass
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 16.h,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20.r),
+                      borderSide: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20.r),
+                      borderSide: BorderSide(
+                        color: const Color(0xFF00E5FF).withOpacity(0.5),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
 
-          if (searching)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: CircularProgressIndicator(color: scheme.primary),
-            ),
+            if (searching)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: CircularProgressIndicator(
+                  color: const Color(0xFF00E5FF),
+                ),
+              ),
 
-          // 📝 RESULTS LIST
-          Expanded(
-            child: results.isEmpty
-                ? Center(
-                    child: Text(
-                      "No transactions found",
-                      style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.6),
+            // 📝 RESULTS LIST
+            Expanded(
+              child: results.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.manage_search_rounded,
+                            size: 60.sp,
+                            color: Colors.white24,
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            "No transactions found",
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 16.sp,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: results.length,
-                    itemBuilder: (context, i) {
-                      final tx = results[i];
-                      final isIncome =
-                          tx.recipientId ==
-                          FirebaseAuth.instance.currentUser?.uid;
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.only(top: 16.h, bottom: 30.h),
+                      itemCount: results.length,
+                      itemBuilder: (context, i) {
+                        final tx = results[i];
+                        final isIncome =
+                            tx.recipientId ==
+                            FirebaseAuth.instance.currentUser?.uid;
 
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isIncome ? Colors.green : Colors.red,
-                          child: Icon(
-                            isIncome ? Icons.south_west : Icons.north_east,
-                            color: Colors.white,
+                        return Container(
+                          margin: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 6.h,
                           ),
-                        ),
-                        title: Text(
-                          tx.recipientName,
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
+                          padding: EdgeInsets.all(16.w),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05), // Dark Glass
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.08),
+                            ),
                           ),
-                        ),
-                        subtitle: Text(
-                          "${tx.category ?? ''}  •  ₹${tx.amount}",
-                          style: TextStyle(
-                            color: scheme.onSurface.withOpacity(0.7),
+                          child: Row(
+                            children: [
+                              // Avatar
+                              Container(
+                                padding: EdgeInsets.all(10.w),
+                                decoration: BoxDecoration(
+                                  color: isIncome
+                                      ? const Color(0xFF00E676).withOpacity(0.2)
+                                      : const Color(
+                                          0xFFFF1744,
+                                        ).withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isIncome
+                                      ? Icons.arrow_downward
+                                      : Icons.arrow_upward,
+                                  color: isIncome
+                                      ? const Color(0xFF00E676)
+                                      : const Color(0xFFFF1744),
+                                  size: 20.sp,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              // Details
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.recipientName,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15.sp,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      tx.category ?? "Uncategorized",
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Amount
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    "${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    _formatDate(tx.date),
+                                    style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 11.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ),
-                        trailing: Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16.sp,
-                          color: scheme.primary,
-                        ),
-                        onTap: () {
+                        ).onTap(() {
+                          // View Details
                           Get.to(
-                                () => TransactionResultScreen(
+                            () => TransactionResultScreen(
                               type: getTransactionTypeFromStatus(tx.status),
                               transaction: tx,
                             ),
                             preventDuplicates: false,
-                            curve: curve,
-                            transition: transition,
-                            duration: duration,
                           );
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
+                        });
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day}/${date.month}";
+  }
+}
+
+extension WidgetExt on Widget {
+  Widget onTap(VoidCallback onTap) {
+    return GestureDetector(onTap: onTap, child: this);
   }
 }

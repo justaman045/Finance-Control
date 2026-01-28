@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
 import 'package:money_control/Components/methods.dart';
-import 'package:money_control/Components/quick_sender.dart';
+
 import 'package:money_control/Models/quicksend.dart';
 import 'package:money_control/Screens/add_transaction.dart';
 
@@ -65,7 +65,6 @@ class _QuickSendRowState extends State<QuickSendRow> {
     }
   }
 
-
   Future<void> _loadCategoriesSortedByUsage() async {
     setState(() {
       loading = true;
@@ -104,7 +103,11 @@ class _QuickSendRowState extends State<QuickSendRow> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final Color containerColor = widget.cardColor ?? scheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final containerColor = isDark
+        ? scheme.surface.withOpacity(0.6)
+        : Colors.white.withOpacity(0.8);
 
     if (loading) {
       return Container(
@@ -117,11 +120,13 @@ class _QuickSendRowState extends State<QuickSendRow> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: List.generate(
             3,
-                (i) => Container(
+            (i) => Container(
               height: 50.h,
               width: 50.h,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.2),
+                color: isDark
+                    ? Colors.grey.withOpacity(0.2)
+                    : Colors.grey.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
             ),
@@ -153,54 +158,137 @@ class _QuickSendRowState extends State<QuickSendRow> {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+      padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 16.w),
       decoration: BoxDecoration(
         color: containerColor,
-        borderRadius: BorderRadius.circular(18.r),
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.grey.withOpacity(0.1),
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
       ),
-      child: Builder(builder: (context) {
-        if (categories.length == 1) {
-          return Row(
-            children: [
-              Expanded(
-                child: Center(
-                  child: QuickSender(
-                    asset: CategoryInitialsIcon(categoryName: categories.first.name, size: 40),
-                    name: categories.first.name,
-                    textColor: widget.textColor ?? scheme.onSurface,
-                    onTap: () {
-                      gotoPage(PaymentScreen(
-                        type: PaymentType.send,
-                        cateogary: categories.first.name,
-                      ));
-                    },
+      child: Builder(
+        builder: (context) {
+          if (categories.length == 1) {
+            return Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: _neonQuickSender(
+                      asset: CategoryInitialsIcon(
+                        categoryName: categories.first.name,
+                        size: 40,
+                      ),
+                      name: categories.first.name,
+                      color: const Color(0xFF00E5FF), // Neon Cyan
+                      isDark: isDark,
+                      onTap: () {
+                        gotoPage(
+                          PaymentScreen(
+                            type: PaymentType.send,
+                            cateogary: categories.first.name,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        } else {
-          return Row(
-            children: categories.map((category) {
-              return Expanded(
-                child: Center(
-                  child: QuickSender(
-                    asset: CategoryInitialsIcon(categoryName: category.name, size: 40.r),
-                    name: category.name,
-                    textColor: widget.textColor ?? scheme.onSurface,
-                    onTap: () {
-                      gotoPage(PaymentScreen(
+              ],
+            );
+          } else {
+            // Assign neon colors cyclically
+            final colors = [
+              const Color(0xFF00E5FF), // Cyan
+              const Color(0xFFEA80FC), // Purple
+              const Color(0xFFFF4081), // Pink
+              const Color(0xFFFDD835), // Yellow
+            ];
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: categories.asMap().entries.map((entry) {
+                final index = entry.key;
+                final category = entry.value;
+                final color = colors[index % colors.length];
+
+                return _neonQuickSender(
+                  asset: CategoryInitialsIcon(
+                    categoryName: category.name,
+                    size: 40.r,
+                  ),
+                  name: category.name,
+                  color: color,
+                  isDark: isDark,
+                  onTap: () {
+                    gotoPage(
+                      PaymentScreen(
                         type: PaymentType.send,
                         cateogary: category.name,
-                      ));
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                );
+              }).toList(),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _neonQuickSender({
+    required Widget asset,
+    required String name,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(4.w),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.5), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 2,
                 ),
-              );
-            }).toList(),
-          );
-        }
-      }),
+              ],
+            ),
+            child: asset,
+          ),
+          SizedBox(height: 8.h),
+          SizedBox(
+            width: 70.w,
+            child: Text(
+              name,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

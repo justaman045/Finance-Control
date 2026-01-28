@@ -1,17 +1,20 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
-import 'package:money_control/Components/methods.dart';
+
 import 'package:money_control/Screens/cateogary_history.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 
 class CategoriesHistoryScreen extends StatefulWidget {
   const CategoriesHistoryScreen({super.key});
 
   @override
-  State<CategoriesHistoryScreen> createState() => _CategoriesHistoryScreenState();
+  State<CategoriesHistoryScreen> createState() =>
+      _CategoriesHistoryScreenState();
 }
 
 class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
@@ -28,7 +31,11 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
 
   DateTime get _endOfMonth {
     final now = DateTime.now();
-    return DateTime(now.year, now.month + 1, 1).subtract(const Duration(seconds: 1));
+    return DateTime(
+      now.year,
+      now.month + 1,
+      1,
+    ).subtract(const Duration(seconds: 1));
   }
 
   @override
@@ -87,7 +94,8 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
 
       Map<String, double> fetchedBudgets = {};
       for (var doc in budgetsSnap.docs) {
-        fetchedBudgets[doc.id] = (doc.data()['amount'] as num?)?.toDouble() ?? 0;
+        fetchedBudgets[doc.id] =
+            (doc.data()['amount'] as num?)?.toDouble() ?? 0;
       }
 
       // Fetch transactions
@@ -155,158 +163,259 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: scheme.background,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(
-          "Categories History",
-          style: TextStyle(
-            color: scheme.onBackground,
-            fontWeight: FontWeight.bold,
-            fontSize: 17.sp,
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: const Color(0xFF1A1A2E).withOpacity(0.8)),
           ),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 19.sp),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
+        title: Text(
+          "Categories History",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          SizedBox(height: 10.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _tabButton("Income", 0),
-              SizedBox(width: 20.w),
-              _tabButton("Expense", 1),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF1A1A2E), // Midnight Void Top
+              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
             ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-          SizedBox(height: 10.h),
-          Expanded(
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : error != null
-                ? Center(child: Text(error!, style: TextStyle(color: scheme.error)))
-                : categoryItems.isEmpty
-                ? Center(
-              child: Text(
-                "No categories found.",
-                style: TextStyle(
-                  color: scheme.onSurface.withOpacity(0.6),
-                  fontSize: 14.sp,
-                ),
-                textAlign: TextAlign.center,
+        ),
+        child: Column(
+          children: [
+            SizedBox(height: 100.h), // AppBar and Status Bar spacer
+            // TABS
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 40.w),
+              padding: EdgeInsets.all(4.w),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(30.r),
               ),
-            )
-                : ListView.separated(
-              padding: EdgeInsets.all(12.w),
-              itemCount: categoryItems.length,
-              separatorBuilder: (_, __) =>
-                  Divider(color: scheme.onSurface.withOpacity(0.1), height: 1),
-              itemBuilder: (context, index) {
-                final category = categoryItems[index];
-                final budget = budgetMap[category.name] ?? 0;
-                Widget trailing = Text(
-                  '₹ ${category.total.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: selectedTab == 0 ? Colors.green : scheme.error,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15.sp,
-                  ),
-                );
-
-                if (budget > 0) {
-                  double percent = (category.total / budget * 100).clamp(0, 999).toDouble();
-                  trailing = Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '₹ ${category.total.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: selectedTab == 0 ? Colors.green : scheme.error,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp,
-                        ),
-                      ),
-                      SizedBox(height: 3.h),
-                      SizedBox(
-                        width: 60.w,
-                        child: LinearProgressIndicator(
-                          value: (category.total / budget).clamp(0,1),
-                          backgroundColor: scheme.surfaceVariant,
-                          color: selectedTab == 0 ? Colors.green : scheme.error,
-                          minHeight: 7,
-                        ),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        '${percent.toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  );
-                }
-                return ListTile(
-                  contentPadding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
-                  leading: category.iconUrl != null
-                      ? CircleAvatar(backgroundImage: NetworkImage(category.iconUrl!))
-                      : CategoryInitialsIcon(categoryName: category.name, size: 40.r),
-                  title: Text(
-                    category.name,
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15.sp,
-                    ),
-                  ),
-                  trailing: trailing,
-                  onTap: () {
-                    Get.to(() => CategoryTransactionsScreen(
-                      categoryName: category.name,
-                    ), curve: curve, transition: transition, duration: duration);
-                  },
-                );
-              },
+              child: Row(
+                children: [
+                  Expanded(child: _tabButton("Income", 0)),
+                  Expanded(child: _tabButton("Expense", 1)),
+                ],
+              ),
             ),
-          ),
-        ],
+            SizedBox(height: 20.h),
+
+            // LIST
+            Expanded(
+              child: loading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF00E5FF),
+                      ),
+                    )
+                  : error != null
+                  ? Center(
+                      child: Text(
+                        error!,
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    )
+                  : categoryItems.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.category_outlined,
+                            size: 60.sp,
+                            color: Colors.white24,
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            "No categories found.",
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 16.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 30.h),
+                      itemCount: categoryItems.length,
+                      itemBuilder: (context, index) {
+                        final category = categoryItems[index];
+                        final budget = budgetMap[category.name] ?? 0;
+                        return _buildCategoryCard(category, budget);
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _tabButton(String text, int index) {
     final isSelected = selectedTab == index;
-    final scheme = Theme.of(context).colorScheme;
+    // Income = Green (index 0), Expense = Red (index 1)
+    final activeColor = index == 0
+        ? const Color(0xFF00E676)
+        : const Color(0xFFFF1744);
 
     return GestureDetector(
       onTap: () => _onTabChanged(index),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(vertical: 10.h),
         decoration: BoxDecoration(
-          color: isSelected ? scheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.4),
-            width: 1.5,
-          ),
+          color: isSelected ? activeColor.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(26.r),
+          border: isSelected
+              ? Border.all(color: activeColor.withOpacity(0.5))
+              : null,
         ),
+        alignment: Alignment.center,
         child: Text(
           text,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isSelected ? scheme.onPrimary : scheme.onSurface,
+            color: isSelected ? activeColor : Colors.white54,
             fontSize: 14.sp,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard(_CategoryItem category, double budget) {
+    // 0 = Income (Green), 1 = Expense (Red)
+    final isExpense = selectedTab == 1;
+    final primaryColor = isExpense
+        ? const Color(0xFFFF1744)
+        : const Color(0xFF00E676);
+
+    // Dim items with 0 spend
+    final isZero = category.total == 0;
+    final opacity = isZero ? 0.3 : 1.0;
+
+    return GestureDetector(
+      onTap: () {
+        Get.to(() => CategoryTransactionsScreen(categoryName: category.name));
+      },
+      child: Opacity(
+        opacity: opacity,
+        child: Container(
+          margin: EdgeInsets.only(bottom: 12.h),
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05), // Dark Glass
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                width: 46.r,
+                height: 46.r,
+                decoration: const BoxDecoration(color: Colors.transparent),
+                child: category.iconUrl != null
+                    ? CircleAvatar(
+                        backgroundImage: NetworkImage(category.iconUrl!),
+                        backgroundColor: primaryColor.withOpacity(0.1),
+                      )
+                    : CategoryInitialsIcon(
+                        categoryName: category.name,
+                        size: 46.r,
+                      ),
+              ),
+              SizedBox(width: 16.w),
+
+              // Name & Progress
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      category.name,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (budget > 0 && isExpense) ...[
+                      SizedBox(height: 6.h),
+                      // Budget Progress Bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (category.total / budget).clamp(0.0, 1.0),
+                          backgroundColor: Colors.white10,
+                          valueColor: AlwaysStoppedAnimation(
+                            category.total > budget
+                                ? Colors
+                                      .redAccent // Over budget
+                                : primaryColor, // Safe
+                          ),
+                          minHeight: 4.h,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              SizedBox(width: 12.w),
+
+              // Amount
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${CurrencyController.to.currencySymbol.value} ${category.total.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: primaryColor,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        BoxShadow(
+                          color: primaryColor.withOpacity(0.4),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (budget > 0 && isExpense)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4.h),
+                      child: Text(
+                        'of ${CurrencyController.to.currencySymbol.value}${budget.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

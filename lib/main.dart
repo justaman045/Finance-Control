@@ -1,6 +1,9 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,18 +18,72 @@ import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Services/local_backup_service.dart';
-import 'package:money_control/Services/update_checker.dart.dart';
-
-final navigatorKey = GlobalKey<NavigatorState>();
+import 'package:money_control/Services/update_checker.dart';
+import 'package:money_control/Services/biometric_service.dart';
+import 'package:money_control/Services/notification_service.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 
 // ---- THEME CONTROLLER ----
 class ThemeController extends GetxController {
-  RxBool isDark = false.obs;
+  // Default to system theme until loaded
+  Rx<ThemeMode> currentTheme = ThemeMode.system.obs;
 
-  ThemeMode get themeMode => isDark.value ? ThemeMode.dark : ThemeMode.light;
+  ThemeMode get themeMode => currentTheme.value;
+  StreamSubscription<DocumentSnapshot>? _themeSubscription;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _listenToThemeChanges();
+  }
+
+  @override
+  void onClose() {
+    _themeSubscription?.cancel();
+    super.onClose();
+  }
 
   void setTheme(bool dark) {
-    isDark.value = dark;
+    final mode = dark ? ThemeMode.dark : ThemeMode.light;
+    if (currentTheme.value != mode) {
+      currentTheme.value = mode;
+      Get.changeThemeMode(mode);
+      _saveThemeToFirestore(dark);
+    }
+  }
+
+  // Called locally when setting updates, but avoid loop if update comes from stream
+  Future<void> _saveThemeToFirestore(bool isDark) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && user.email != null) {
+      await FirebaseFirestore.instance.collection("users").doc(user.email).set({
+        "darkMode": isDark,
+      }, SetOptions(merge: true));
+    }
+  }
+
+  void _listenToThemeChanges() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && user.email != null) {
+      _themeSubscription = FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.email)
+          .snapshots()
+          .listen((snapshot) {
+            if (snapshot.exists) {
+              final data = snapshot.data();
+              if (data != null && data.containsKey("darkMode")) {
+                final isDark = data["darkMode"] as bool;
+                final newMode = isDark ? ThemeMode.dark : ThemeMode.light;
+                if (currentTheme.value != newMode) {
+                  currentTheme.value = newMode;
+                  Get.changeThemeMode(newMode);
+                }
+              }
+            }
+          });
+    }
   }
 }
 
@@ -35,48 +92,103 @@ final ThemeController themeController = Get.put(ThemeController());
 // ---- MAIN ----
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Firestore offline persistence 👇
-  FirebaseFirestore.instance.settings =
-  const Settings(persistenceEnabled: true);
+  // Pass all uncaught "fatal" errors from the framework to Crashlytics
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
-  await _loadThemeFromFirebase();
+  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+  PlatformDispatcher.instance.onError = (error, stack) {
+    // Print error locally so we can see it even if Crashlytics fails
+    debugPrint("🔴 Async Error: $error");
+    debugPrint(stack.toString());
 
+    try {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    } catch (e) {
+      debugPrint("⚠️ Failed to report to Crashlytics: $e");
+    }
+    return true;
+  };
+
+  // Firestore offline persistence
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
+
+  // Initialize Controllers
+  Get.put(PrivacyController());
+  Get.put(CurrencyController());
+  final bioService = Get.put(BiometricService());
+
+  // await _loadThemeFromFirebase(); // Handled by ThemeController listener
   await BackgroundWorker.init();
 
   await FlutterLocalNotificationsPlugin()
       .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()
+        AndroidFlutterLocalNotificationsPlugin
+      >()
       ?.requestNotificationsPermission();
 
   FirebaseFirestore.instance.enableNetwork().then((_) {
     syncPendingTransactions();
   });
 
+  // Check biometrics on launch
+  await bioService.checkBiometricOnLaunch();
+
+  // Init Notifications with callback
+  await NotificationService.init(
+    onDidReceiveNotificationResponse: (response) {
+      if (response.payload == "home") {
+        Get.to(() => const BankingHomeScreen());
+      }
+    },
+  );
+
   runApp(const RootApp());
 }
 
 // Load theme BEFORE app builds
-Future<void> _loadThemeFromFirebase() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  try {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.email)
-        .get();
-
-    final isDark = doc.data()?["darkMode"] ?? false;
-    themeController.setTheme(isDark);
-  } catch (_) {}
-}
 
 // ---- ROOT APP ----
-class RootApp extends StatelessWidget {
+class RootApp extends StatefulWidget {
   const RootApp({super.key});
+
+  @override
+  State<RootApp> createState() => _RootAppState();
+}
+
+class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
+  final BiometricService _bioService = Get.find();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // Lock app when backgrounded
+      if (_bioService.isBiometricEnabled.value) {
+        _bioService.isAuthenticated.value = false;
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // Trigger auth on resume
+      if (_bioService.isBiometricEnabled.value &&
+          !_bioService.isAuthenticated.value) {
+        _bioService.authenticate();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,33 +196,36 @@ class RootApp extends StatelessWidget {
       designSize: const Size(390, 844),
       builder: (_, __) {
         return GetMaterialApp(
-          navigatorKey: navigatorKey,
+          // navigatorKey is properly handled by GetX internally
           debugShowCheckedModeBanner: false,
           title: "Finance Control",
-
           themeMode: themeController.themeMode,
           theme: buildLightTheme(),
           darkTheme: buildDarkTheme(),
-
-          home: const AuthChecker(),
-
-          builder: (context, child) {
-            FlutterLocalNotificationsPlugin().initialize(
-              const InitializationSettings(
-                android: AndroidInitializationSettings("@mipmap/ic_launcher"),
-              ),
-              onDidReceiveNotificationResponse: (response) {
-                if (response.payload == "home") {
-                  navigatorKey.currentState?.push(
-                    MaterialPageRoute(
-                      builder: (_) => const BankingHomeScreen(),
-                    ),
-                  );
-                }
-              },
-            );
-            return child!;
-          },
+          home: Obx(() {
+            if (_bioService.isBiometricEnabled.value &&
+                !_bioService.isAuthenticated.value) {
+              return const Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        "App Locked",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return const AuthChecker();
+          }),
         );
       },
     );

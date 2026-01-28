@@ -4,14 +4,14 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Screens/loginscreen.dart';
 
 class DeactivateAccountScreen extends StatefulWidget {
   const DeactivateAccountScreen({super.key});
 
   @override
-  State<DeactivateAccountScreen> createState() => _DeactivateAccountScreenState();
+  State<DeactivateAccountScreen> createState() =>
+      _DeactivateAccountScreenState();
 }
 
 class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
@@ -42,13 +42,11 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
         "deactivatedAt": DateTime.now(),
       }, SetOptions(merge: true));
 
-      // Optionally, also disable sign-in (for strict deactivation)
-      // Note: Disabling user in Firebase Auth can only be done server-side (Cloud Functions/Admin SDK).
-      // As a client, best you can do is sign the user out here:
       await FirebaseAuth.instance.signOut();
 
       setState(() {
-        success = "Your account has been deactivated. You have been logged out.";
+        success =
+            "Your account has been deactivated. You have been logged out.";
         processing = false;
       });
 
@@ -67,17 +65,35 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
-    final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
-    final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
-    final surface = scheme.surface;
-    final border = isLight ? kLightBorder : kDarkBorder;
-    final secondaryText = isLight ? kLightTextSecondary : kDarkTextSecondary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ]
+        : [
+            const Color(0xFFF5F7FA), // Premium Light
+            const Color(0xFFC3CFE2),
+          ];
+
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final secondaryTextColor = isDark
+        ? Colors.white.withOpacity(0.6)
+        : const Color(0xFF1A1A2E).withOpacity(0.6);
+
+    final cardColor = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.white.withOpacity(0.6);
+
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.4);
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [gradientTop, gradientBottom],
+          colors: gradientColors,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -91,13 +107,13 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
           title: Text(
             "Deactivate Account",
             style: TextStyle(
-              color: scheme.onBackground,
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
             onPressed: () => Navigator.of(context).pop(),
           ),
           toolbarHeight: 64.h,
@@ -108,123 +124,198 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: EdgeInsets.all(20.w),
+                padding: EdgeInsets.all(24.w),
                 decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: border, width: 1),
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.016),
-                      blurRadius: 4,
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: scheme.error, size: 37.sp),
-                    SizedBox(height: 8.h),
-                    Text(
-                      "Are you sure you want to deactivate your account?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17.sp,
+                    Container(
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.redAccent,
+                        size: 40.sp,
                       ),
                     ),
-                    SizedBox(height: 13.h),
+                    SizedBox(height: 16.h),
                     Text(
-                      "Your account will be deactivated and you will be logged out. "
-                          "Your data will be retained for record and audit purposes. You can contact support to reactivate.",
+                      "Are you sure you want to deactivate?",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: secondaryText,
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      "Your account will be deactivated and you will be logged out immediately. Your data is retained for audit purposes but will not be accessible.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: secondaryTextColor,
                         fontSize: 13.5.sp,
-                        height: 1.42,
+                        height: 1.5,
                       ),
                     ),
                     if (error != null) ...[
-                      SizedBox(height: 13.h),
-                      Text(error!, style: TextStyle(color: scheme.error, fontSize: 13.sp)),
+                      SizedBox(height: 16.h),
+                      Text(
+                        error!,
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 13.sp,
+                        ),
+                      ),
                     ],
                     if (success != null) ...[
-                      SizedBox(height: 13.h),
-                      Text(success!, style: TextStyle(color: Colors.green, fontSize: 13.sp)),
+                      SizedBox(height: 16.h),
+                      Text(
+                        success!,
+                        style: TextStyle(
+                          color: Colors.greenAccent,
+                          fontSize: 13.sp,
+                        ),
+                      ),
                     ],
-                    SizedBox(height: 25.h),
+                    SizedBox(height: 30.h),
                     SizedBox(
                       width: double.infinity,
-                      height: 50.h,
+                      height: 52.h,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: scheme.error,
+                          backgroundColor: Colors.redAccent,
                           foregroundColor: Colors.white,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30.r),
+                            borderRadius: BorderRadius.circular(26.r),
                           ),
+                          shadowColor: Colors.redAccent.withOpacity(0.4),
                         ),
                         onPressed: processing
                             ? null
                             : () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text("Confirm Deactivation"),
-                              content: const Text(
-                                  "Are you sure you want to deactivate your account? This cannot be undone from the app."),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  child: const Text("Cancel"),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    Navigator.pop(ctx);
-                                    await _deactivateAccount();
-                                  },
-                                  child: Text("Deactivate", style: TextStyle(color: scheme.error)),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    backgroundColor: isDark
+                                        ? const Color(0xFF1E1E2C)
+                                        : Colors.white,
+                                    title: Text(
+                                      "Confirm Deactivation",
+                                      style: TextStyle(color: textColor),
+                                    ),
+                                    content: Text(
+                                      "This action requires you to login again to reactivate. Proceed?",
+                                      style: TextStyle(
+                                        color: secondaryTextColor,
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        child: Text(
+                                          "Cancel",
+                                          style: TextStyle(
+                                            color: secondaryTextColor,
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () async {
+                                          Navigator.pop(ctx);
+                                          await _deactivateAccount();
+                                        },
+                                        child: const Text(
+                                          "Deactivate",
+                                          style: TextStyle(
+                                            color: Colors.redAccent,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                         child: processing
-                            ? const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                            : Text("Deactivate My Account", style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ? SizedBox(
+                                width: 24.w,
+                                height: 24.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                "Deactivate My Account",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.sp,
+                                ),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(height: 26.h),
-              Text(
-                "Questions?",
-                style: TextStyle(
-                  color: secondaryText,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13.sp,
+              SizedBox(height: 32.h),
+              Center(
+                child: Text(
+                  "Need help?",
+                  style: TextStyle(
+                    color: secondaryTextColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
                 ),
               ),
-              SizedBox(height: 7.h),
+              SizedBox(height: 8.h),
               Container(
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  color: surface,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: border, width: 1),
+                  border: Border.all(color: borderColor, width: 1),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-                child: Text(
-                  "Contact support at support@moneycontrol.app if you change your mind or need help reactivating your account.",
-                  style: TextStyle(color: scheme.onSurface, fontSize: 13.sp),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.email_outlined,
+                      color: secondaryTextColor,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    SelectableText(
+                      "work.amanojha30@gmail.com",
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-        bottomNavigationBar: BottomNavBar(
-          currentIndex: 3,
-        ),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       ),
     );
   }

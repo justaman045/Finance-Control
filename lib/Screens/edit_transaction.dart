@@ -7,10 +7,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Services/offline_queue.dart';
 import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/budget_service.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -29,22 +32,27 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   late TextEditingController _taxController;
   late TextEditingController _noteController;
 
-  List<String> _categories = [];
+  List<CategoryModel> _categories = [];
   String? _selectedCategory;
-  bool _loadingCategories = true;
+  late DateTime _selectedDate;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _recipientNameController =
-        TextEditingController(text: widget.transaction.recipientName);
-    _amountController =
-        TextEditingController(text: widget.transaction.amount.toString());
-    _taxController =
-        TextEditingController(text: widget.transaction.tax.toString());
-    _noteController =
-        TextEditingController(text: widget.transaction.note ?? '');
+    _recipientNameController = TextEditingController(
+      text: widget.transaction.recipientName,
+    );
+    _amountController = TextEditingController(
+      text: widget.transaction.amount.abs().toString(),
+    );
+    _taxController = TextEditingController(
+      text: widget.transaction.tax.toString(),
+    );
+    _noteController = TextEditingController(
+      text: widget.transaction.note ?? '',
+    );
+    _selectedDate = widget.transaction.date;
     _loadCategories();
   }
 
@@ -71,25 +79,20 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           .collection('categories')
           .get();
 
-      final fetched = <String>{};
-      for (var doc in catSnap.docs) {
-        final name = doc.data()['name'] ?? '';
-        if (name.isNotEmpty) fetched.add(name);
-      }
+      final fetched = catSnap.docs
+          .map((doc) => CategoryModel.fromMap(doc.id, doc.data()))
+          .toList();
 
       setState(() {
-        _categories = fetched.toList();
-        if (_categories.contains(widget.transaction.category)) {
+        _categories = fetched;
+        // If selected is null but transaction has one, pick it.
+        // But wait, transaction stores String name.
+        if (_selectedCategory == null) {
           _selectedCategory = widget.transaction.category;
         }
-        _loadingCategories = false;
       });
     } catch (e) {
-      setState(() {
-        _loadingCategories = false;
-      });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Load category error: $e")));
+      debugPrint("Load category error: $e");
     }
   }
 
@@ -98,56 +101,136 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
   Future<void> _addNewCategoryDialog() async {
     final controller = TextEditingController();
-    final fKey = GlobalKey<FormState>();
 
-    final newCat = await showDialog<String>(
+    await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Add Category"),
-        content: Form(
-          key: fKey,
-          child: TextFormField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: "Category name"),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return "Required";
-              if (_categories.contains(v.trim())) return "Already exists";
-              return null;
-            },
+      barrierColor: Colors.black.withOpacity(0.8),
+      builder: (_) => Dialog(
+        backgroundColor: const Color(0xFF1E1E2C),
+        elevation: 0,
+        insetPadding: EdgeInsets.all(20.w),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24.r),
+          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24.r),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6C63FF).withOpacity(0.2),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "New Category",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              SizedBox(height: 20.h),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "Category Name",
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  ),
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  GestureDetector(
+                    onTap: () async {
+                      final text = controller.text.trim();
+                      if (text.isEmpty) return;
+                      // Logic to save
+                      try {
+                        final email = FirebaseAuth.instance.currentUser?.email;
+                        if (email == null) return;
+                        await FirebaseFirestore.instance
+                            .collection("users")
+                            .doc(email)
+                            .collection("categories")
+                            .add({"name": text});
+                        await _loadCategories();
+                        setState(() => _selectedCategory = text);
+                        Navigator.pop(context);
+                      } catch (e) {
+                        // handle error
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24.w,
+                        vertical: 12.h,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                        ),
+                        borderRadius: BorderRadius.circular(12.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6C63FF).withOpacity(0.4),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        "Add",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (fKey.currentState!.validate()) {
-                Navigator.pop(context, controller.text.trim());
-              }
-            },
-            child: const Text("Add"),
-          )
-        ],
       ),
     );
-
-    if (newCat != null && newCat.isNotEmpty) {
-      try {
-        final email = FirebaseAuth.instance.currentUser?.email;
-        if (email == null) return;
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(email)
-            .collection("categories")
-            .add({"name": newCat});
-        await _loadCategories();
-        setState(() => _selectedCategory = newCat);
-      } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Add category error: $e')));
-      }
-    }
   }
 
   // ------------------------------------------------------------------
@@ -158,8 +241,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCategory == null || _selectedCategory!.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Select category")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Select category")));
       return;
     }
 
@@ -171,19 +255,26 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       return;
     }
 
+    double rawAmount = double.tryParse(_amountController.text.trim()) ?? 0;
+    rawAmount = rawAmount.abs(); // Ensure positive input
+
+    // Determine if expense
+    final isExpense = user.uid == widget.transaction.senderId;
+    final finalAmount = isExpense ? -rawAmount : rawAmount;
+
     final updated = TransactionModel(
       id: widget.transaction.id,
       senderId: widget.transaction.senderId,
       recipientId: widget.transaction.recipientId,
       recipientName: _recipientNameController.text.trim(),
-      amount: double.tryParse(_amountController.text.trim()) ?? 0,
+      amount: finalAmount,
       currency: widget.transaction.currency,
       tax: double.tryParse(_taxController.text.trim()) ?? 0,
       note: _noteController.text.trim().isEmpty
           ? null
           : _noteController.text.trim(),
       category: _selectedCategory,
-      date: widget.transaction.date,
+      date: _selectedDate,
       attachmentUrl: widget.transaction.attachmentUrl,
       status: widget.transaction.status,
       createdAt: widget.transaction.createdAt,
@@ -208,9 +299,21 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
 
       _saving = false;
 
+      // Check Budget Limit
+      if (updated.category != null && user.email != null) {
+        BudgetService.checkBudgetExceeded(
+          userId: user.email!,
+          category: updated.category!,
+          newAmount: updated.amount,
+        );
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Transaction updated successfully")),
+          const SnackBar(
+            content: Text("Transaction Updated"),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context, true);
       }
@@ -223,16 +326,19 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         "newData": txMap,
       };
 
-      await OfflineQueueService.savePending(txMap);
+      await OfflineQueueService.savePending(
+        txMap,
+      ); // Using savePending from backup service logic mostly or direct offline queue
 
       _saving = false;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-            Text("Saved offline! Changes will sync when you're online."),
-          ),
+        Get.snackbar(
+          "Offline",
+          "Saved locally",
+          snackPosition: SnackPosition.BOTTOM,
+          colorText: Colors.white,
+          icon: const Icon(Icons.wifi_off, color: Colors.white),
         );
         Navigator.pop(context, true);
       }
@@ -244,154 +350,390 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Edit Transaction'),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: scheme.onBackground),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 18.sp,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24.w),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _recipientNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Recipient Name',
-                    border: OutlineInputBorder(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF1A1A2E), // Midnight Void Top
+              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(24.w),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _FieldLabel("Recipient Name"),
+                  _InputField(
+                    controller: _recipientNameController,
+                    hint: "Recipient Name",
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? 'Required'
+                        : null,
                   ),
-                  validator: (value) =>
-                  (value == null || value.trim().isEmpty)
-                      ? 'Recipient name required'
-                      : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    border: OutlineInputBorder(),
+
+                  _FieldLabel("Amount"),
+                  _AmountField(_amountController),
+
+                  _FieldLabel("Tax"),
+                  _InputField(
+                    controller: _taxController,
+                    hint: "0.00",
+                    isNumber: true,
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Amount is required';
-                    }
-                    final amt = double.tryParse(value);
-                    if (amt == null || amt <= 0) {
-                      return 'Enter a valid amount greater than zero';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _taxController,
-                  keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Tax',
-                    border: OutlineInputBorder(),
+
+                  _FieldLabel("Category"),
+                  _CategorySelector(),
+
+                  _FieldLabel("Note"),
+                  _InputField(
+                    controller: _noteController,
+                    hint: "Add a note...",
+                    maxLines: 2,
                   ),
-                  validator: (value) {
-                    if (value != null && value.trim().isNotEmpty) {
-                      final taxVal = double.tryParse(value);
-                      if (taxVal == null || taxVal < 0) {
-                        return 'Enter a valid tax amount';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16.h),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: _loadingCategories
-                          ? const Center(child: CircularProgressIndicator())
-                          : DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          border: OutlineInputBorder(),
+
+                  _FieldLabel("Date"),
+                  _DateSelector(),
+
+                  SizedBox(height: 40.h),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54.h,
+                    child: ElevatedButton(
+                      onPressed: _saveTransaction,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28.r),
                         ),
-                        value: _selectedCategory,
-                        items: _categories
-                            .map(
-                              (category) => DropdownMenuItem<String>(
-                            value: category,
-                            child: Text(category),
-                          ),
-                        )
-                            .toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedCategory = val;
-                          });
-                        },
-                        validator: (val) => (val == null || val.isEmpty)
-                            ? 'Please select a category'
-                            : null,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
                       ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      flex: 1,
-                      child: ElevatedButton.icon(
-                        onPressed: _addNewCategoryDialog,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add'),
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 20.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
                           ),
+                          borderRadius: BorderRadius.circular(28.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: _saving
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : Text(
+                                  'Save Changes',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18.sp,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _noteController,
-                  maxLines: null,
-                  decoration: const InputDecoration(
-                    labelText: 'Note',
-                    border: OutlineInputBorder(),
                   ),
-                ),
-                SizedBox(height: 32.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52.h,
-                  child: ElevatedButton(
-                    onPressed: _saveTransaction,
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(34.r),
-                      ),
-                    ),
-                    child: Text(
-                      'Save',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.sp,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // WIDGETS
+  // ------------------------------------------------------------------
+
+  Widget _FieldLabel(String text) {
+    return Padding(
+      padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _GlassBox({required Widget child, EdgeInsetsGeometry? padding}) {
+    return Container(
+      padding: padding ?? EdgeInsets.zero,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05), // Dark Glass
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _AmountField(TextEditingController c) {
+    return _GlassBox(
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6C63FF).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(
+                color: const Color(0xFF6C63FF).withOpacity(0.3),
+              ),
+            ),
+            margin: EdgeInsets.all(8.w),
+            child: Text(
+              widget.transaction.currency,
+              style: TextStyle(
+                color: const Color(0xFF6C63FF), // Blurple
+                fontWeight: FontWeight.w800,
+                fontSize: 15.sp,
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextFormField(
+              controller: c,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: TextStyle(
+                fontSize: 22.sp,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "0.00",
+                hintStyle: TextStyle(color: Colors.white24, fontSize: 22.sp),
+              ),
+              validator: (val) {
+                if (val == null || val.isEmpty) return "Required";
+                if (double.tryParse(val) == null) return "Invalid";
+                return null;
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _InputField({
+    required TextEditingController controller,
+    required String hint,
+    int maxLines = 1,
+    bool isNumber = false,
+    String? Function(String?)? validator,
+  }) {
+    return _GlassBox(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        keyboardType: isNumber
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : TextInputType.text,
+        validator: validator,
+        style: TextStyle(
+          fontSize: 16.sp,
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: TextStyle(
+            color: Colors.white24,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _CategorySelector() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ..._categories.map((cat) {
+            final isSelected = _selectedCategory == cat.name;
+            final catColor = cat.color != null
+                ? Color(cat.color!)
+                : const Color(0xFF00E5FF);
+            final borderColor = isSelected
+                ? catColor
+                : Colors.white.withOpacity(0.1);
+
+            return Padding(
+              padding: EdgeInsets.only(right: 12.w),
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedCategory = cat.name),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 12.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? catColor.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(30.r),
+                    border: Border.all(color: borderColor),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: catColor.withOpacity(0.3),
+                              blurRadius: 12,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      if (cat.iconCode != null) ...[
+                        Icon(
+                          IconData(cat.iconCode!, fontFamily: 'MaterialIcons'),
+                          size: 18.sp,
+                          color: isSelected ? catColor : Colors.white70,
+                        ),
+                        SizedBox(width: 8.w),
+                      ],
+                      Text(
+                        cat.name,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.white70,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+          // Add Button
+          GestureDetector(
+            onTap: _addNewCategoryDialog,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6C63FF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(30.r),
+                border: Border.all(
+                  color: const Color(0xFF6C63FF).withOpacity(0.5),
+                  style: BorderStyle.none,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.add_circle,
+                    color: const Color(0xFF6C63FF),
+                    size: 18.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    "Add Link",
+                    style: TextStyle(
+                      color: const Color(0xFF6C63FF),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _DateSelector() {
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _selectedDate,
+          firstDate: DateTime(2015),
+          lastDate: DateTime(2100),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.dark(
+                  primary: Color(0xFF6C63FF),
+                  onPrimary: Colors.white,
+                  surface: Color(0xFF1E1E2C),
+                  onSurface: Colors.white,
+                ),
+                dialogBackgroundColor: const Color(0xFF1E1E2C),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) setState(() => _selectedDate = picked);
+      },
+      child: _GlassBox(
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+        child: Row(
+          children: [
+            Text(
+              "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            const Icon(Icons.calendar_today_outlined, color: Color(0xFF6C63FF)),
+          ],
         ),
       ),
     );

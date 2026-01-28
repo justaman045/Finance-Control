@@ -3,7 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Models/transaction.dart';
+
 import 'package:money_control/Screens/transaction_details.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
 
 class TxTile extends StatelessWidget {
   final TransactionModel tx;
@@ -29,6 +31,7 @@ class TxTile extends StatelessWidget {
         : (sentColor ?? scheme.error);
 
     return GestureDetector(
+      behavior: HitTestBehavior.translucent,
       onTap: () {
         debugPrint(_getTxnType(tx.status).toString());
         gotoPage(
@@ -44,7 +47,10 @@ class TxTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(18.r),
-              child: CategoryInitialsIcon(categoryName: tx.recipientName, size: 40.r,),
+              child: CategoryInitialsIcon(
+                categoryName: tx.recipientName,
+                size: 40.r,
+              ),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -66,7 +72,9 @@ class TxTile extends StatelessWidget {
                       Text(
                         _formatDate(tx.date),
                         style: TextStyle(
-                          color: scheme.onSurface.withOpacity(0.6),
+                          color: (textColor ?? scheme.onSurface).withOpacity(
+                            0.6,
+                          ),
                           fontSize: 11.sp,
                         ),
                       ),
@@ -75,8 +83,8 @@ class TxTile extends StatelessWidget {
                   SizedBox(height: 4.h),
                   Row(
                     children: [
-                      Text(
-                        (received ? "+" : "-") + tx.amount.toStringAsFixed(2),
+                      PrivacyText(
+                        "${received ? "+" : "-"}${tx.amount.abs().toStringAsFixed(2)}",
                         style: TextStyle(
                           color: amtColor,
                           fontWeight: FontWeight.w700,
@@ -87,7 +95,9 @@ class TxTile extends StatelessWidget {
                       Text(
                         received ? "Received" : "Sent",
                         style: TextStyle(
-                          color: textColor ?? scheme.onSurface.withOpacity(0.7),
+                          color: (textColor ?? scheme.onSurface).withOpacity(
+                            0.7,
+                          ),
                           fontSize: 12.sp,
                         ),
                       ),
@@ -108,8 +118,18 @@ class TxTile extends StatelessWidget {
 
   String _monthAbbr(int month) {
     const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     return months[month - 1];
   }

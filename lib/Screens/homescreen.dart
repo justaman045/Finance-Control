@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/balance_card.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Components/colors.dart';
+
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Components/quick_send.dart';
 import 'package:money_control/Components/recent_payment_list.dart';
@@ -19,6 +19,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // 🔥 import background worker
 import 'package:money_control/Services/background_worker.dart';
+import 'package:money_control/Controllers/tutorial_controller.dart';
+import 'package:get/get.dart';
 
 class BankingHomeScreen extends StatefulWidget {
   const BankingHomeScreen({super.key});
@@ -28,17 +30,17 @@ class BankingHomeScreen extends StatefulWidget {
 }
 
 class _BankingHomeScreenState extends State<BankingHomeScreen> {
-  Key _balanceKey = UniqueKey();
-  Key _quickSendKey = UniqueKey();
+  final TutorialController _tutorialController = Get.put(TutorialController());
 
   @override
   void initState() {
     super.initState();
     _updateLastOpenedLocal();
 
-    // Start WorkManager after first frame to avoid startup issues
+    // Start WorkManager & Tutorial
     WidgetsBinding.instance.addPostFrameCallback((_) {
       BackgroundWorker.init();
+      _tutorialController.showTutorial(context);
     });
   }
 
@@ -50,12 +52,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
 
   Future<void> _onRefresh() async {
     await _updateLastOpenedLocal();
-
-    setState(() {
-      _balanceKey = UniqueKey();
-      _quickSendKey = UniqueKey();
-    });
-
+    setState(() {}); // Simple rebuild
     await Future.delayed(const Duration(milliseconds: 400));
   }
 
@@ -94,16 +91,22 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final Color gradientTop =
-    scheme.brightness == Brightness.light ? kLightGradientTop : kDarkGradientTop;
-    final Color gradientBottom =
-    scheme.brightness == Brightness.light ? kLightGradientBottom : kDarkGradientBottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final user = FirebaseAuth.instance.currentUser;
+
+    // Dynamic Gradient
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF1A1A2E),
+            const Color(0xFF16213E).withOpacity(0.95),
+          ] // Midnight Void
+        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [gradientTop, gradientBottom],
+          colors: gradientColors,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -146,9 +149,9 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   stream: user == null
                       ? null
                       : FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.email)
-                      .snapshots(),
+                            .collection('users')
+                            .doc(user.email)
+                            .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return shimmerText(scheme);
@@ -156,16 +159,18 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                     if (!snapshot.hasData || !snapshot.data!.exists) {
                       return blankText(scheme);
                     }
-                    final userModel =
-                    UserModel.fromMap(user!.uid, snapshot.data!.data());
+                    final userModel = UserModel.fromMap(
+                      user!.uid,
+                      snapshot.data!.data(),
+                    );
                     return Text(
                       userModel.firstName != null &&
-                          userModel.firstName!.isNotEmpty
+                              userModel.firstName!.isNotEmpty
                           ? userModel.firstName!
                           : (user.displayName != null &&
-                          user.displayName!.isNotEmpty
-                          ? user.displayName!
-                          : 'User'),
+                                    user.displayName!.isNotEmpty
+                                ? user.displayName!
+                                : 'User'),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.sp,
@@ -187,7 +192,11 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               width: 45.w,
               height: 40.h,
               child: IconButton(
-                icon: Icon(Icons.search, color: scheme.onSurface.withOpacity(0.9), size: 22.sp),
+                icon: Icon(
+                  Icons.search,
+                  color: scheme.onSurface.withOpacity(0.9),
+                  size: 22.sp,
+                ),
                 onPressed: () {
                   gotoPage(const TransactionSearchPage());
                 },
@@ -220,7 +229,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              BalanceCard(key: _balanceKey),
+              BalanceCard(key: _tutorialController.keyBalance),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _onRefresh,
@@ -234,11 +243,12 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                           title: 'Quick Send',
                           color: scheme.onSurface,
                           accentColor: scheme.primary,
-                          onTap: () => gotoPage(const CategoriesHistoryScreen()),
+                          onTap: () =>
+                              gotoPage(const CategoriesHistoryScreen()),
                         ),
                         SizedBox(height: 12.h),
                         QuickSendRow(
-                          key: _quickSendKey,
+                          key: _tutorialController.keyQuickSend,
                           cardColor: scheme.surface,
                           textColor: scheme.onSurface,
                         ),
@@ -251,6 +261,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                         ),
                         SizedBox(height: 12.h),
                         RecentPaymentList(
+                          key: _tutorialController.keyRecentTx,
                           cardColor: scheme.surface,
                           textColor: scheme.onSurface,
                           receivedColor: const Color(0xFF0FA958),

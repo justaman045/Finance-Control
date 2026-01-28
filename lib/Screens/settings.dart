@@ -1,23 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Components/colors.dart';
-import 'package:money_control/Components/methods.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:money_control/Screens/admin_screen.dart';
-import 'package:money_control/Screens/feedback_form.dart';
-import 'package:money_control/Screens/settings_backup_restore.dart';
-
-import 'about_application.dart';
-import 'budget.dart';
-import 'deactivate_account.dart';
-import 'help_faq.dart';
-import 'loginscreen.dart';
-import 'notifications.dart';
-import 'edit_profile.dart';
-import 'terms_and_policy.dart';
+import 'package:money_control/Screens/loginscreen.dart';
+import 'package:money_control/Screens/Settings/general_settings.dart';
+import 'package:money_control/Screens/Settings/security_settings.dart';
+import 'package:money_control/Screens/Settings/data_support_settings.dart';
+import 'package:money_control/Screens/edit_profile.dart';
+import 'package:money_control/Components/bottom_nav_bar.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,350 +19,306 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
-
-  bool darkMode = false;
-  bool loading = true;
+  String _version = "1.0.0";
 
   @override
   void initState() {
     super.initState();
-    _loadDarkModeSetting();
+    _getVersion();
   }
 
-  /// Load theme setting from Firestore
-  Future<void> _loadDarkModeSetting() async {
-    if (currentUser == null) return;
-
+  Future<void> _getVersion() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser!.email)
-          .get();
-
-      bool savedDarkMode = doc.data()?['darkMode'] ?? false;
-
-      setState(() {
-        darkMode = savedDarkMode;
-        loading = false;
-      });
-
-      // Apply theme globally
-      Get.changeThemeMode(savedDarkMode ? ThemeMode.dark : ThemeMode.light);
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = "${info.version} (${info.buildNumber})";
+        });
+      }
     } catch (e) {
-      debugPrint("Error loading dark mode: $e");
-      loading = false;
-    }
-  }
-
-  /// Update theme & Firestore
-  Future<void> _updateDarkModeSetting(bool value) async {
-    if (currentUser == null) return;
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUser!.email)
-        .set({'darkMode': value}, SetOptions(merge: true));
-
-    setState(() => darkMode = value);
-
-    Get.changeThemeMode(value ? ThemeMode.dark : ThemeMode.light);
-  }
-
-  Future<void> _sendPasswordResetEmail() async {
-    if (currentUser == null) return;
-
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: currentUser!.email!,
-      );
-      Get.snackbar("Password Reset", "Email sent to ${currentUser!.email}");
-    } catch (e) {
-      Get.snackbar("Password Reset", "Failed: $e");
+      debugPrint("Error fetching version: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
-
-    final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
-    final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
-    final surface = scheme.surface;
-    final border = isLight ? kLightBorder : kDarkBorder;
-    final secondaryText = isLight ? kLightTextSecondary : kDarkTextSecondary;
-
-    if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [gradientTop, gradientBottom],
+          colors: [
+            const Color(0xFF1A1A2E), // Midnight Void
+            const Color(0xFF16213E).withOpacity(0.95),
+          ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
+          title: const Text("Settings"),
+          centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          centerTitle: true,
-          title: Text(
-            "Settings",
-            style: TextStyle(
-              color: scheme.onBackground,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
+          automaticallyImplyLeading: false, // Hide back button on main tab
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+            child: Column(
+              children: [
+                _buildProfileHeader(),
+                SizedBox(height: 30.h),
+
+                // -- CATEGORIZED MENU --
+                _SectionHeader("Menu"),
+
+                _SettingsCategoryCard(
+                  title: "General",
+                  subtitle: "Currency, Categories, Budget, Notifications",
+                  icon: Icons.tune_rounded,
+                  color: const Color(0xFF6C63FF),
+                  onTap: () => Get.to(() => const GeneralSettingsScreen()),
+                ),
+
+                SizedBox(height: 16.h),
+
+                _SettingsCategoryCard(
+                  title: "Security & Privacy",
+                  subtitle: "Lock, Password, Account",
+                  icon: Icons.security_rounded,
+                  color: const Color(0xFF00E5FF),
+                  onTap: () => Get.to(() => const SecuritySettingsScreen()),
+                ),
+
+                SizedBox(height: 16.h),
+
+                _SettingsCategoryCard(
+                  title: "Data & Support",
+                  subtitle: "Backup, Feedback, Legal",
+                  icon: Icons.help_outline_rounded,
+                  color: Colors.orangeAccent,
+                  onTap: () => Get.to(() => const DataSupportSettingsScreen()),
+                ),
+
+                SizedBox(height: 40.h),
+
+                _buildSignOutButton(),
+
+                SizedBox(height: 20.h),
+                Text(
+                  "Version $_version",
+                  style: TextStyle(color: Colors.white24, fontSize: 12.sp),
+                ),
+              ],
             ),
           ),
-          toolbarHeight: 64.h,
         ),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 4),
+      ),
+    );
+  }
 
-        body: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// PROFILE CARD
-              _profileCard(surface, border, scheme),
-
-              SizedBox(height: 20.h),
-              Text(
-                "Other settings",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13.sp,
-                  color: secondaryText,
+  Widget _buildProfileHeader() {
+    return GestureDetector(
+      onTap: () => Get.to(() => const EditProfileScreen()),
+      child: Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 60.w,
+              height: 60.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF00E5FF), width: 2),
+                image: const DecorationImage(
+                  image: AssetImage("assets/profile.png"), // Corrected asset
+                  fit: BoxFit.cover,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00E5FF).withOpacity(0.3),
+                    blurRadius: 15,
+                  ),
+                ],
               ),
-              SizedBox(height: 12.h),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    currentUser?.displayName ?? "User",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    currentUser?.email ?? "No Email",
+                    style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white24,
+              size: 16.sp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-              /// MAIN OPTIONS
-              _settingsGroup(surface, border, [
-                _SettingsTile(
-                  icon: Icons.person_outline,
-                  title: "Profile details",
-                  onTap: () => gotoPage(const EditProfileScreen()),
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.lock_outline,
-                  title: "Change Password",
-                  onTap: _sendPasswordResetEmail,
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.monetization_on_outlined,
-                  title: "Set Budget",
-                  onTap: () => gotoPage(const CategoryBudgetScreen()),
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.notifications_none,
-                  title: "Notifications",
-                  onTap: () => gotoPage(const NotificationsScreen()),
-                ),
-                _divider(border),
-                _SwitchSettingsTile(
-                  icon: Icons.nights_stay_outlined,
-                  title: "Dark mode",
-                  value: darkMode,
-                  onChanged: _updateDarkModeSetting,
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.import_export,
-                  title: "Export Data",
-                  onTap: () => Get.to(() => const BackupRestorePage()),
-                ),
-              ]),
-
-              SizedBox(height: 20.h),
-
-              /// ABOUT / HELP / SIGN OUT
-              _settingsGroup(surface, border, [
-                _SettingsTile(
-                  icon: Icons.supervised_user_circle_sharp,
-                  title: "Users",
-                  onTap: () => gotoPage(const AdminUsersScreen()),
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.info_outline,
-                  title: "About application",
-                  onTap: () => gotoPage(const AboutApplicationScreen()),
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.feedback_outlined,
-                  title: "Feedback / Report a Bug",
-                  onTap: () => gotoPage(const FeedbackScreen()),
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.help_outline,
-                  title: "Help / FAQ",
-                  onTap: () => gotoPage(const HelpFAQScreen()),
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.privacy_tip_outlined,
-                  title: "Privacy & Policies",
-                  onTap: () => gotoPage(const LegalTrustPage()),
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.logout,
-                  title: "Sign Out",
-                  iconColor: scheme.error,
-                  textColor: scheme.error,
-                  onTap: () {
-                    FirebaseAuth.instance.signOut();
-                    gotoPage(const LoginScreen());
-                  },
-                ),
-                _divider(border),
-                _SettingsTile(
-                  icon: Icons.delete_outline,
-                  title: "Deactivate my account",
-                  iconColor: scheme.error,
-                  textColor: scheme.error,
-                  onTap: () => gotoPage(const DeactivateAccountScreen()),
-                ),
-              ]),
-              SizedBox(height: 30.h),
-            ],
+  Widget _buildSignOutButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        onPressed: () async {
+          await FirebaseAuth.instance.signOut();
+          Get.offAll(() => const LoginScreen());
+        },
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.symmetric(vertical: 16.h),
+          backgroundColor: Colors.redAccent.withOpacity(0.1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
           ),
         ),
-
-        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
-      ),
-    );
-  }
-
-  /// Helper Methods
-  Widget _divider(Color border) => Divider(height: 0, color: border);
-
-  Widget _settingsGroup(Color surface, Color border, List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: border),
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _profileCard(Color surface, Color border, ColorScheme scheme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: border),
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-        leading: CircleAvatar(
-          backgroundColor: surface,
-          radius: 26.r,
-          backgroundImage: const AssetImage("assets/profile.png"),
-        ),
-        title: Text(
-          currentUser?.displayName ?? "User",
+        child: Text(
+          "Sign Out",
           style: TextStyle(
+            color: Colors.redAccent,
             fontWeight: FontWeight.bold,
             fontSize: 16.sp,
-            color: scheme.onSurface,
           ),
         ),
-        trailing: Icon(
-          Icons.chevron_right,
-          color: scheme.onSurface.withOpacity(0.6),
-        ),
-        onTap: () => gotoPage(const EditProfileScreen()),
       ),
     );
   }
 }
 
-/// GENERAL SETTING TILE
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
+class _SectionHeader extends StatelessWidget {
   final String title;
-  final Color? iconColor;
-  final Color? textColor;
-  final VoidCallback? onTap;
+  const _SectionHeader(this.title);
 
-  const _SettingsTile({
-    required this.icon,
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 15.h, top: 10.h, left: 5.w),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsCategoryCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _SettingsCategoryCard({
     required this.title,
-    this.iconColor,
-    this.textColor,
-    this.onTap,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: iconColor ?? scheme.onSurface.withOpacity(0.7),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: textColor ?? scheme.onSurface,
-          fontSize: 14.5.sp,
-        ),
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: scheme.onSurface.withOpacity(0.5),
-      ),
+    return GestureDetector(
       onTap: onTap,
-      dense: true,
-      minLeadingWidth: 0,
-    );
-  }
-}
-
-/// SWITCH TILE
-class _SwitchSettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SwitchSettingsTile({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return ListTile(
-      leading: Icon(icon, color: scheme.onSurface.withOpacity(0.7)),
-      title: Text(
-        title,
-        style: TextStyle(fontSize: 14.5.sp, color: scheme.onSurface),
+      child: Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14.r),
+              ),
+              child: Icon(icon, color: color, size: 28.sp),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white24,
+              size: 16.sp,
+            ),
+          ],
+        ),
       ),
-      trailing: Switch(
-        value: value,
-        activeColor: scheme.primary,
-        onChanged: onChanged,
-      ),
-      dense: true,
-      minLeadingWidth: 0,
     );
   }
 }

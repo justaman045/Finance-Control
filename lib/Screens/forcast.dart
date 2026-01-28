@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Components/colors.dart';
+
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 
 class ForecastScreen extends StatefulWidget {
   const ForecastScreen({super.key});
@@ -20,8 +21,6 @@ class _ForecastScreenState extends State<ForecastScreen> {
   double expenseSoFar = 0;
   double forecastIncome = 0;
   double forecastExpense = 0;
-
-  static const int movingAvgDays = 7;
 
   @override
   void initState() {
@@ -41,8 +40,11 @@ class _ForecastScreenState extends State<ForecastScreen> {
     try {
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
-      final endOfMonth =
-      DateTime(now.year, now.month + 1, 1).subtract(const Duration(seconds: 1));
+      final endOfMonth = DateTime(
+        now.year,
+        now.month + 1,
+        1,
+      ).subtract(const Duration(seconds: 1));
       final daysInMonth = endOfMonth.day;
 
       // FETCH month transactions
@@ -50,7 +52,10 @@ class _ForecastScreenState extends State<ForecastScreen> {
           .collection('users')
           .doc(user.email)
           .collection('transactions')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where(
+            'date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
+          )
           .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .get();
 
@@ -58,17 +63,16 @@ class _ForecastScreenState extends State<ForecastScreen> {
       Map<String, double> dailyExpense = {};
 
       for (var doc in snapshot.docs) {
-        final tx = TransactionModel.fromMap(
-          doc.id,
-          doc.data(),
-        );
+        final tx = TransactionModel.fromMap(doc.id, doc.data());
 
         final txDateStr = DateFormat('yyyy-MM-dd').format(tx.date);
 
-        if (tx.recipientId == user.uid && tx.amount > 0) {
-          dailyIncome[txDateStr] = (dailyIncome[txDateStr] ?? 0) + tx.amount.abs();
-        } else if (tx.senderId == user.uid && tx.amount > 0) {
-          dailyExpense[txDateStr] = (dailyExpense[txDateStr] ?? 0) + tx.amount.abs();
+        if (tx.recipientId == user.uid) {
+          dailyIncome[txDateStr] =
+              (dailyIncome[txDateStr] ?? 0) + tx.amount.abs();
+        } else if (tx.senderId == user.uid) {
+          dailyExpense[txDateStr] =
+              (dailyExpense[txDateStr] ?? 0) + tx.amount.abs();
         }
       }
 
@@ -76,32 +80,83 @@ class _ForecastScreenState extends State<ForecastScreen> {
       incomeSoFar = dailyIncome.values.fold(0, (a, b) => a + b);
       expenseSoFar = dailyExpense.values.fold(0, (a, b) => a + b);
 
-      // --- COMPUTE 7-DAY MOVING AVERAGE ----
-      List<String> lastDates = _lastNDates(movingAvgDays, now);
+      // --- HISTORY FETCH (Last 3 Months) ---
+      final startOfHistory = DateTime(now.year, now.month - 3, 1);
+      // Ensure we don't go before account creation? Firestore handles empty queries fine.
 
-      double income7 = 0, expense7 = 0;
-      int incomeDays = 0, expenseDays = 0;
+      final historySnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.email)
+          .collection('transactions')
+          .where(
+            'date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfHistory),
+          )
+          .where('date', isLessThan: Timestamp.fromDate(startOfMonth))
+          .get();
 
-      for (String d in lastDates) {
-        if (dailyIncome.containsKey(d)) {
-          income7 += dailyIncome[d]!;
-          incomeDays++;
-        }
-        if (dailyExpense.containsKey(d)) {
-          expense7 += dailyExpense[d]!;
-          expenseDays++;
+      double historicalIncomeSum = 0;
+      double historicalExpenseSum = 0;
+
+      for (var doc in historySnap.docs) {
+        final tx = TransactionModel.fromMap(doc.id, doc.data());
+        if (tx.recipientId == user.uid) {
+          historicalIncomeSum += tx.amount.abs();
+        } else if (tx.senderId == user.uid) {
+          historicalExpenseSum += tx.amount.abs();
         }
       }
 
-      double avgIncome = incomeDays == 0 ? 0 : income7 / incomeDays;
-      double avgExpense = expenseDays == 0 ? 0 : expense7 / expenseDays;
+      // --- LOGIC: Weighted Forecast ---
+      // 1. Calculate Historical Daily Avg
+      final daysInHistory = startOfMonth.difference(startOfHistory).inDays;
+      // Safety check
+      final safeHistoryDays = daysInHistory > 0 ? daysInHistory : 1;
 
-      int daysSoFar = now.day;
-      int daysLeft = daysInMonth - daysSoFar;
+      final double historicalDailyIncome =
+          historicalIncomeSum / safeHistoryDays;
+      final double historicalDailyExpense =
+          historicalExpenseSum / safeHistoryDays;
 
-      // FORECAST (moving-average based)
-      forecastIncome = (avgIncome * daysLeft).clamp(0, double.infinity);
-      forecastExpense = (avgExpense * daysLeft).clamp(0, double.infinity);
+      // 2. Calculate Current Month Daily Avg (So Far)
+      int daysPassed = now.day;
+      if (daysPassed < 1) daysPassed = 1;
+
+      final double currentDailyIncome = incomeSoFar / daysPassed;
+      final double currentDailyExpense = expenseSoFar / daysPassed;
+
+      // 3. Blend Logic
+      // If we have history, use it heavily for the "Remaining" days projection.
+      // If we don't (new user), rely on current month pacing.
+      // Let's use a 70% Historical / 30% Current blend for the projection,
+      // OR mostly historical if available to avoid "Rent Spike" issues.
+
+      double projectedDailyIncome;
+      double projectedDailyExpense;
+
+      if (historySnap.docs.isNotEmpty) {
+        // We have history. Trust it more for the rest of the month.
+        // But maybe the user got a raise? Let's blend 50/50.
+        projectedDailyIncome = (historicalDailyIncome + currentDailyIncome) / 2;
+        projectedDailyExpense =
+            (historicalDailyExpense + currentDailyExpense) / 2;
+      } else {
+        // No history, purely current pacing
+        projectedDailyIncome = currentDailyIncome;
+        projectedDailyExpense = currentDailyExpense;
+      }
+
+      // 4. Final Projection
+      final int daysLeft = daysInMonth - daysPassed;
+
+      forecastIncome = (projectedDailyIncome * daysLeft).clamp(
+        0,
+        double.infinity,
+      );
+      forecastExpense = (projectedDailyExpense * daysLeft).clamp(
+        0,
+        double.infinity,
+      );
 
       setState(() => loading = false);
     } catch (e) {
@@ -110,143 +165,170 @@ class _ForecastScreenState extends State<ForecastScreen> {
     }
   }
 
-  // Last N days including today
-  List<String> _lastNDates(int n, DateTime today) {
-    List<String> dates = [];
-    for (int i = n - 1; i >= 0; i--) {
-      final d = today.subtract(Duration(days: i));
-      dates.add(DateFormat('yyyy-MM-dd').format(d));
-    }
-    return dates;
-  }
-
   String _formatIndianCurrency(double amount) {
-    final formatter =
-    NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+    final formatter = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: CurrencyController.to.currencySymbol.value,
+      decimalDigits: 2,
+    );
     return formatter.format(amount);
   }
 
   String _monthName(int monthNum) {
     const months = [
-      "January","February","March","April","May","June",
-      "July","August","September","October","November","December"
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     return months[monthNum - 1];
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
-    final gradientTop = isLight ? kLightGradientTop : kDarkGradientTop;
-    final gradientBottom = isLight ? kLightGradientBottom : kDarkGradientBottom;
-
     DateTime now = DateTime.now();
     String currentMonthYear = "${_monthName(now.month)} ${now.year}";
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [gradientTop, gradientBottom],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Scaffold(
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          centerTitle: true,
-          elevation: 0,
-          title: Text(
-            "Monthly Forecast",
-            style: TextStyle(
-              color: scheme.onBackground,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
-          ),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground),
-            onPressed: () => Navigator.pop(context),
-          ),
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
-        body: SafeArea(
-          child: loading
-              ? const Center(child: CircularProgressIndicator())
-              : Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  currentMonthYear,
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onBackground,
-                  ),
-                ),
-                SizedBox(height: 20.h),
-
-                // ------ Income Cards ------
-                _ForecastCard(
-                  label: "Income So Far",
-                  amount: incomeSoFar,
-                  color: Colors.green,
-                  formattedAmount: _formatIndianCurrency(incomeSoFar),
-                ),
-                SizedBox(height: 12.h),
-                _ForecastCard(
-                  label: "Forecasted Income",
-                  amount: forecastIncome,
-                  color: Colors.green.shade300,
-                  formattedAmount: _formatIndianCurrency(forecastIncome),
-                ),
-
-                SizedBox(height: 20.h),
-
-                // ------ Expense Cards ------
-                _ForecastCard(
-                  label: "Expenses So Far",
-                  amount: expenseSoFar,
-                  color: Colors.red,
-                  formattedAmount: _formatIndianCurrency(expenseSoFar),
-                ),
-                SizedBox(height: 12.h),
-                _ForecastCard(
-                  label: "Forecasted Expenses",
-                  amount: forecastExpense,
-                  color: Colors.red.shade300,
-                  formattedAmount: _formatIndianCurrency(forecastExpense),
-                ),
-
-                const Spacer(),
-
-                Padding(
-                  padding: EdgeInsets.only(bottom: 20.h),
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 52.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                    ),
-                    child: Text(
-                      "Back",
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        title: Text(
+          "Monthly Forecast",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
           ),
         ),
       ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF1A1A2E), // Midnight Void Top
+              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                )
+              : SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 20.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        currentMonthYear,
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 30.h),
+
+                      // ------ Income Section ------
+                      _sectionHeader("INCOME", const Color(0xFF00E676)),
+                      SizedBox(height: 16.h),
+                      _ForecastCard(
+                        label: "Income So Far",
+                        amount: incomeSoFar,
+                        color: const Color(0xFF00E676),
+                        formattedAmount: _formatIndianCurrency(incomeSoFar),
+                        icon: Icons.download_rounded,
+                        isForecast: false,
+                      ),
+                      SizedBox(height: 12.h),
+                      _ForecastCard(
+                        label: "Projected Remaining",
+                        amount: forecastIncome,
+                        color: const Color(0xFF69F0AE),
+                        formattedAmount: _formatIndianCurrency(forecastIncome),
+                        icon: Icons.trending_up_rounded,
+                        isForecast: true,
+                      ),
+
+                      SizedBox(height: 40.h),
+
+                      // ------ Expense Section ------
+                      _sectionHeader("EXPENSES", const Color(0xFFFF1744)),
+                      SizedBox(height: 16.h),
+                      _ForecastCard(
+                        label: "Expenses So Far",
+                        amount: expenseSoFar,
+                        color: const Color(0xFFFF1744),
+                        formattedAmount: _formatIndianCurrency(expenseSoFar),
+                        icon: Icons.upload_rounded,
+                        isForecast: false,
+                      ),
+                      SizedBox(height: 12.h),
+                      _ForecastCard(
+                        label: "Projected Remaining",
+                        amount: forecastExpense,
+                        color: const Color(0xFFFF5252),
+                        formattedAmount: _formatIndianCurrency(forecastExpense),
+                        icon: Icons.trending_down_rounded,
+                        isForecast: true,
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+            boxShadow: [
+              BoxShadow(color: color.withOpacity(0.5), blurRadius: 6),
+            ],
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Text(
+          title,
+          style: TextStyle(
+            color: color.withOpacity(0.8),
+            fontSize: 12.sp,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Expanded(child: Container(height: 1, color: color.withOpacity(0.2))),
+      ],
     );
   }
 }
@@ -256,48 +338,80 @@ class _ForecastCard extends StatelessWidget {
   final double amount;
   final Color color;
   final String formattedAmount;
+  final IconData icon;
+  final bool isForecast;
 
   const _ForecastCard({
     required this.label,
     required this.amount,
     required this.color,
     required this.formattedAmount,
+    required this.icon,
+    required this.isForecast,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 22.h, horizontal: 24.w),
+      padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 20.w),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.onBackground.withOpacity(0.07),
-            blurRadius: 18.r,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: Colors.white.withOpacity(0.05), // Dark Glass
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(
+          color: isForecast
+              ? color.withOpacity(0.3)
+              : Colors.white.withOpacity(0.08),
+          width: isForecast ? 1.5 : 1,
+        ),
+        boxShadow: isForecast
+            ? [
+                BoxShadow(
+                  color: color.withOpacity(0.15),
+                  blurRadius: 20,
+                  spreadRadius: -5,
+                ),
+              ]
+            : [],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20.sp),
+              ),
+              SizedBox(width: 16.w),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           Text(
             formattedAmount,
             style: TextStyle(
-              fontSize: 19.sp,
+              fontSize: 18.sp,
               fontWeight: FontWeight.bold,
-              color: color,
+              color: Colors.white, // Always white text for premium feel
+              shadows: [
+                BoxShadow(color: color.withOpacity(0.4), blurRadius: 10),
+              ],
             ),
           ),
         ],

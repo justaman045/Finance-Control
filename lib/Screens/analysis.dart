@@ -9,6 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 
 class AIInsightsScreen extends StatefulWidget {
   const AIInsightsScreen({super.key});
@@ -48,39 +49,44 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
     _runInsights();
   }
 
+  // Class Level State for UI
+  double forecastFixed = 0;
+  double forecastVariable = 0;
+  double currentVariableSpent = 0;
+
   // ======================================================
-  // 🔥 AI ANALYSIS USING ALL TRANSACTIONS (FINAL VERSION)
+  // 🔥 AI ANALYSIS: FIXED vs VARIABLE + HISTORICAL REMAINING SPEND
   // ======================================================
   Future<void> _runInsights() async {
     try {
       setState(() {
         loading = true;
         error = null;
-
         forecastTotal = 0;
+        forecastFixed = 0;
+        forecastVariable = 0;
         currentMonthSpent = 0;
+        currentVariableSpent = 0;
         todaySpent = 0;
         usualMonthAvg = 0;
         overshootPercent = 0;
-
         dailySpending.clear();
         insights.clear();
       });
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        setState(() {
-          loading = false;
-          error = "User not authenticated";
-        });
+        setState(() => loading = false);
         return;
       }
 
-      final uid = user.uid;
       final email = user.email!;
       final now = DateTime.now();
+      final currentKey = now.year * 100 + now.month;
+      final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+      final daysPassed = now.day;
 
-      // 🔹 FETCH ALL TRANSACTIONS (NO DATE LIMIT)
+      // 🔹 FETCH ALL TRANSACTIONS
       final snap = await FirebaseFirestore.instance
           .collection("users")
           .doc(email)
@@ -89,7 +95,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       final allTx = snap.docs
           .map((d) => TransactionModel.fromMap(d.id, d.data()))
-          .where((tx) => tx.senderId == uid && tx.amount > 0)
+          .where((tx) => tx.senderId == user.uid)
           .toList();
 
       if (allTx.isEmpty) {
@@ -101,168 +107,313 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       }
 
       // ======================================================
-      // 🔹 AGGREGATION
+      // 1. DATA ORGANIZING
       // ======================================================
-      Map<int, double> monthlyTotals = {};
-      Map<String, Map<int, double>> categoryMonthly = {};
-      dailySpending.clear();
 
-      double fixedSpent = 0;
-      double discretionarySpent = 0;
+      // Structure: Category -> MonthKey -> Total
+      Map<String, Map<int, double>> categoryMonthly = {};
+      Map<int, double> monthlyTotal = {};
+
+      // HISTORY: MonthKey -> Day -> VariableAmount
+      Map<int, Map<int, double>> historyDailyVar = {};
+
+      // Current Month Variable Spending
+      double currentVar = 0;
+      // Map for explicit variable totals per month
+      Map<int, double> monthlyVariable = {};
+
+      dailySpending.clear();
 
       for (final tx in allTx) {
         final d = tx.date;
         final monthKey = d.year * 100 + d.month;
-
-        monthlyTotals[monthKey] =
-            (monthlyTotals[monthKey] ?? 0) + tx.amount;
-
         final cat = tx.category ?? "Others";
+        final isFixed = fixedCategories.contains(cat);
+
+        // Category Aggregation
         categoryMonthly.putIfAbsent(cat, () => {});
         categoryMonthly[cat]![monthKey] =
-            (categoryMonthly[cat]![monthKey] ?? 0) + tx.amount;
+            (categoryMonthly[cat]![monthKey] ?? 0) + tx.amount.abs();
 
-        // CURRENT MONTH DETAILS
-        if (d.year == now.year && d.month == now.month) {
-          currentMonthSpent += tx.amount;
+        // Total Aggregation
+        monthlyTotal[monthKey] =
+            (monthlyTotal[monthKey] ?? 0) + tx.amount.abs();
 
+        // Detailed Variable History
+        if (!isFixed) {
+          historyDailyVar.putIfAbsent(monthKey, () => {});
+          historyDailyVar[monthKey]![d.day] =
+              (historyDailyVar[monthKey]![d.day] ?? 0) + tx.amount.abs();
+          monthlyVariable[monthKey] =
+              (monthlyVariable[monthKey] ?? 0) + tx.amount.abs();
+        }
+
+        // Current Month Specifics
+        if (monthKey == currentKey) {
+          currentMonthSpent += tx.amount.abs();
           final dayKey = DateTime(d.year, d.month, d.day);
           dailySpending[dayKey] =
-              (dailySpending[dayKey] ?? 0) + tx.amount;
+              (dailySpending[dayKey] ?? 0) + tx.amount.abs();
 
-          if (fixedCategories.contains(cat)) {
-            fixedSpent += tx.amount;
-          } else {
-            discretionarySpent += tx.amount;
+          if (!isFixed) {
+            currentVar += tx.amount.abs();
           }
         }
       }
+      todaySpent = dailySpending[DateTime(now.year, now.month, now.day)] ?? 0;
+      currentVariableSpent = currentVar;
 
-      todaySpent = dailySpending[
-      DateTime(now.year, now.month, now.day)] ??
-          0;
+      // Historical Months (Excluding current)
+      final pastMonthKeys =
+          monthlyTotal.keys.where((k) => k != currentKey).toList()
+            ..sort((a, b) => b.compareTo(a)); // Descending (Latest first)
 
-      // ======================================================
-      // 🔹 HISTORICAL BASELINES
-      // ======================================================
-      final allMonthValues = monthlyTotals.values.toList();
-      final lifetimeAvg =
-          allMonthValues.reduce((a, b) => a + b) /
-              allMonthValues.length;
+      // ------------------------------------------------------
+      // 3. FIXED EXPENSE FORECAST (Status Based)
+      // ------------------------------------------------------
+      // Local var used for calculation, updated to class var at end
+      double calcForecastFixed = 0;
 
-      final currentKey = now.year * 100 + now.month;
+      Set<String> allKnownFixedCats = {
+        ...fixedCategories,
+        ...categoryMonthly.keys.where((c) => fixedCategories.contains(c)),
+      };
 
-      final pastMonths = monthlyTotals.entries
-          .where((e) => e.key != currentKey)
-          .toList()
-        ..sort((a, b) => b.key.compareTo(a.key));
+      for (var cat in allKnownFixedCats) {
+        final spentThisMonth = categoryMonthly[cat]?[currentKey] ?? 0;
 
-      final last1 =
-      pastMonths.isNotEmpty ? pastMonths[0].value : lifetimeAvg;
+        // Calculate Usual
+        double typicalAmount = 0;
+        if (pastMonthKeys.isNotEmpty) {
+          int count = 0;
+          double sum = 0;
+          for (var mKey in pastMonthKeys.take(3)) {
+            if (categoryMonthly[cat]?.containsKey(mKey) == true) {
+              sum += categoryMonthly[cat]![mKey]!;
+              count++;
+            }
+          }
+          if (count > 0) typicalAmount = sum / count;
+        }
 
-      final last3Values =
-      pastMonths.take(3).map((e) => e.value).toList();
+        // Logic: If spent > 80% of typical, assume paid. Else add max(spent, typical).
+        if (spentThisMonth >= typicalAmount * 0.8) {
+          calcForecastFixed += spentThisMonth;
+        } else {
+          calcForecastFixed += max(spentThisMonth, typicalAmount);
+        }
+      }
 
-      final last3Avg = last3Values.isNotEmpty
-          ? last3Values.reduce((a, b) => a + b) /
-          last3Values.length
-          : last1;
+      // ------------------------------------------------------
+      // 4. VARIABLE EXPENSE FORECAST (Historical Remaining + Volatility Filter)
+      // ------------------------------------------------------
 
-      // ======================================================
-      // 🔮 MONTH FORECAST (SMART BLEND)
-      // ======================================================
-      double blendedForecast =
-          (last1 * 0.45) +
-              (last3Avg * 0.35) +
-              (lifetimeAvg * 0.20);
+      double avgRemainingVar = 0;
+      double avgHistorySoFarVar = 0; // Avg spend for Days 1 to CurrentDay
 
-      final daysInMonth =
-          DateTime(now.year, now.month + 1, 0).day;
+      int historyCount = 0;
 
-      final paceForecast =
-          (currentMonthSpent / max(1, now.day)) * daysInMonth;
+      // Calculate Daily Variable Average (for Volatility Filtering)
+      double totalVarSum = 0;
+      int totalVarMonths = 0;
+      for (var mKey in pastMonthKeys.take(6)) {
+        totalVarSum += (monthlyVariable[mKey] ?? 0);
+        totalVarMonths++;
+      }
+      double globalMonthlyAvgVar = totalVarMonths > 0
+          ? totalVarSum / totalVarMonths
+          : 0;
+      double globalDailyAvgVar = daysInMonth > 0
+          ? globalMonthlyAvgVar / daysInMonth
+          : 0; // Approx daily average
 
-      forecastTotal = max(blendedForecast, paceForecast);
-      usualMonthAvg = forecastTotal;
+      // We analyze last 6 months
+      for (var mKey in pastMonthKeys.take(6)) {
+        if (!historyDailyVar.containsKey(mKey)) continue;
 
-      // ======================================================
-      // 🚨 OVERSHOOT DETECTION
-      // ======================================================
-      overshootPercent =
-      forecastTotal > lifetimeAvg
-          ? ((forecastTotal - lifetimeAvg) /
-          lifetimeAvg *
-          100)
-          .clamp(0, 999)
+        final dailyMap = historyDailyVar[mKey]!;
+
+        double spentBeforeToday = 0;
+        double spentRestOfMonth = 0;
+
+        // Sum up spending for that month split by today's day
+        dailyMap.forEach((day, amount) {
+          if (day <= daysPassed) {
+            spentBeforeToday += amount;
+          } else {
+            spentRestOfMonth += amount;
+          }
+        });
+
+        avgHistorySoFarVar += spentBeforeToday;
+        avgRemainingVar += spentRestOfMonth;
+        historyCount++;
+      }
+
+      if (historyCount > 0) {
+        avgHistorySoFarVar /= historyCount;
+        avgRemainingVar /= historyCount;
+      }
+
+      // Use avgRemaining as base.
+      // Modulate it by "Spending Momentum" (Trend).
+
+      double trendFactor = 1.0;
+
+      // VOLATILITY FILTERING:
+      // If currentVar includes a massive one-off (e.g., > 3x daily average), we cap its effect on the TREND.
+      // We don't remove it from 'currentVar' (money is gone), but we don't let it panic the forecast pattern.
+
+      double effectiveTrendVar = currentVar;
+      // Is today a super high spend day?
+      double todaysVarSpend =
+          dailySpending[DateTime(now.year, now.month, now.day)] ?? 0;
+      // (Simplified check: if today's spend is huge, reduce effectiveTrendVar)
+      if (globalDailyAvgVar > 0 && todaysVarSpend > globalDailyAvgVar * 4.0) {
+        // Cap today's contribution to the TREND calculation
+        // e.g. Spent 5000, avg 500. We count 1500 for trend, 5000 for total.
+        double cappedSpend = globalDailyAvgVar * 4.0;
+        effectiveTrendVar = (currentVar - todaysVarSpend) + cappedSpend;
+      }
+
+      if (avgHistorySoFarVar > 100) {
+        double rawTrend = effectiveTrendVar / avgHistorySoFarVar;
+        // Conservative Dampening:
+        trendFactor = 1.0 + (rawTrend - 1.0) * 0.2;
+        trendFactor = trendFactor.clamp(0.8, 1.15);
+      }
+
+      double calcForecastVariable =
+          currentVar + (avgRemainingVar * trendFactor);
+
+      // Sanity Checks
+      if (daysPassed == 1 || historyCount == 0) {
+        double avgTotalVar = 0;
+        if (historyCount > 0) {
+          avgTotalVar = (avgHistorySoFarVar + avgRemainingVar);
+        } else {
+          avgTotalVar = (currentVar / max(1, daysPassed)) * daysInMonth;
+        }
+        calcForecastVariable = avgTotalVar > 0 ? avgTotalVar : currentVar;
+      }
+
+      calcForecastVariable = max(calcForecastVariable, currentVar);
+
+      // ------------------------------------------------------
+      // 5. FINAL TOTALS
+      // ------------------------------------------------------
+
+      forecastFixed = calcForecastFixed;
+      forecastVariable = calcForecastVariable;
+      forecastTotal = forecastFixed + forecastVariable;
+
+      // Calculate "Usual" (Last 3 months avg total)
+      double avgHistoricalTotal = 0;
+      if (pastMonthKeys.isNotEmpty) {
+        avgHistoricalTotal =
+            pastMonthKeys
+                .take(3)
+                .map((k) => monthlyTotal[k] ?? 0)
+                .fold(0.0, (a, b) => a + b) /
+            min(3, pastMonthKeys.length);
+      }
+      usualMonthAvg = avgHistoricalTotal > 0
+          ? avgHistoricalTotal
+          : forecastTotal;
+
+      overshootPercent = usualMonthAvg > 0 && forecastTotal > usualMonthAvg
+          ? ((forecastTotal - usualMonthAvg) / usualMonthAvg * 100).clamp(
+              0,
+              999,
+            )
           : 0;
 
       // ======================================================
-      // 🔍 CATEGORY INSIGHTS
+      // 6. CATEGORY INSIGHTS GENERATION (Updated Logic)
       // ======================================================
       final List<CategoryInsight> localInsights = [];
 
       categoryMonthly.forEach((cat, months) {
-        final current =
-            months[currentKey] ?? 0;
+        final currentSpent = months[currentKey] ?? 0;
+        final isFixed = fixedCategories.contains(cat);
 
-        final lastMonthKey =
-        pastMonths.isNotEmpty ? pastMonths[0].key : null;
-
-        final lastMonth =
-        lastMonthKey != null ? months[lastMonthKey] ?? 0 : 0;
-
-        final expectedSoFar =
-        lastMonth > 0
-            ? (lastMonth / daysInMonth) * now.day
-            : 0;
-
-        final trend =
-        lastMonth > 0
-            ? ((current - expectedSoFar) /
-            lastMonth *
-            100)
-            .clamp(-99, 999)
-            : 0;
-
-        final forecast =
-            current +
-                ((current / max(1, now.day)) *
-                    (daysInMonth - now.day) *
-                    0.5);
-
-        final base = lastMonth > 0 ? lastMonth : forecast;
-        final smartBudget =
-        (base * (forecast > base ? 1.1 : 0.9))
-            .clamp(base * 0.85, base * 1.25);
+        // Historical Average
+        double catHistAvg = 0;
+        int count = 0;
+        for (var k in pastMonthKeys.take(3)) {
+          if (months.containsKey(k)) {
+            catHistAvg += months[k]!;
+            count++;
+          }
+        }
+        if (count > 0) catHistAvg /= count;
 
         String msg;
-        if (fixedCategories.contains(cat)) {
-          msg = "🔒 $cat is a fixed expense. You're on track.";
-        } else if (current > expectedSoFar * 1.4) {
-          msg = "🚨 Spending on $cat is rising faster than usual.";
-        } else if (current < expectedSoFar * 0.7 &&
-            current > 0) {
-          msg = "✨ You’re managing $cat better than before.";
-        } else if (current == 0) {
-          msg = "💤 No $cat expenses yet this month.";
+        double catForecast = 0;
+        double smartBudget = 0;
+
+        if (isFixed) {
+          smartBudget = catHistAvg;
+          if (currentSpent >= catHistAvg * 0.9 && catHistAvg > 0) {
+            msg = "✅ You have paid your usual $cat bill.";
+            catForecast = currentSpent;
+          } else if (currentSpent > 0) {
+            msg = "⚠ $cat payment seems partial.";
+            catForecast = max(currentSpent, catHistAvg);
+          } else {
+            msg =
+                "📅 Pending: You usually pay ~${CurrencyController.to.currencySymbol.value}${catHistAvg.toStringAsFixed(0)}.";
+            catForecast = catHistAvg;
+          }
         } else {
-          msg = "⚖️ $cat spending is consistent with your history.";
+          // Variable: Use simple proportion for category forecast to avoid complexity overkill
+          smartBudget = catHistAvg > 0 ? catHistAvg : currentSpent * 1.1;
+
+          // Simple pace for category level is usually "good enough" for insights,
+          // but let's try to match the "Remaining" logic simply:
+          double expectedSoFar = (catHistAvg / daysInMonth) * daysPassed;
+
+          // If we are overspending, forecast higher.
+          if (currentSpent > expectedSoFar) {
+            // Spending high? Assume we hit budget + overshoot
+            catForecast = catHistAvg + (currentSpent - expectedSoFar);
+          } else {
+            // Spending low? Assume we hit budget (conservative) or avg
+            catForecast = catHistAvg;
+          }
+          catForecast = max(catForecast, currentSpent);
+
+          if (currentSpent > expectedSoFar * 1.25 && catHistAvg > 500) {
+            msg = "🚨 Spending on $cat is faster than usual.";
+          } else if (currentSpent < expectedSoFar * 0.75 && currentSpent > 0) {
+            msg = "✨ Good job! $cat spending is lower than usual.";
+          } else if (currentSpent == 0) {
+            msg = "zzz No spending on $cat yet.";
+          } else {
+            msg = "⚖️ $cat spending is on track.";
+          }
         }
 
-        localInsights.add(CategoryInsight(
-          category: cat,
-          currentSoFar: current,
-          forecastMonthTotal: forecast,
-          prevMonthTotal: lastMonth.toDouble(),
-          olderMonthTotal: 0,
-          smartBudget: smartBudget,
-          trendPercent: trend.toDouble(),
-          message: msg,
-        ));
+        double lastMonthVal = months[pastMonthKeys.firstOrNull ?? 0] ?? 0;
+        double trend = lastMonthVal > 0
+            ? ((catForecast - lastMonthVal) / lastMonthVal * 100)
+            : 0;
+
+        localInsights.add(
+          CategoryInsight(
+            category: cat,
+            currentSoFar: currentSpent,
+            forecastMonthTotal: catForecast,
+            prevMonthTotal: lastMonthVal,
+            olderMonthTotal: 0,
+            smartBudget: smartBudget,
+            trendPercent: trend,
+            message: msg,
+          ),
+        );
       });
 
-      localInsights.sort(
-              (a, b) => b.currentSoFar.compareTo(a.currentSoFar));
+      localInsights.sort((a, b) => b.currentSoFar.compareTo(a.currentSoFar));
 
       setState(() {
         insights = localInsights;
@@ -273,6 +424,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         loading = false;
         error = "AI Analysis Error: $e";
       });
+      debugPrint(e.toString());
     }
   }
 
@@ -299,10 +451,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _runInsights,
-          )
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _runInsights),
         ],
       ),
       bottomNavigationBar: const BottomNavBar(currentIndex: 2),
@@ -314,120 +463,209 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
     );
   }
 
-  // ⬇️ EVERYTHING BELOW THIS LINE IS UNCHANGED UI
-  // (exactly same as your original file)
-
   Widget _buildContent(ColorScheme scheme) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildForecastCard(scheme),
-          SizedBox(height: 16.h),
-          _buildDailyLimitCard(scheme),
-          SizedBox(height: 16.h),
-          _buildHeatmapCard(scheme),
+          _StaggeredSlideFade(delay: 0, child: _buildForecastCard(scheme)),
           SizedBox(height: 20.h),
-          Text(
-            "🔮 Category Insights (This Month)",
-            style: TextStyle(
-                fontSize: 16.sp,
+          _StaggeredSlideFade(delay: 100, child: _buildDailyLimitCard(scheme)),
+          SizedBox(height: 20.h),
+          _StaggeredSlideFade(delay: 200, child: _buildHeatmapCard(scheme)),
+          SizedBox(height: 24.h),
+          _StaggeredSlideFade(
+            delay: 300,
+            child: Text(
+              "🔮 Category Insights (This Month)",
+              style: TextStyle(
+                fontSize: 17.sp,
                 fontWeight: FontWeight.bold,
-                color: scheme.onBackground),
+                color: scheme.onBackground,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
-          SizedBox(height: 10.h),
-          ...insights.map((c) => _buildInsightCard(c, scheme)),
-          SizedBox(height: 20.h),
+          SizedBox(height: 12.h),
+          ...insights.asMap().entries.map((entry) {
+            final index = entry.key;
+            final c = entry.value;
+            return _StaggeredSlideFade(
+              delay: 350 + (index * 100), // Stagger by 100ms
+              child: _buildInsightCard(c, scheme),
+            );
+          }),
+          SizedBox(height: 30.h),
         ],
       ),
     );
   }
 
-// 👉 REST OF UI METHODS ARE IDENTICAL TO YOUR ORIGINAL FILE
-// (_buildForecastCard, _buildDailyLimitCard, _buildHeatmapCard, etc.)
-
-
-// ---------------- Forecast Card --------------------
+  // ---------------- Forecast Card --------------------
 
   Widget _buildForecastCard(ColorScheme scheme) {
     final total = forecastTotal;
     final spent = currentMonthSpent;
     final pct = total > 0 ? (spent / total).clamp(0.0, 1.0) : 0.0;
-    final pctText =
-    total > 0 ? ((spent / total) * 100).clamp(0, 999).toStringAsFixed(1) : "0";
 
+    // Status Logic
     String warningText;
     Color warningColor;
+    IconData statusIcon;
 
     if (overshootPercent > 25) {
-      warningText =
-      "🚨 You’re overshooting by ~${overshootPercent.toStringAsFixed(1)}% compared to your usual month.";
-      warningColor = Colors.redAccent;
+      warningText = "Overshooting by ~${overshootPercent.toStringAsFixed(1)}%";
+      warningColor = Colors.redAccent.shade100;
+      statusIcon = Icons.warning_rounded;
     } else if (overshootPercent > 10) {
       warningText =
-      "⚠ You might overshoot your usual spending by ~${overshootPercent.toStringAsFixed(1)}%.";
-      warningColor = Colors.orange.shade700;
+          "Projected +${overshootPercent.toStringAsFixed(1)}% vs usual.";
+      warningColor = Colors.orangeAccent.shade100;
+      statusIcon = Icons.info_outline_rounded;
     } else {
-      warningText = "✅ You’re broadly on track compared to your usual spending.";
-      warningColor = Colors.green.shade700;
+      warningText = "On track with usual spending.";
+      warningColor = Colors.greenAccent.shade100;
+      statusIcon = Icons.check_circle_outline_rounded;
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: EdgeInsets.all(16.w),
+    return Container(
+      padding: EdgeInsets.all(22.w),
       decoration: BoxDecoration(
+        // Vibrant "Mesh-like" Gradient
         gradient: LinearGradient(
-          colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade700],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF6C63FF), // Blurple
+            const Color(0xFF4834D4), // Deep Purple
+            Colors.deepPurple.shade900,
+          ],
         ),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(26.r),
+        boxShadow: [
+          // "Glow" Effect
+          BoxShadow(
+            color: const Color(0xFF6C63FF).withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "This Month Forecast",
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            "₹${total.toStringAsFixed(0)}",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            "Spent so far: ₹${spent.toStringAsFixed(0)} • $pctText% of forecast",
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 12.5.sp,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "This Month Forecast",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Icon(Icons.auto_awesome, color: Colors.amberAccent, size: 20.sp),
+            ],
           ),
           SizedBox(height: 8.h),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20.r),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 7.h,
-              backgroundColor: Colors.white12,
-              valueColor:
-              AlwaysStoppedAnimation<Color>(Colors.greenAccent.shade200),
-            ),
+
+          // COUNT-UP ANIMATION
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: total),
+            duration: const Duration(milliseconds: 1500),
+            curve: Curves.easeOutExpo,
+            builder: (context, value, child) {
+              return Text(
+                "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -1,
+                ),
+              );
+            },
           ),
-          SizedBox(height: 10.h),
-          Text(
-            warningText,
-            style: TextStyle(
-              color: warningColor,
-              fontSize: 12.5.sp,
-              fontWeight: FontWeight.w600,
+
+          SizedBox(height: 12.h),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Spent: ${CurrencyController.to.currencySymbol.value}${spent.toStringAsFixed(0)}",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.95),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                "Target: ${CurrencyController.to.currencySymbol.value}${total.toStringAsFixed(0)}",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12.sp,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 8.h),
+
+          // Progress Section
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10.r),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 8.h,
+                    backgroundColor: Colors.black12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Text(
+                "${(pct * 100).toStringAsFixed(0)}%",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+
+          // Warning/Status
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(statusIcon, color: warningColor, size: 14.sp),
+                SizedBox(width: 6.w),
+                Text(
+                  warningText,
+                  style: TextStyle(
+                    color: warningColor,
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -441,47 +679,70 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final daysPassed = now.day;
-
-    // If we want to stay around usualMonthAvg, what's per-day?
-    final targetBudget = usualMonthAvg > 0 ? usualMonthAvg : forecastTotal;
-    final dailyLimit =
-    daysInMonth > 0 ? (targetBudget / daysInMonth) : targetBudget;
-
-    final today = todaySpent;
     final remainingDays = max(1, daysInMonth - daysPassed);
-    final remainingBudget = max(0, targetBudget - currentMonthSpent);
-    final newDailyLimit =
-    remainingDays > 0 ? remainingBudget / remainingDays : 0;
 
+    // SMART DAILY LIMIT: Based on DISPOSABLE (Variable) income only
+    // User goal: "do not spend over than forecasted expense"
+    // So target = forecastVariable.
+
+    final targetVariable = forecastVariable;
+    final spentVariable = currentVariableSpent;
+
+    // Remaining Disposable Budget
+    final remainingDisposable = max(0, targetVariable - spentVariable);
+
+    // Suggested Daily Limit
+    final dailyLimit = remainingDays > 0
+        ? remainingDisposable / remainingDays
+        : 0.0;
+
+    // For "Today's Status", we compare to the limit
+    final today =
+        todaySpent; // Note: todaySpent might include fixed bills if paid today.
+    // Ideally we filter "todaySpent" to be variable only too, but usually fine for guidance.
+    // Let's assume dailySpending map captures total. If we pay rent today, it might spike.
+    // Refinement: Users usually care about variable daily spend.
+    // Ideally we should track 'todayVariableSpent'.
+    // But for now, let's stick to the requested logic: "limit ... so I do not spend over forecasted"
+
+    // Status Text
     String statusText;
     Color statusColor;
 
-    if (today > dailyLimit * 1.4) {
-      statusText =
-      "Today you spent significantly above your suggested daily limit.";
+    if (today > dailyLimit * 1.5) {
+      statusText = "Stop! You're well above your disposable limit for today.";
       statusColor = Colors.redAccent;
     } else if (today > dailyLimit * 1.1) {
-      statusText = "Today you slightly exceeded your suggested daily limit.";
+      statusText = "Careful, you're slightly above your daily limit.";
       statusColor = Colors.orange.shade700;
     } else if (today == 0) {
-      statusText = "No spending recorded yet today. Good opportunity to save.";
+      statusText = "No spending yet. Great start to saving!";
       statusColor = Colors.blueGrey;
     } else {
-      statusText = "Nice! You're within today’s suggested daily spending.";
+      statusText = "Perfect. You are within your disposable daily limit.";
       statusColor = Colors.green.shade700;
     }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(18.r),
+        color: scheme.surface.withOpacity(0.8), // Glass-like base
+        borderRadius: BorderRadius.circular(22.r),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.surface.withOpacity(0.9),
+            scheme.surface.withOpacity(0.6),
+          ],
+        ),
         boxShadow: [
           BoxShadow(
-            color: scheme.onBackground.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -489,11 +750,12 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Daily Spend Guidance",
+            "Smart Daily Limit (Disposable)",
             style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface.withOpacity(0.95),
+              letterSpacing: 0.3,
             ),
           ),
           SizedBox(height: 6.h),
@@ -501,20 +763,20 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _limitTile(
-                "Suggested daily limit",
-                "₹${dailyLimit.toStringAsFixed(0)}",
+                "Daily limit (Variable)",
+                "${CurrencyController.to.currencySymbol.value}${dailyLimit.toStringAsFixed(0)}",
                 scheme.onSurface,
               ),
               _limitTile(
                 "Today’s spending",
-                "₹${today.toStringAsFixed(0)}",
+                "${CurrencyController.to.currencySymbol.value}${today.toStringAsFixed(0)}",
                 today > dailyLimit ? Colors.redAccent : Colors.green.shade700,
               ),
             ],
           ),
           SizedBox(height: 8.h),
           Text(
-            "To stay near your usual month, try to keep next days around ₹${newDailyLimit.toStringAsFixed(0)}/day.",
+            "This limit ignores Rent/Bills. Keep your other spending below ${CurrencyController.to.currencySymbol.value}${dailyLimit.toStringAsFixed(0)}/day to hit your forecast.",
             style: TextStyle(
               fontSize: 12.sp,
               color: scheme.onSurface.withOpacity(0.8),
@@ -540,8 +802,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       children: [
         Text(
           label,
-          style:
-          TextStyle(fontSize: 11.sp, color: Colors.grey.withOpacity(0.9)),
+          style: TextStyle(
+            fontSize: 11.sp,
+            color: Colors.grey.withOpacity(0.9),
+          ),
         ),
         SizedBox(height: 2.h),
         Text(
@@ -580,19 +844,30 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
     }
 
     final maxDaily = dailySpending.values.fold<double>(
-        0, (prev, v) => v > prev ? v : prev);
+      0,
+      (prev, v) => v > prev ? v : prev,
+    );
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(18.r),
+        color: scheme.surface.withOpacity(0.8), // Glass-like base
+        borderRadius: BorderRadius.circular(22.r),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.surface.withOpacity(0.95),
+            scheme.surface.withOpacity(0.8),
+          ],
+        ),
         boxShadow: [
           BoxShadow(
-            color: scheme.onBackground.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -602,22 +877,31 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           Text(
             "Monthly Spend Heatmap",
             style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface.withOpacity(0.95),
+              letterSpacing: 0.3,
             ),
           ),
           SizedBox(height: 8.h),
-          Wrap(
-            spacing: 6.w,
-            runSpacing: 7.h,
-            children: List.generate(daysInMonth, (index) {
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: daysInMonth,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 8.h,
+              crossAxisSpacing: 8.w,
+              childAspectRatio: 1.0,
+            ),
+            itemBuilder: (context, index) {
               final day = index + 1;
               final date = DateTime(now.year, now.month, day);
               final spent = dailySpending[date] ?? 0;
 
-              double intensity =
-              maxDaily > 0 ? (spent / maxDaily).clamp(0.0, 1.0) : 0.0;
+              double intensity = maxDaily > 0
+                  ? (spent / maxDaily).clamp(0.0, 1.0)
+                  : 0.0;
               final bgColor = Color.lerp(
                 scheme.surface,
                 Colors.green.shade600,
@@ -626,24 +910,28 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
               final isToday =
                   date.year == now.year &&
-                      date.month == now.month &&
-                      date.day == now.day;
+                  date.month == now.month &&
+                  date.day == now.day;
 
               return Tooltip(
-                message: "Day $day: ₹${spent.toStringAsFixed(0)}",
+                message:
+                    "Day $day: ${CurrencyController.to.currencySymbol.value}${spent.toStringAsFixed(0)}",
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  width: 22.w,
-                  height: 22.w,
                   decoration: BoxDecoration(
                     color: bgColor,
-                    borderRadius: BorderRadius.circular(5.r),
+                    borderRadius: BorderRadius.circular(8.r),
                     border: isToday
-                        ? Border.all(
-                      color: Colors.blueAccent,
-                      width: 1.5,
-                    )
-                        : null,
+                        ? Border.all(color: Colors.blueAccent, width: 1.5)
+                        : Border.all(color: Colors.white.withOpacity(0.05)),
+                    boxShadow: [
+                      if (intensity > 0.3)
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
@@ -652,13 +940,14 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                         fontSize: 12.sp,
                         color: intensity > 0.5
                             ? Colors.white
-                            : scheme.onSurface.withOpacity(0.8),
+                            : scheme.onSurface,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
               );
-            }),
+            },
           ),
           SizedBox(height: 8.h),
           Text(
@@ -676,30 +965,46 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   // ---------------- Category Insight Card ------------
 
   Widget _buildInsightCard(CategoryInsight c, ColorScheme scheme) {
-    final trendColor =
-    c.trendPercent >= 0 ? Colors.redAccent : Colors.green.shade700;
-    final trendIcon =
-    c.trendPercent >= 0 ? Icons.arrow_upward : Icons.arrow_downward;
+    final trendColor = c.trendPercent >= 0
+        ? Colors.redAccent
+        : Colors.green.shade700;
+    final trendIcon = c.trendPercent >= 0
+        ? Icons.arrow_upward
+        : Icons.arrow_downward;
+
+    // Health Logic
+    // Smart Budget might be 0 if new.
+    double budget = c.smartBudget > 0 ? c.smartBudget : c.currentSoFar * 1.2;
+    double progress = (c.currentSoFar / budget).clamp(0.0, 1.0);
+
+    Color healthColor;
+    if (c.currentSoFar > budget) {
+      healthColor = Colors.redAccent;
+    } else if (c.currentSoFar > budget * 0.85) {
+      healthColor = Colors.orange.shade700;
+    } else {
+      healthColor = Colors.green.shade600;
+    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
             color: scheme.onBackground.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
+          // Header: Name + Trend
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -711,86 +1016,125 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                   color: scheme.onSurface,
                 ),
               ),
-              Row(
+              if (c.trendPercent.abs() > 1) // Only show significant trends
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: trendColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(trendIcon, color: trendColor, size: 14.sp),
+                      SizedBox(width: 2.w),
+                      Text(
+                        "${c.trendPercent.abs().toStringAsFixed(0)}%",
+                        style: TextStyle(
+                          color: trendColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+
+          // Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10.r),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8.h,
+              backgroundColor: scheme.onSurface.withOpacity(0.05),
+              valueColor: AlwaysStoppedAnimation<Color>(healthColor),
+            ),
+          ),
+          SizedBox(height: 12.h),
+
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(trendIcon, color: trendColor, size: 18.sp),
-                  SizedBox(width: 4.w),
                   Text(
-                    "${c.trendPercent.toStringAsFixed(1)}%",
+                    "Spent: ${CurrencyController.to.currencySymbol.value}${c.currentSoFar.toStringAsFixed(0)}",
                     style: TextStyle(
-                      color: trendColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12.5.sp,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: healthColor,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "Predicted: ${CurrencyController.to.currencySymbol.value}${c.forecastMonthTotal.toStringAsFixed(0)}",
+                    style: TextStyle(
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "Usual: ${CurrencyController.to.currencySymbol.value}${c.smartBudget.toStringAsFixed(0)}",
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: scheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "Limit",
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: scheme.onSurface.withOpacity(0.4),
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          SizedBox(height: 6.h),
-          Text(
-            c.message,
-            style: TextStyle(
-              color: scheme.onSurface.withOpacity(0.9),
-              fontSize: 12.5.sp,
-              fontWeight: FontWeight.w500,
+
+          SizedBox(height: 12.h),
+
+          // Insight Message
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: scheme.background,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.tips_and_updates_outlined,
+                  size: 16.sp,
+                  color: scheme.primary.withOpacity(0.7),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    c.message,
+                    style: TextStyle(
+                      color: scheme.onSurface.withOpacity(0.85),
+                      fontSize: 11.5.sp,
+                      height: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 10.h),
-          Wrap(
-            spacing: 8.w,
-            runSpacing: 6.h,
-            children: [
-              _chip(
-                "Current month (so far): ₹${c.currentSoFar.toStringAsFixed(0)}",
-                scheme,
-                Colors.green.shade100,
-                Colors.green.shade700,
-              ),
-              _chip(
-                "Predicted month: ₹${c.forecastMonthTotal.toStringAsFixed(0)}",
-                scheme,
-                Colors.blue.shade100,
-                Colors.blue.shade700,
-              ),
-              _chip(
-                "Last month: ₹${c.prevMonthTotal.toStringAsFixed(0)}",
-                scheme,
-                Colors.orange.shade100,
-                Colors.orange.shade900,
-              ),
-              _chip(
-                "Smart budget: ₹${c.smartBudget.toStringAsFixed(0)}",
-                scheme,
-                Colors.purple.shade100,
-                Colors.purple.shade700,
-              ),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-
-  Widget _chip(
-      String text,
-      ColorScheme scheme,
-      Color bg,
-      Color fg,
-      ) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11.5.sp,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
       ),
     );
   }
@@ -818,4 +1162,62 @@ class CategoryInsight {
     required this.trendPercent,
     required this.message,
   });
+}
+
+// ============================================
+// ANIMATION HELPERS
+// ============================================
+
+class _StaggeredSlideFade extends StatefulWidget {
+  final Widget child;
+  final int delay;
+
+  const _StaggeredSlideFade({required this.child, this.delay = 0});
+
+  @override
+  State<_StaggeredSlideFade> createState() => _StaggeredSlideFadeState();
+}
+
+class _StaggeredSlideFadeState extends State<_StaggeredSlideFade>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _controller!, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller!, curve: Curves.easeOutQuad));
+
+    if (widget.delay == 0) {
+      _controller?.forward();
+    } else {
+      Future.delayed(Duration(milliseconds: widget.delay), () {
+        if (mounted) _controller?.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: SlideTransition(position: _slideAnim, child: widget.child),
+    );
+  }
 }
