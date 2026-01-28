@@ -67,7 +67,6 @@ class TransactionModel {
     );
   }
 
-
   Map<String, dynamic> toMap() {
     return {
       'senderId': senderId,
