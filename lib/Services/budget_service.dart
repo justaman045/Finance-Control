@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 
@@ -81,7 +82,7 @@ class BudgetService {
         await _saveNotification(userId, title, body, "budget_alert");
       }
     } catch (e) {
-      print("Error checking budget: $e");
+      log("Error checking budget: $e");
     }
   }
 
@@ -105,7 +106,7 @@ class BudgetService {
             'read': false,
           });
     } catch (e) {
-      print("Error saving notification: $e");
+      log("Error saving notification: $e");
     }
   }
 }

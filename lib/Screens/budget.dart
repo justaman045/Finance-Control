@@ -141,12 +141,14 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
       setState(() {
         loading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to load budgets: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to load budgets: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -161,47 +163,51 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
           .collection('budgets')
           .doc(categoryName)
           .set({'amount': amount});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Budget saved for $categoryName"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Budget saved for $categoryName"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
       await _fetchBudgetsAndSpends();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to save budget: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to save budget: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    // final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.6)
-        : const Color(0xFF1A1A2E).withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
 
     final cardColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.white.withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.6);
 
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.4);
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.4);
 
     return Container(
       decoration: BoxDecoration(
@@ -261,8 +267,8 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                         border: Border.all(color: borderColor),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(
-                              isDark ? 0.2 : 0.05,
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.2 : 0.05,
                             ),
                             blurRadius: 15,
                             offset: const Offset(0, 5),
@@ -279,8 +285,8 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                                 padding: EdgeInsets.all(8.w),
                                 decoration: BoxDecoration(
                                   color: isDark
-                                      ? Colors.white.withOpacity(0.08)
-                                      : Colors.white.withOpacity(0.4),
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.white.withValues(alpha: 0.4),
                                   shape: BoxShape.circle,
                                 ),
                                 child: CategoryInitialsIcon(
@@ -319,8 +325,8 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                               value: progress.toDouble(),
                               color: progressColor,
                               backgroundColor: isDark
-                                  ? Colors.white.withOpacity(0.1)
-                                  : Colors.black.withOpacity(0.05),
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.black.withValues(alpha: 0.05),
                               minHeight: 6.h,
                             ),
                           ),
@@ -335,13 +341,15 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                                   height: 44.h,
                                   decoration: BoxDecoration(
                                     color: isDark
-                                        ? Colors.black.withOpacity(0.2)
-                                        : Colors.grey.withOpacity(0.1),
+                                        ? Colors.black.withValues(alpha: 0.2)
+                                        : Colors.grey.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12.r),
                                     border: Border.all(
                                       color: isDark
-                                          ? Colors.white.withOpacity(0.1)
-                                          : Colors.black.withOpacity(0.05),
+                                          ? Colors.white.withValues(alpha: 0.1)
+                                          : Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
                                     ),
                                   ),
                                   child: TextFormField(
@@ -357,8 +365,8 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                                     decoration: InputDecoration(
                                       hintText: 'Set Limit',
                                       hintStyle: TextStyle(
-                                        color: secondaryTextColor.withOpacity(
-                                          0.4,
+                                        color: secondaryTextColor.withValues(
+                                          alpha: 0.4,
                                         ),
                                       ),
                                       border: InputBorder.none,
@@ -397,7 +405,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                                       BoxShadow(
                                         color: const Color(
                                           0xFF6C63FF,
-                                        ).withOpacity(0.4),
+                                        ).withValues(alpha: 0.4),
                                         blurRadius: 8,
                                       ),
                                     ],

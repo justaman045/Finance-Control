@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
 
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
@@ -221,7 +220,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+              const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -312,7 +311,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
             color: color,
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
-              BoxShadow(color: color.withOpacity(0.5), blurRadius: 6),
+              BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6),
             ],
           ),
         ),
@@ -320,14 +319,14 @@ class _ForecastScreenState extends State<ForecastScreen> {
         Text(
           title,
           style: TextStyle(
-            color: color.withOpacity(0.8),
+            color: color.withValues(alpha: 0.8),
             fontSize: 12.sp,
             fontWeight: FontWeight.bold,
             letterSpacing: 2,
           ),
         ),
         SizedBox(width: 8.w),
-        Expanded(child: Container(height: 1, color: color.withOpacity(0.2))),
+        Expanded(child: Container(height: 1, color: color.withValues(alpha: 0.2))),
       ],
     );
   }
@@ -356,18 +355,18 @@ class _ForecastCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05), // Dark Glass
+        color: Colors.white.withValues(alpha: 0.05), // Dark Glass
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isForecast
-              ? color.withOpacity(0.3)
-              : Colors.white.withOpacity(0.08),
+              ? color.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.08),
           width: isForecast ? 1.5 : 1,
         ),
         boxShadow: isForecast
             ? [
                 BoxShadow(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   blurRadius: 20,
                   spreadRadius: -5,
                 ),
@@ -382,7 +381,7 @@ class _ForecastCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 20.sp),
@@ -410,7 +409,7 @@ class _ForecastCard extends StatelessWidget {
               fontWeight: FontWeight.bold,
               color: Colors.white, // Always white text for premium feel
               shadows: [
-                BoxShadow(color: color.withOpacity(0.4), blurRadius: 10),
+                BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 10),
               ],
             ),
           ),

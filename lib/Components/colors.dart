@@ -63,8 +63,6 @@ final ColorScheme lightColorScheme = ColorScheme(
   onSecondary: Colors.white,
   error: kLightError,
   onError: Colors.white,
-  background: kLightBackground,
-  onBackground: kLightTextPrimary,
   surface: kLightSurface,
   onSurface: kLightTextPrimary,
 );
@@ -78,8 +76,6 @@ final ColorScheme darkColorScheme = ColorScheme(
   onSecondary: Colors.black,
   error: kDarkError,
   onError: Colors.white,
-  background: kDarkBackground,
-  onBackground: kDarkTextPrimary,
   surface: kDarkSurface,
   onSurface: kDarkTextPrimary,
 );

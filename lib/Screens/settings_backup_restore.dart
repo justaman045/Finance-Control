@@ -56,6 +56,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
     final file = await LocalBackupService.exportBackupFile(user.email!);
 
+    // ignore: deprecated_member_use
     await Share.shareXFiles([XFile(file.path)], text: "Finance Control Backup");
 
     ScaffoldMessenger.of(
@@ -131,7 +132,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
@@ -174,7 +175,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                       SizedBox(height: 16.h),
                       Text(
                         "Processing...",
-                        style: TextStyle(color: textColor.withOpacity(0.7)),
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
@@ -223,11 +226,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     required bool isDark,
   }) {
     final containerColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.white.withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.6);
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.4);
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.4);
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
 
     return Material(
@@ -235,7 +238,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20.r),
-        splashColor: iconBg.withOpacity(0.2),
+        splashColor: iconBg.withValues(alpha: 0.2),
         child: Container(
           width: double.infinity,
           padding: EdgeInsets.all(20.w),
@@ -245,7 +248,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
             border: Border.all(color: borderColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                 blurRadius: 15,
                 offset: const Offset(0, 5),
               ),
@@ -256,7 +259,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               Container(
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: iconBg.withOpacity(0.15),
+                  color: iconBg.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 28.sp, color: iconBg),
@@ -280,7 +283,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13.sp,
-                        color: textColor.withOpacity(0.6),
+                        color: textColor.withValues(alpha: 0.6),
                         height: 1.2,
                       ),
                     ),
@@ -290,7 +293,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               Icon(
                 Icons.chevron_right,
                 size: 20.sp,
-                color: textColor.withOpacity(0.4),
+                color: textColor.withValues(alpha: 0.4),
               ),
             ],
           ),

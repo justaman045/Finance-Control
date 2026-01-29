@@ -1,7 +1,6 @@
 // lib/Screens/feedback_screen.dart
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
@@ -125,20 +124,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    // final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.7)
-        : const Color(0xFF1A1A2E).withOpacity(0.7);
+        ? Colors.white.withValues(alpha: 0.7)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.7);
 
     return Container(
       decoration: BoxDecoration(
@@ -230,15 +229,21 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                   const Color(0xFF4834D4),
                                 ]
                               : [
-                                  const Color(0xFF6C63FF).withOpacity(0.8),
-                                  const Color(0xFF4834D4).withOpacity(0.8),
+                                  const Color(
+                                    0xFF6C63FF,
+                                  ).withValues(alpha: 0.8),
+                                  const Color(
+                                    0xFF4834D4,
+                                  ).withValues(alpha: 0.8),
                                 ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6C63FF).withOpacity(0.4),
+                            color: const Color(
+                              0xFF6C63FF,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -297,17 +302,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.white.withOpacity(0.6),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.white.withOpacity(0.4),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.4),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -319,7 +324,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         style: TextStyle(color: textColor, fontSize: 15.sp),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: hintColor.withOpacity(0.5)),
+          hintStyle: TextStyle(color: hintColor.withValues(alpha: 0.5)),
           prefixIcon: Padding(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
             child: Icon(icon, color: hintColor, size: 22.sp),

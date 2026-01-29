@@ -18,20 +18,6 @@ class CategoryTransactionsScreen extends StatefulWidget {
 
 class _CategoryTransactionsScreenState
     extends State<CategoryTransactionsScreen> {
-  DateTime get _startOfMonth {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, 1);
-  }
-
-  DateTime get _endOfMonth {
-    final now = DateTime.now();
-    return DateTime(
-      now.year,
-      now.month + 1,
-      1,
-    ).subtract(const Duration(seconds: 1));
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -55,7 +41,9 @@ class _CategoryTransactionsScreenState
         flexibleSpace: ClipRRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: const Color(0xFF1A1A2E).withOpacity(0.8)),
+            child: Container(
+              color: const Color(0xFF1A1A2E).withValues(alpha: 0.8),
+            ),
           ),
         ),
         centerTitle: true,
@@ -77,7 +65,9 @@ class _CategoryTransactionsScreenState
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+              const Color(
+                0xFF16213E,
+              ).withValues(alpha: 0.95), // Deep Blue Bottom
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -164,9 +154,11 @@ class _CategoryTransactionsScreenState
                       vertical: 12.h,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05), // Dark Glass
+                      color: Colors.white.withValues(alpha: 0.05), // Dark Glass
                       borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
                     ),
                     child: IgnorePointer(
                       // Ignore inner click to let this outer detector handle it for the whole card

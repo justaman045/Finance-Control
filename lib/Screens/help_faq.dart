@@ -56,7 +56,7 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [
             const Color(0xFFF5F7FA), // Premium Light
@@ -65,16 +65,16 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.6)
-        : const Color(0xFF1A1A2E).withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
 
     final cardColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.white.withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.6);
 
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.4);
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.4);
 
     return Container(
       decoration: BoxDecoration(
@@ -191,12 +191,12 @@ class _FAQTile extends StatelessWidget {
           color: surface,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isOpen ? border.withOpacity(0.8) : border,
+            color: isOpen ? border.withValues(alpha: 0.8) : border,
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -229,7 +229,7 @@ class _FAQTile extends StatelessWidget {
                     Icons.keyboard_arrow_down,
                     color: isOpen
                         ? (isDark ? const Color(0xFF6C63FF) : Colors.deepPurple)
-                        : textColor.withOpacity(0.5),
+                        : textColor.withValues(alpha: 0.5),
                   ),
                 ),
               ],

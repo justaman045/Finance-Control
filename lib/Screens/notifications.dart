@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:money_control/Components/colors.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -56,7 +55,7 @@ class NotificationsScreen extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void
-              const Color(0xFF16213E).withOpacity(0.95),
+              const Color(0xFF16213E).withValues(alpha: 0.95),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -91,7 +90,7 @@ class NotificationsScreen extends StatelessWidget {
                       Text(
                         "No notifications",
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.4),
+                          color: Colors.white.withValues(alpha: 0.4),
                           fontSize: 16.sp,
                         ),
                       ),
@@ -117,12 +116,12 @@ class NotificationsScreen extends StatelessWidget {
                   return Container(
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
                         ),
@@ -134,7 +133,7 @@ class NotificationsScreen extends StatelessWidget {
                         Container(
                           padding: EdgeInsets.all(10.w),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF6C63FF).withOpacity(0.1),
+                            color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(

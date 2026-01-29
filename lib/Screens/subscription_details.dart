@@ -100,16 +100,16 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.grey.withOpacity(0.2),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.grey.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -119,7 +119,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         children: [
           CircleAvatar(
             radius: 30.r,
-            backgroundColor: const Color(0xFF6C63FF).withOpacity(0.1),
+            backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.1),
             child: Icon(
               Icons.receipt_long_rounded,
               color: const Color(0xFF6C63FF),
@@ -140,12 +140,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             "₹${payment.amount.toStringAsFixed(0)} / ${payment.frequency.name}",
             style: TextStyle(
               fontSize: 16.sp,
-              color: textColor.withOpacity(0.6),
+              color: textColor.withValues(alpha: 0.6),
               fontWeight: FontWeight.w500,
             ),
           ),
           SizedBox(height: 24.h),
-          Divider(color: textColor.withOpacity(0.1)),
+          Divider(color: textColor.withValues(alpha: 0.1)),
           SizedBox(height: 16.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -175,7 +175,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 12.sp, color: textColor.withOpacity(0.4)),
+          style: TextStyle(fontSize: 12.sp, color: textColor.withValues(alpha: 0.4)),
         ),
         SizedBox(height: 4.h),
         Text(
@@ -220,7 +220,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             label: const Text("Link Txn"),
             style: OutlinedButton.styleFrom(
               foregroundColor: textColor,
-              side: BorderSide(color: textColor.withOpacity(0.2)),
+              side: BorderSide(color: textColor.withValues(alpha: 0.2)),
               padding: EdgeInsets.symmetric(vertical: 12.h),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.r),
@@ -251,7 +251,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               padding: EdgeInsets.all(32.w),
               child: Text(
                 "No payment history linked yet.",
-                style: TextStyle(color: textColor.withOpacity(0.4)),
+                style: TextStyle(color: textColor.withValues(alpha: 0.4)),
               ),
             ),
           );
@@ -279,12 +279,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               child: Container(
                 padding: EdgeInsets.all(16.w),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
                   borderRadius: BorderRadius.circular(16.r),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.grey.withOpacity(0.1),
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey.withValues(alpha: 0.1),
                   ),
                 ),
                 child: Row(
@@ -292,7 +292,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     Container(
                       padding: EdgeInsets.all(10.w),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -318,7 +318,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                             tx.note ?? 'Payment',
                             style: TextStyle(
                               fontSize: 12.sp,
-                              color: textColor.withOpacity(0.5),
+                              color: textColor.withValues(alpha: 0.5),
                             ),
                           ),
                         ],
@@ -335,7 +335,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     SizedBox(width: 8.w),
                     Icon(
                       Icons.chevron_right_rounded,
-                      color: textColor.withOpacity(0.3),
+                      color: textColor.withValues(alpha: 0.3),
                       size: 20.sp,
                     ),
                   ],
@@ -418,14 +418,15 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                       .limit(30)
                       .snapshots(),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData)
+                    if (!snapshot.hasData) {
                       return const Center(child: CircularProgressIndicator());
+                    }
 
                     final docs = snapshot.data!.docs;
                     return ListView.separated(
                       itemCount: docs.length,
                       separatorBuilder: (c, i) =>
-                          Divider(color: Colors.grey.withOpacity(0.1)),
+                          Divider(color: Colors.grey.withValues(alpha: 0.1)),
                       itemBuilder: (context, index) {
                         final doc = docs[index];
                         final data = doc.data() as Map<String, dynamic>;

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutApplicationScreen extends StatefulWidget {
@@ -33,22 +32,22 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.6)
-        : const Color(0xFF1A1A2E).withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
 
     final cardColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.white.withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.6);
 
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.4);
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.4);
 
     return Container(
       decoration: BoxDecoration(
@@ -84,7 +83,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // APP HEADER CARD
-              _AppInfoCard(
+              _appInfoCard(
                 surface: cardColor,
                 border: borderColor,
                 scheme: scheme,
@@ -95,9 +94,9 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
               ),
               SizedBox(height: 22.h),
 
-              _SectionLabel("Developer", secondaryTextColor),
+              _sectionLabel("Developer", secondaryTextColor),
               SizedBox(height: 8.h),
-              _DeveloperTile(
+              _developerTile(
                 cardColor,
                 borderColor,
                 scheme,
@@ -108,9 +107,9 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
 
               SizedBox(height: 22.h),
 
-              _SectionLabel("Acknowledgements", secondaryTextColor),
+              _sectionLabel("Acknowledgements", secondaryTextColor),
               SizedBox(height: 8.h),
-              _AcknowledgementCard(
+              _acknowledgementCard(
                 cardColor,
                 borderColor,
                 scheme,
@@ -128,7 +127,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
     );
   }
 
-  Widget _SectionLabel(String title, Color color) {
+  Widget _sectionLabel(String title, Color color) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
@@ -143,7 +142,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
   }
 
   // ---------------- APP INFO CARD ----------------
-  Widget _AppInfoCard({
+  Widget _appInfoCard({
     required Color surface,
     required Color border,
     required ColorScheme scheme,
@@ -160,7 +159,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         border: Border.all(color: border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -171,7 +170,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         children: [
           CircleAvatar(
             radius: 40.r,
-            backgroundColor: scheme.primary.withOpacity(0.15),
+            backgroundColor: scheme.primary.withValues(alpha: 0.15),
             backgroundImage: const AssetImage("assets/app_logo.png"),
           ),
           SizedBox(height: 14.h),
@@ -199,7 +198,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             "Empower your financial journey with Money Control. Seamlessly track expenses, visualize income streams, and gain profound insights into your spending habits with our AI-powered analytics. Crafted for elegance, designed for control.",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: textColor.withOpacity(0.85),
+              color: textColor.withValues(alpha: 0.85),
               fontSize: 13.5.sp,
               height: 1.4,
             ),
@@ -211,7 +210,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
   }
 
   // ---------------- DEVELOPER TILE ----------------
-  Widget _DeveloperTile(
+  Widget _developerTile(
     Color surface,
     Color border,
     ColorScheme scheme,
@@ -226,7 +225,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         border: Border.all(color: border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -237,8 +236,8 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         leading: CircleAvatar(
           radius: 24.r,
           backgroundColor: isDark
-              ? Colors.white.withOpacity(0.05)
-              : Colors.black.withOpacity(0.05),
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
           child: const Icon(Icons.code_rounded, color: Colors.teal),
         ),
         title: Text(
@@ -258,7 +257,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
   }
 
   // ---------------- ACKNOWLEDGEMENT CARD ----------------
-  Widget _AcknowledgementCard(
+  Widget _acknowledgementCard(
     Color surface,
     Color border,
     ColorScheme scheme,
@@ -273,7 +272,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         border: Border.all(color: border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -293,12 +292,12 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           ),
           SizedBox(height: 10.h),
 
-          _Bullet("Flutter Framework", textColor),
-          _Bullet("Firebase Authentication & Firestore", textColor),
-          _Bullet("GetX – State Management & Routing", textColor),
-          _Bullet("flutter_screenutil – Responsive UI", textColor),
-          _Bullet("package_info_plus", textColor),
-          _Bullet("share_plus, printing, and more", textColor),
+          _bullet("Flutter Framework", textColor),
+          _bullet("Firebase Authentication & Firestore", textColor),
+          _bullet("GetX – State Management & Routing", textColor),
+          _bullet("flutter_screenutil – Responsive UI", textColor),
+          _bullet("package_info_plus", textColor),
+          _bullet("share_plus, printing, and more", textColor),
 
           SizedBox(height: 16.h),
           Row(
@@ -306,7 +305,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
               Icon(
                 Icons.copyright,
                 size: 16.sp,
-                color: secondary.withOpacity(0.9),
+                color: secondary.withValues(alpha: 0.9),
               ),
               SizedBox(width: 6.w),
               Text(
@@ -320,7 +319,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
     );
   }
 
-  Widget _Bullet(String text, Color textColor) {
+  Widget _bullet(String text, Color textColor) {
     return Padding(
       padding: EdgeInsets.only(bottom: 6.h),
       child: Row(
@@ -335,7 +334,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
               text,
               style: TextStyle(
                 fontSize: 13.5.sp,
-                color: textColor.withOpacity(0.8),
+                color: textColor.withValues(alpha: 0.8),
               ),
             ),
           ),

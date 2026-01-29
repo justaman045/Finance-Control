@@ -92,7 +92,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void
-              const Color(0xFF16213E).withOpacity(0.95),
+              const Color(0xFF16213E).withValues(alpha: 0.95),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -182,7 +182,7 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Divider(color: Colors.white.withOpacity(0.1)),
+      child: Divider(color: Colors.white.withValues(alpha: 0.1)),
     );
   }
 }
@@ -207,9 +207,9 @@ class _SettingsTile extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Row(
               children: [
@@ -217,7 +217,7 @@ class _SettingsTile extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF).withOpacity(0.1),
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

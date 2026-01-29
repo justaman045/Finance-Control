@@ -252,11 +252,12 @@ class ExportService {
 
   // --- Helper: Category Chart (Horizontal Bars) ---
   static pw.Widget _buildCategoryChart(List<MapEntry<String, double>> stats) {
-    if (stats.isEmpty)
+    if (stats.isEmpty) {
       return pw.Text(
         "No expense data available.",
         style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey500),
       );
+    }
 
     final maxVal = stats.first.value; // stats is sorted desc
 
@@ -335,7 +336,7 @@ class ExportService {
     // Header
     final headers = ["Date", "Name", "Category", "Amount"];
 
-    return pw.Table.fromTextArray(
+    return pw.TableHelper.fromTextArray(
       headers: headers,
       data: txs.take(50).map((tx) {
         // Limit to 50 for MVP to prevent overflow issues in simple implementation

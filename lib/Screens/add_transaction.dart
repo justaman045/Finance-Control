@@ -82,7 +82,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             widget.cateogary ?? (data.isNotEmpty ? data.first.name : null);
       });
     } catch (e) {
-      debugPrint("Error loading categories: $e");
+      // debugPrint("Error loading categories: $e");
     }
   }
 
@@ -94,14 +94,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     await showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (_) => Dialog(
         backgroundColor: const Color(0xFF1E1E2C), // Fallback
         elevation: 0,
         insetPadding: EdgeInsets.all(20.w),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24.r),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -113,7 +113,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6C63FF).withOpacity(0.2),
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
                 blurRadius: 20,
                 spreadRadius: 2,
               ),
@@ -138,9 +138,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
               // Custom Glass Input
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: TextField(
@@ -150,7 +152,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: "Category Name",
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
                   ),
                 ),
               ),
@@ -164,7 +168,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     child: Text(
                       "Cancel",
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 16.sp,
                       ),
                     ),
@@ -209,7 +213,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           selectedCategory = text;
                         });
 
-                        Navigator.pop(context);
+                        if (mounted) Navigator.pop(context);
                       } catch (e) {
                         debugPrint('Add category error: $e');
                         Get.snackbar("Error", "Failed to add category");
@@ -227,7 +231,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         borderRadius: BorderRadius.circular(12.r),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6C63FF).withOpacity(0.4),
+                            color: const Color(
+                              0xFF6C63FF,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 10,
                           ),
                         ],
@@ -377,7 +383,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           .add(txMap)
           .timeout(const Duration(seconds: 5)); // <<<<<< IMPORTANT
     } on TimeoutException catch (e) {
-      print("Firebase error: $e");
+      debugPrint("Firebase error: $e");
       await OfflineQueueService.savePending(txMap);
       Get.snackbar("Offline", "Saved locally. Will sync later.");
     }
@@ -385,14 +391,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Backup JSON
     LocalBackupService.backupUserTransactions(user.email!);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? 'sent' : 'received'}",
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? 'sent' : 'received'}",
+          ),
+          backgroundColor: Colors.green,
         ),
-        backgroundColor: Colors.green,
-      ),
-    );
+      );
+    }
 
     // Check Budget Limit (Only for Expenses)
     if (widget.type == PaymentType.send &&
@@ -427,7 +435,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+              const Color(
+                0xFF16213E,
+              ).withValues(alpha: 0.95), // Deep Blue Bottom
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -439,27 +449,27 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _FieldLabel("Amount"),
-                _AmountField(_amount),
+                _fieldLabel("Amount"),
+                _amountField(_amount),
 
-                _FieldLabel(nameLabel),
-                _InputField(controller: _name, hint: "Enter name"),
+                _fieldLabel(nameLabel),
+                _inputField(controller: _name, hint: "Enter name"),
 
-                _FieldLabel("Select Category"),
-                _CategorySelector(),
+                _fieldLabel("Select Category"),
+                _categorySelector(),
 
-                _FieldLabel("Note"),
-                _InputField(
+                _fieldLabel("Note"),
+                _inputField(
                   controller: _note,
                   hint: "Add a note...",
                   maxLines: 2,
                 ),
 
-                _FieldLabel("Date"),
-                _DateSelector(),
+                _fieldLabel("Date"),
+                _dateSelector(),
 
                 SizedBox(height: 40.h),
-                _SubmitButton(
+                _submitButton(
                   label: widget.type == PaymentType.send ? "Send" : "Receive",
                   onTap: saveTransaction,
                 ),
@@ -506,7 +516,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _FieldLabel(String text) {
+  Widget _fieldLabel(String text) {
     return Padding(
       padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
       child: Text(
@@ -520,17 +530,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _AmountField(TextEditingController c) {
-    return _GlassBox(
+  Widget _amountField(TextEditingController c) {
+    return _glassBox(
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
             decoration: BoxDecoration(
-              color: const Color(0xFF6C63FF).withOpacity(0.2),
+              color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8.r),
               border: Border.all(
-                color: const Color(0xFF6C63FF).withOpacity(0.3),
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
               ),
             ),
             child: Obx(
@@ -567,12 +577,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _InputField({
+  Widget _inputField({
     required TextEditingController controller,
     required String hint,
     int maxLines = 1,
   }) {
-    return _GlassBox(
+    return _glassBox(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
       child: TextField(
         controller: controller,
@@ -597,7 +607,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _CategorySelector() {
+  Widget _categorySelector() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -622,14 +632,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? catColor.withOpacity(0.25)
-                        : Colors.white.withOpacity(0.08),
+                        ? catColor.withValues(alpha: 0.25)
+                        : Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(24.r),
                     border: Border.all(color: borderColor, width: 1.5),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: catColor.withOpacity(0.3),
+                              color: catColor.withValues(alpha: 0.3),
                               blurRadius: 12,
                               spreadRadius: -2,
                             ),
@@ -667,7 +677,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(24.r),
                 border: Border.all(color: Colors.white12),
               ),
@@ -688,7 +698,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _DateSelector() {
+  Widget _dateSelector() {
     return GestureDetector(
       onTap: () async {
         final picked = await showDatePicker(
@@ -705,7 +715,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   surface: Color(0xFF1E1E2C),
                   onSurface: Colors.white,
                 ),
-                dialogBackgroundColor: const Color(0xFF1E1E2C),
+                dialogTheme: DialogThemeData(
+                  backgroundColor: const Color(0xFF1E1E2C),
+                ),
               ),
               child: child!,
             );
@@ -713,7 +725,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
         if (picked != null) setState(() => selectedDate = picked);
       },
-      child: _GlassBox(
+      child: _glassBox(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
         child: Row(
           children: [
@@ -733,7 +745,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _SubmitButton({required String label, required VoidCallback onTap}) {
+  Widget _submitButton({required String label, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -748,7 +760,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           borderRadius: BorderRadius.circular(27.r),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6C63FF).withOpacity(0.4),
+              color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -768,12 +780,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _GlassBox({required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _glassBox({required Widget child, EdgeInsetsGeometry? padding}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       padding:
           padding ?? EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),

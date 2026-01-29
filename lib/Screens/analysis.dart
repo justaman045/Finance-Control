@@ -437,14 +437,14 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: scheme.background,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           "AI Insights",
           style: TextStyle(
-            color: scheme.onBackground,
+            color: scheme.onSurface,
             fontWeight: FontWeight.w700,
             fontSize: 18.sp,
           ),
@@ -482,7 +482,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
               style: TextStyle(
                 fontSize: 17.sp,
                 fontWeight: FontWeight.bold,
-                color: scheme.onBackground,
+                color: scheme.onSurface,
                 letterSpacing: 0.5,
               ),
             ),
@@ -546,7 +546,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         boxShadow: [
           // "Glow" Effect
           BoxShadow(
-            color: const Color(0xFF6C63FF).withOpacity(0.4),
+            color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -561,7 +561,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
               Text(
                 "This Month Forecast",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
@@ -598,7 +598,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
               Text(
                 "Spent: ${CurrencyController.to.currencySymbol.value}${spent.toStringAsFixed(0)}",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white.withValues(alpha: 0.95),
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -606,7 +606,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
               Text(
                 "Target: ${CurrencyController.to.currencySymbol.value}${total.toStringAsFixed(0)}",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 12.sp,
                 ),
               ),
@@ -626,7 +626,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                     minHeight: 8.h,
                     backgroundColor: Colors.black12,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withOpacity(0.9),
+                      Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                 ),
@@ -648,9 +648,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -727,20 +727,20 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       duration: const Duration(milliseconds: 300),
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: scheme.surface.withOpacity(0.8), // Glass-like base
+        color: scheme.surface.withValues(alpha: 0.8), // Glass-like base
         borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scheme.surface.withOpacity(0.9),
-            scheme.surface.withOpacity(0.6),
+            scheme.surface.withValues(alpha: 0.9),
+            scheme.surface.withValues(alpha: 0.6),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -754,7 +754,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             style: TextStyle(
               fontSize: 15.sp,
               fontWeight: FontWeight.w600,
-              color: scheme.onSurface.withOpacity(0.95),
+              color: scheme.onSurface.withValues(alpha: 0.95),
               letterSpacing: 0.3,
             ),
           ),
@@ -779,7 +779,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             "This limit ignores Rent/Bills. Keep your other spending below ${CurrencyController.to.currencySymbol.value}${dailyLimit.toStringAsFixed(0)}/day to hit your forecast.",
             style: TextStyle(
               fontSize: 12.sp,
-              color: scheme.onSurface.withOpacity(0.8),
+              color: scheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
           SizedBox(height: 6.h),
@@ -804,7 +804,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           label,
           style: TextStyle(
             fontSize: 11.sp,
-            color: Colors.grey.withOpacity(0.9),
+            color: Colors.grey.withValues(alpha: 0.9),
           ),
         ),
         SizedBox(height: 2.h),
@@ -836,7 +836,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         child: Text(
           "No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.",
           style: TextStyle(
-            color: scheme.onSurface.withOpacity(0.8),
+            color: scheme.onSurface.withValues(alpha: 0.8),
             fontSize: 12.5.sp,
           ),
         ),
@@ -852,20 +852,20 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       duration: const Duration(milliseconds: 300),
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: scheme.surface.withOpacity(0.8), // Glass-like base
+        color: scheme.surface.withValues(alpha: 0.8), // Glass-like base
         borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scheme.surface.withOpacity(0.95),
-            scheme.surface.withOpacity(0.8),
+            scheme.surface.withValues(alpha: 0.95),
+            scheme.surface.withValues(alpha: 0.8),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -879,7 +879,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             style: TextStyle(
               fontSize: 15.sp,
               fontWeight: FontWeight.w600,
-              color: scheme.onSurface.withOpacity(0.95),
+              color: scheme.onSurface.withValues(alpha: 0.95),
               letterSpacing: 0.3,
             ),
           ),
@@ -923,11 +923,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                     borderRadius: BorderRadius.circular(8.r),
                     border: isToday
                         ? Border.all(color: Colors.blueAccent, width: 1.5)
-                        : Border.all(color: Colors.white.withOpacity(0.05)),
+                        : Border.all(color: Colors.white.withValues(alpha: 0.05)),
                     boxShadow: [
                       if (intensity > 0.3)
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
+                          color: Colors.green.withValues(alpha: 0.3),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -954,7 +954,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             "Darker boxes indicate higher spending days.",
             style: TextStyle(
               fontSize: 11.sp,
-              color: scheme.onSurface.withOpacity(0.7),
+              color: scheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -995,7 +995,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: scheme.onBackground.withOpacity(0.03),
+            color: scheme.onSurface.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1020,7 +1020,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                   decoration: BoxDecoration(
-                    color: trendColor.withOpacity(0.1),
+                    color: trendColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6.r),
                   ),
                   child: Row(
@@ -1048,7 +1048,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8.h,
-              backgroundColor: scheme.onSurface.withOpacity(0.05),
+              backgroundColor: scheme.onSurface.withValues(alpha: 0.05),
               valueColor: AlwaysStoppedAnimation<Color>(healthColor),
             ),
           ),
@@ -1075,7 +1075,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                     style: TextStyle(
                       fontSize: 11.5.sp,
                       fontWeight: FontWeight.w600,
-                      color: scheme.onSurface.withOpacity(0.8),
+                      color: scheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -1087,7 +1087,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                     "Usual: ${CurrencyController.to.currencySymbol.value}${c.smartBudget.toStringAsFixed(0)}",
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: scheme.onSurface.withOpacity(0.6),
+                      color: scheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   SizedBox(height: 4.h),
@@ -1095,7 +1095,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                     "Limit",
                     style: TextStyle(
                       fontSize: 11.sp,
-                      color: scheme.onSurface.withOpacity(0.4),
+                      color: scheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
@@ -1109,7 +1109,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: scheme.background,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(10.r),
             ),
             child: Row(
@@ -1117,14 +1117,14 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                 Icon(
                   Icons.tips_and_updates_outlined,
                   size: 16.sp,
-                  color: scheme.primary.withOpacity(0.7),
+                  color: scheme.primary.withValues(alpha: 0.7),
                 ),
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Text(
                     c.message,
                     style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.85),
+                      color: scheme.onSurface.withValues(alpha: 0.85),
                       fontSize: 11.5.sp,
                       height: 1.2,
                       fontWeight: FontWeight.w500,

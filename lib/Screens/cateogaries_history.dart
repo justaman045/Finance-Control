@@ -116,8 +116,6 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
 
         String type = (tx['type'] as String?)?.toLowerCase() ?? '';
         if (type.isEmpty) {
-          //TODO: Remove usage warning
-          // final senderId = tx['senderId'] as String? ?? '';
           final recipientId = tx['recipientId'] as String? ?? '';
           final userId = user.uid;
           type = (recipientId == userId) ? 'income' : 'expense';
@@ -171,7 +169,9 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
         flexibleSpace: ClipRRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: const Color(0xFF1A1A2E).withOpacity(0.8)),
+            child: Container(
+              color: const Color(0xFF1A1A2E).withValues(alpha: 0.8),
+            ),
           ),
         ),
         centerTitle: true,
@@ -193,7 +193,9 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+              const Color(
+                0xFF16213E,
+              ).withValues(alpha: 0.95), // Deep Blue Bottom
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -207,7 +209,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
               margin: EdgeInsets.symmetric(horizontal: 40.w),
               padding: EdgeInsets.all(4.w),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(30.r),
               ),
               child: Row(
@@ -284,10 +286,12 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(vertical: 10.h),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withOpacity(0.2) : Colors.transparent,
+          color: isSelected
+              ? activeColor.withValues(alpha: 0.2)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(26.r),
           border: isSelected
-              ? Border.all(color: activeColor.withOpacity(0.5))
+              ? Border.all(color: activeColor.withValues(alpha: 0.5))
               : null,
         ),
         alignment: Alignment.center,
@@ -324,9 +328,9 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
           margin: EdgeInsets.only(bottom: 12.h),
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05), // Dark Glass
+            color: Colors.white.withValues(alpha: 0.05), // Dark Glass
             borderRadius: BorderRadius.circular(24.r),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
           child: Row(
             children: [
@@ -338,7 +342,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                 child: category.iconUrl != null
                     ? CircleAvatar(
                         backgroundImage: NetworkImage(category.iconUrl!),
-                        backgroundColor: primaryColor.withOpacity(0.1),
+                        backgroundColor: primaryColor.withValues(alpha: 0.1),
                       )
                     : CategoryInitialsIcon(
                         categoryName: category.name,
@@ -396,7 +400,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                       fontWeight: FontWeight.bold,
                       shadows: [
                         BoxShadow(
-                          color: primaryColor.withOpacity(0.4),
+                          color: primaryColor.withValues(alpha: 0.4),
                           blurRadius: 10,
                         ),
                       ],

@@ -110,14 +110,14 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF1A1A2E).withOpacity(0.95),
+          backgroundColor: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
           behavior: SnackBarBehavior.floating,
           elevation: 10,
           margin: EdgeInsets.all(16.w),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),
             side: BorderSide(
-              color: const Color(0xFF00E5FF).withOpacity(0.5),
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
               width: 1.5,
             ),
           ),
@@ -200,7 +200,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                           vertical: 8.h,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12.r),
                           border: Border.all(
                             color: isSelected

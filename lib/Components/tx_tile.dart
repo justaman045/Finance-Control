@@ -15,13 +15,13 @@ class TxTile extends StatelessWidget {
   final Color? sentColor;
 
   const TxTile({
-    Key? key,
+    super.key,
     required this.tx,
     required this.received,
     this.textColor,
     this.receivedColor,
     this.sentColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +72,8 @@ class TxTile extends StatelessWidget {
                       Text(
                         _formatDate(tx.date),
                         style: TextStyle(
-                          color: (textColor ?? scheme.onSurface).withOpacity(
-                            0.6,
+                          color: (textColor ?? scheme.onSurface).withValues(
+                            alpha: 0.6,
                           ),
                           fontSize: 11.sp,
                         ),
@@ -95,8 +95,8 @@ class TxTile extends StatelessWidget {
                       Text(
                         received ? "Received" : "Sent",
                         style: TextStyle(
-                          color: (textColor ?? scheme.onSurface).withOpacity(
-                            0.7,
+                          color: (textColor ?? scheme.onSurface).withValues(
+                            alpha: 0.7,
                           ),
                           fontSize: 12.sp,
                         ),

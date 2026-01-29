@@ -16,7 +16,6 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 
@@ -122,6 +121,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     try {
       final Uint8List? image = await _ssController.capture();
       if (image != null) {
+        // ignore: deprecated_member_use
         await Share.shareXFiles([
           XFile.fromData(image, mimeType: 'image/png', name: 'transaction.png'),
         ]);
@@ -188,6 +188,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     final file = File("${directory.path}/Transaction_${tx.id}.pdf");
     await file.writeAsBytes(await pdf.save());
 
+    // ignore: deprecated_member_use
     await Share.shareXFiles([XFile(file.path, mimeType: "application/pdf")]);
   }
 
@@ -218,7 +219,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         gradient: LinearGradient(
           colors: [
             const Color(0xFF1A1A2E), // Midnight Void Top
-            const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+            const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -311,7 +312,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               borderRadius: BorderRadius.circular(28.r),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2575FC).withOpacity(0.4),
+                  color: const Color(0xFF2575FC).withValues(alpha: 0.4),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -397,9 +398,9 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
           BoxShadow(
             blurRadius: 20,
             offset: const Offset(0, 8),
-            color: colors.first.withOpacity(0.4),
+            color: colors.first.withValues(alpha: 0.4),
           ),
-          BoxShadow(blurRadius: 10, color: Colors.black.withOpacity(0.2)),
+          BoxShadow(blurRadius: 10, color: Colors.black.withValues(alpha: 0.2)),
         ],
       ),
       child: Center(
@@ -453,7 +454,10 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     return Text(
       text,
       textAlign: TextAlign.center,
-      style: TextStyle(fontSize: 14.sp, color: Colors.white.withOpacity(0.6)),
+      style: TextStyle(
+        fontSize: 14.sp,
+        color: Colors.white.withValues(alpha: 0.6),
+      ),
     );
   }
 
@@ -468,12 +472,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       height: 48.h, // Slightly taller
       width: 140.w,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08), // Dark Glass
+        color: Colors.white.withValues(alpha: 0.08), // Dark Glass
         borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -512,12 +516,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05), // Dark Glass
+        color: Colors.white.withValues(alpha: 0.05), // Dark Glass
         borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -535,7 +539,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             ),
           ),
           SizedBox(height: 16.h),
-          Divider(color: Colors.white.withOpacity(0.15)),
+          Divider(color: Colors.white.withValues(alpha: 0.15)),
           SizedBox(height: 16.h),
           _detailRow("Transaction ID", tx.id),
           _detailRow("Date", tx.date.toLocal().toString().split('.')[0]),
@@ -590,7 +594,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             child: Text(
               name,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 13.5.sp,
               ),
             ),
@@ -605,7 +609,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                 fontWeight: bold ? FontWeight.bold : FontWeight.w500,
                 color:
                     valueColor ??
-                    (bold ? Colors.white : Colors.white.withOpacity(0.9)),
+                    (bold ? Colors.white : Colors.white.withValues(alpha: 0.9)),
                 letterSpacing: 0.3,
               ),
             ),

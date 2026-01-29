@@ -31,17 +31,17 @@ class EmptyStateWidget extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(24.w),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
+                color: accentColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: accentColor.withOpacity(0.2),
+                    color: accentColor.withValues(alpha: 0.2),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
                 ],
                 border: Border.all(
-                  color: accentColor.withOpacity(0.3),
+                  color: accentColor.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -62,7 +62,7 @@ class EmptyStateWidget extends StatelessWidget {
             Text(
               subtitle,
               style: TextStyle(
-                color: textColor.withOpacity(0.6),
+                color: textColor.withValues(alpha: 0.6),
                 fontSize: 15.sp,
                 height: 1.4,
               ),

@@ -1,5 +1,6 @@
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:developer';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,7 +22,7 @@ class BackgroundWorker {
     _initialized = true;
 
     // Initialize WorkManager with our callback dispatcher
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    await Workmanager().initialize(callbackDispatcher);
 
     // Register periodic task (Android min is 15 minutes)
     await Workmanager().registerPeriodicTask(
@@ -77,7 +78,7 @@ void callbackDispatcher() {
         );
       } catch (e) {
         // Firebase might already be initialized
-        print("Firebase init error (ignorable): $e");
+        log("Firebase init error (ignorable): $e");
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -164,7 +165,7 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
           // Mark as run for today
           await prefs.setString('last_daily_insight_run', todayStr);
         } catch (e) {
-          print("Error fetching daily insight: $e");
+          log("Error fetching daily insight: $e");
         }
       }
     }
@@ -273,7 +274,7 @@ Future<void> _checkUpdate(SharedPreferences prefs) async {
       await prefs.setString('last_update_check_run', todayStr);
     }
   } catch (e) {
-    print("Update check error: $e");
+    log("Update check error: $e");
   }
 }
 
@@ -307,7 +308,7 @@ Future<void> _checkRecurringPayments(SharedPreferences prefs) async {
 
       await prefs.setString('last_recurring_run', todayStr);
     } catch (e) {
-      print("Error processing recurring payments: $e");
+      log("Error processing recurring payments: $e");
     }
   }
 }

@@ -5,14 +5,14 @@ import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/settings.dart';
 
 class RootNavigator extends StatefulWidget {
-  const RootNavigator({Key? key}) : super(key: key);
+  const RootNavigator({super.key});
 
   @override
   State<RootNavigator> createState() => _RootNavigatorState();
 }
 
 class _RootNavigatorState extends State<RootNavigator> {
-  int _selectedIndex = 0;
+  final int _selectedIndex = 0;
 
   late final List<Widget> _pages = [
     const BankingHomeScreen(),
@@ -49,21 +49,12 @@ class _RootNavigatorState extends State<RootNavigator> {
     return null;
   }
 
-  //TODO: To remove usage warning
-  // void _onItemTapped(int index) {
-  //   setState(() {
-  //     _selectedIndex = index;
-  //   });
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _getAppBar(),
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _selectedIndex,
-      ),
+      bottomNavigationBar: BottomNavBar(currentIndex: _selectedIndex),
     );
   }
 }

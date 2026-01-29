@@ -66,7 +66,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final gradientColors = isDark
-        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withOpacity(0.95)]
+        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withValues(alpha: 0.95)]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
 
     return Container(
@@ -83,7 +83,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           title: Text(
             "Wealth Builder",
             style: TextStyle(
-              color: scheme.onBackground,
+              color: scheme.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -117,10 +117,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             vertical: 12.h,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00E5FF).withOpacity(0.1),
+                            color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16.r),
                             border: Border.all(
-                              color: const Color(0xFF00E5FF).withOpacity(0.3),
+                              color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(
@@ -154,14 +154,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             style: TextStyle(
                               fontSize: 18.sp,
                               fontWeight: FontWeight.bold,
-                              color: scheme.onBackground,
+                              color: scheme.onSurface,
                             ),
                           ),
                           IconButton(
                             onPressed: _showVisibilityDialog,
                             icon: Icon(
                               Icons.tune_rounded,
-                              color: scheme.onBackground.withOpacity(0.6),
+                              color: scheme.onSurface.withValues(alpha: 0.6),
                             ),
                             tooltip: "Manage Visibility",
                           ),
@@ -175,7 +175,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
-                          color: scheme.onBackground,
+                          color: scheme.onSurface,
                         ),
                       ),
                       SizedBox(height: 10.h),
@@ -186,7 +186,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
-                          color: scheme.onBackground,
+                          color: scheme.onSurface,
                         ),
                       ),
                       SizedBox(height: 10.h),
@@ -308,13 +308,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: scheme.surface.withOpacity(0.1), // Glassy background
+          color: scheme.surface.withValues(alpha: 0.1), // Glassy background
           borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
           gradient: LinearGradient(
             colors: [
-              Colors.white.withOpacity(0.05),
-              Colors.white.withOpacity(0.01),
+              Colors.white.withValues(alpha: 0.05),
+              Colors.white.withValues(alpha: 0.01),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -329,7 +329,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 Container(
                   padding: EdgeInsets.all(8.w),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 18.sp),
@@ -341,7 +341,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
-                      color: scheme.onSurface.withOpacity(0.9),
+                      color: scheme.onSurface.withValues(alpha: 0.9),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -365,7 +365,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 "$secondaryLabel: ${formatter.format(secondaryValue)}",
                 style: TextStyle(
                   fontSize: 11.sp,
-                  color: scheme.onSurface.withOpacity(0.6),
+                  color: scheme.onSurface.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -374,7 +374,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               SizedBox(height: 8.h),
               LinearProgressIndicator(
                 value: progress,
-                backgroundColor: color.withOpacity(0.1),
+                backgroundColor: color.withValues(alpha: 0.1),
                 valueColor: AlwaysStoppedAnimation<Color>(color),
                 borderRadius: BorderRadius.circular(2.r),
                 minHeight: 4.h,
@@ -384,7 +384,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 "Target: ${formatter.format(target)}",
                 style: TextStyle(
                   fontSize: 10.sp,
-                  color: scheme.onSurface.withOpacity(0.5),
+                  color: scheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ] else
@@ -397,14 +397,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   readOnly ? "Update Expense" : "Tap to update",
                   style: TextStyle(
                     fontSize: 10.sp,
-                    color: scheme.onSurface.withOpacity(0.4),
+                    color: scheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
                 const Spacer(),
                 Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 10.sp,
-                  color: scheme.onSurface.withOpacity(0.3),
+                  color: scheme.onSurface.withValues(alpha: 0.3),
                 ),
               ],
             ),
@@ -454,7 +454,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Dismiss",
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
         return Center(
@@ -472,12 +472,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 ),
                 borderRadius: BorderRadius.circular(28.r),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     blurRadius: 30,
                     offset: Offset(0, 10),
                   ),
@@ -517,7 +517,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         labelStyle: TextStyle(color: Colors.white60),
                         hintText: "0",
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.08),
+                        fillColor: Colors.white.withValues(alpha: 0.08),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                         ),
@@ -535,7 +535,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       keyboardType: TextInputType.number,
                       style: TextStyle(
                         color: !isBank
-                            ? Colors.white.withOpacity(0.7)
+                            ? Colors.white.withValues(alpha: 0.7)
                             : Colors.white,
                         fontSize: 18.sp,
                       ),
@@ -549,23 +549,23 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             ? "Leave empty to use auto-calculated average"
                             : "Calculated based on expenses & age",
                         helperStyle: TextStyle(
-                          color: const Color(0xFF00E5FF).withOpacity(0.5),
+                          color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
                           fontSize: 11.sp,
                         ),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.04),
+                        fillColor: Colors.white.withValues(alpha: 0.04),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                           borderSide: BorderSide(
-                            color: const Color(0xFF00E5FF).withOpacity(0.5),
+                            color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
                           ),
                         ),
                         prefixText: symbol,
                         prefixStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -666,7 +666,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Dismiss",
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
         return Center(
@@ -686,12 +686,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     ),
                     borderRadius: BorderRadius.circular(28.r),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         blurRadius: 30,
                         offset: const Offset(0, 10),
                       ),
@@ -726,7 +726,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               activeColor: const Color(0xFF00E5FF),
                               checkColor: Colors.black,
                               side: BorderSide(
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withValues(alpha: 0.5),
                               ),
                               onChanged: (val) {
                                 setState(() {
@@ -833,7 +833,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       return Center(
         child: Text(
           "No visible assets",
-          style: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
+          style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
         ),
       );
     }
@@ -893,7 +893,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.4),
+            color: Colors.deepPurple.withValues(alpha: 0.4),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -929,7 +929,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       return Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: scheme.surface.withOpacity(0.1),
+          color: scheme.surface.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Row(
@@ -954,20 +954,20 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
         Color iconColor = Colors.blue;
         IconData iconData = Icons.info_outline;
-        Color bgColor = Colors.blue.withOpacity(0.1);
+        Color bgColor = Colors.blue.withValues(alpha: 0.1);
 
         if (type == 'warning') {
           iconColor = Colors.orange;
           iconData = Icons.warning_amber_rounded;
-          bgColor = Colors.orange.withOpacity(0.1);
+          bgColor = Colors.orange.withValues(alpha: 0.1);
         } else if (type == 'alert') {
           iconColor = Colors.redAccent;
           iconData = Icons.dangerous_outlined;
-          bgColor = Colors.red.withOpacity(0.1);
+          bgColor = Colors.red.withValues(alpha: 0.1);
         } else if (type == 'success') {
           iconColor = Colors.green;
           iconData = Icons.check_circle_outline;
-          bgColor = Colors.green.withOpacity(0.1);
+          bgColor = Colors.green.withValues(alpha: 0.1);
         }
 
         return Container(
@@ -977,7 +977,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: iconColor.withOpacity(0.3)),
+            border: Border.all(color: iconColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [

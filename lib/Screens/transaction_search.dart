@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:money_control/Models/transaction.dart';
-import 'package:money_control/Screens/edit_transaction.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
@@ -86,7 +85,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+              const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -105,7 +104,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                     BoxShadow(
                       color: const Color(
                         0xFF00E5FF,
-                      ).withOpacity(0.1), // Neon Cyan Glow
+                      ).withValues(alpha: 0.1), // Neon Cyan Glow
                       blurRadius: 20,
                       spreadRadius: -5,
                     ),
@@ -124,7 +123,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                       fontSize: 14.sp,
                     ),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.08), // Glass
+                    fillColor: Colors.white.withValues(alpha: 0.08), // Glass
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 20.w,
                       vertical: 16.h,
@@ -136,13 +135,13 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20.r),
                       borderSide: BorderSide(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20.r),
                       borderSide: BorderSide(
-                        color: const Color(0xFF00E5FF).withOpacity(0.5),
+                        color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -197,10 +196,10 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                           ),
                           padding: EdgeInsets.all(16.w),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05), // Dark Glass
+                            color: Colors.white.withValues(alpha: 0.05), // Dark Glass
                             borderRadius: BorderRadius.circular(20.r),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.08),
+                              color: Colors.white.withValues(alpha: 0.08),
                             ),
                           ),
                           child: Row(
@@ -210,10 +209,10 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                 padding: EdgeInsets.all(10.w),
                                 decoration: BoxDecoration(
                                   color: isIncome
-                                      ? const Color(0xFF00E676).withOpacity(0.2)
+                                      ? const Color(0xFF00E676).withValues(alpha: 0.2)
                                       : const Color(
                                           0xFFFF1744,
-                                        ).withOpacity(0.2),
+                                        ).withValues(alpha: 0.2),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(

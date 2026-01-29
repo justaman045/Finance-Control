@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer';
 import 'package:flutter_screenutil/flutter_screenutil.dart'; // Added import
 import 'package:get/get.dart';
 import 'package:money_control/Screens/analysis.dart';
@@ -66,7 +66,7 @@ Future<void> gotoScreen(int index, int currentIndex) async {
                 context: Get.context!,
                 barrierDismissible: true,
                 barrierLabel: "Dismiss",
-                barrierColor: Colors.black.withOpacity(0.8),
+                barrierColor: Colors.black.withValues(alpha: 0.8),
                 transitionDuration: const Duration(milliseconds: 300),
                 pageBuilder: (context, anim1, anim2) {
                   return Center(
@@ -83,12 +83,12 @@ Future<void> gotoScreen(int index, int currentIndex) async {
                           ),
                           borderRadius: BorderRadius.circular(28.r),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             width: 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.5),
+                              color: Colors.black.withValues(alpha: 0.5),
                               blurRadius: 30,
                               offset: const Offset(0, 10),
                             ),
@@ -100,7 +100,9 @@ Future<void> gotoScreen(int index, int currentIndex) async {
                             Container(
                               padding: EdgeInsets.all(16.w),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF00E5FF).withOpacity(0.1),
+                                color: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -267,5 +269,5 @@ Future<void> syncPendingTransactions() async {
 
   // Clear only after successful sync
   await OfflineQueueService.clearPending();
-  print("Pending transactions synced");
+  log("Pending transactions synced");
 }

@@ -37,13 +37,9 @@ class TutorialController extends GetxController {
       textSkip: "SKIP",
       paddingFocus: 10,
       opacityShadow: 0.8,
-      onFinish: () => print("Tutorial finished"),
-      onClickTarget: (target) => print("Target clicked"),
       onSkip: () {
-        print("Tutorial skipped");
         return true;
       },
-      onClickOverlay: (target) => print("Overlay clicked"),
     );
   }
 
@@ -127,7 +123,7 @@ class TutorialController extends GetxController {
           ), // Neon Border
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               blurRadius: 10,
               spreadRadius: 2,
             ),

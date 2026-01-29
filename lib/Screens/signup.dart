@@ -108,7 +108,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       final googleUser = event.user;
-      final googleAuth = await googleUser.authentication;
+      final googleAuth = googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
@@ -141,7 +141,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [
             const Color(0xFFF5F7FA), // Premium Light
@@ -150,8 +150,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final hintColor = isDark
-        ? Colors.white.withOpacity(0.5)
-        : const Color(0xFF1A1A2E).withOpacity(0.5);
+        ? Colors.white.withValues(alpha: 0.5)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.5);
 
     return Container(
       decoration: BoxDecoration(
@@ -197,7 +197,7 @@ class _AuthScreenState extends State<AuthScreen> {
         SizedBox(height: 6.h),
         Text(
           "Join Money Control today",
-          style: TextStyle(fontSize: 14.sp, color: textColor.withOpacity(0.6)),
+          style: TextStyle(fontSize: 14.sp, color: textColor.withValues(alpha: 0.6)),
         ),
       ],
     );
@@ -208,17 +208,17 @@ class _AuthScreenState extends State<AuthScreen> {
       padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.white.withOpacity(0.6),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.white.withOpacity(0.4),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.4),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -298,13 +298,13 @@ class _AuthScreenState extends State<AuthScreen> {
                   colors: isDark
                       ? [const Color(0xFF6C63FF), const Color(0xFF4834D4)]
                       : [
-                          const Color(0xFF6C63FF).withOpacity(0.8),
-                          const Color(0xFF4834D4).withOpacity(0.8),
+                          const Color(0xFF6C63FF).withValues(alpha: 0.8),
+                          const Color(0xFF4834D4).withValues(alpha: 0.8),
                         ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6C63FF).withOpacity(0.3),
+                    color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -361,8 +361,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       : const Color(0xFF1A1A2E),
                   side: BorderSide(
                     color: isDark
-                        ? Colors.white.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.1),
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.1),
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(26.r),
@@ -415,13 +415,13 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.black.withOpacity(0.2)
-              : Colors.black.withOpacity(0.03),
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
           ),
         ),
         child: TextFormField(

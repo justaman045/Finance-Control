@@ -59,13 +59,13 @@ class UpdateChecker {
     String message,
     bool force,
   ) {
-    final scheme = Theme.of(context).colorScheme;
+    // final scheme = Theme.of(context).colorScheme;
 
     showGeneralDialog(
       context: context,
       barrierDismissible: !force,
       barrierLabel: "Dismiss",
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, anim1, anim2) {
         return Center(
@@ -85,12 +85,12 @@ class UpdateChecker {
                 ),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6B4CFF).withOpacity(0.3),
+                    color: const Color(0xFF6B4CFF).withValues(alpha: 0.3),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                   ),
@@ -103,7 +103,7 @@ class UpdateChecker {
                   Container(
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF).withOpacity(0.15),
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -136,7 +136,7 @@ class UpdateChecker {
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -181,7 +181,7 @@ class UpdateChecker {
                             elevation: 8,
                             shadowColor: const Color(
                               0xFF00E5FF,
-                            ).withOpacity(0.4),
+                            ).withValues(alpha: 0.4),
                           ),
                           child: const Text(
                             "Update Now",

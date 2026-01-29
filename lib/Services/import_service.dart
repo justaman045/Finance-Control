@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:developer';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,7 +26,7 @@ class ImportService {
         return fields;
       }
     } catch (e) {
-      print("Error picking CSV: $e");
+      log("Error picking CSV: $e");
     }
     return null;
   }
@@ -50,8 +51,9 @@ class ImportService {
         final noteIndex = headerMap['note']; // Optional
         final categoryIndex = headerMap['category']; // Optional
 
-        if (dateIndex == null || amountIndex == null)
+        if (dateIndex == null || amountIndex == null) {
           continue; // Skip invalid mapping
+        }
 
         // 1. Parse Date
         DateTime date = DateTime.now();
@@ -105,7 +107,7 @@ class ImportService {
 
         transactions.add(tx);
       } catch (e) {
-        print("Error parsing row $i: $e");
+        log("Error parsing row $i: $e");
         continue;
       }
     }

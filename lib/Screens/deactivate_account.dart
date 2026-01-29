@@ -53,25 +53,28 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     // ... (keep existing theme setup)
-    final scheme = Theme.of(context).colorScheme;
+    // final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // ... (keep gradient colors setup)
     final gradientColors = isDark
-        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withOpacity(0.95)]
+        ? [
+            const Color(0xFF1A1A2E),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
+          ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.6)
-        : const Color(0xFF1A1A2E).withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
     final cardColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.white.withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.6);
 
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.4);
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.4);
 
     return Container(
       decoration: BoxDecoration(
@@ -111,10 +114,14 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                 decoration: BoxDecoration(
                   color: cardColor,
                   borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                  border: Border.all(
+                    color: Colors.redAccent.withValues(alpha: 0.3),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.05,
+                      ),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -125,7 +132,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                     Container(
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.1),
+                        color: Colors.redAccent.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -186,7 +193,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(26.r),
                           ),
-                          shadowColor: Colors.redAccent.withOpacity(0.4),
+                          shadowColor: Colors.redAccent.withValues(alpha: 0.4),
                         ),
                         onPressed: processing
                             ? null

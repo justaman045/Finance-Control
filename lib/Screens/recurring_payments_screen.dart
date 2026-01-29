@@ -28,7 +28,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [
             const Color(0xFFF5F7FA), // Premium Light
@@ -76,7 +76,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00E5FF).withOpacity(0.4),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
                 blurRadius: 15,
                 offset: const Offset(0, 5),
               ),
@@ -112,7 +112,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                     borderRadius: BorderRadius.circular(20.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -124,7 +124,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                         "Monthly Commitment",
                         style: TextStyle(
                           fontSize: 14.sp,
-                          color: textColor.withOpacity(0.6),
+                          color: textColor.withValues(alpha: 0.6),
                         ),
                       ),
                       SizedBox(height: 8.h),
@@ -158,11 +158,11 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                             padding: EdgeInsets.all(30.w),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(
-                                    isDark ? 0.2 : 0.05,
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.2 : 0.05,
                                   ),
                                   blurRadius: 20,
                                   spreadRadius: 5,
@@ -172,14 +172,14 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                             child: Icon(
                               Icons.subscriptions_outlined,
                               size: 60.sp,
-                              color: textColor.withOpacity(0.3),
+                              color: textColor.withValues(alpha: 0.3),
                             ),
                           ),
                           SizedBox(height: 24.h),
                           Text(
                             "No subscriptions yet",
                             style: TextStyle(
-                              color: textColor.withOpacity(0.6),
+                              color: textColor.withValues(alpha: 0.6),
                               fontSize: 16.sp,
                               fontWeight: FontWeight.w500,
                             ),
@@ -188,7 +188,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                           Text(
                             "Track Netflix, Rent, Spotify, etc.",
                             style: TextStyle(
-                              color: textColor.withOpacity(0.4),
+                              color: textColor.withValues(alpha: 0.4),
                               fontSize: 12.sp,
                             ),
                           ),
@@ -231,20 +231,20 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.white.withOpacity(0.8),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.white.withOpacity(0.5),
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.5),
           width: 1,
         ),
         gradient: isDark
             ? LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.05),
-                  Colors.white.withOpacity(0.01),
+                  Colors.white.withValues(alpha: 0.05),
+                  Colors.white.withValues(alpha: 0.01),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -252,7 +252,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -274,7 +274,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               borderRadius: BorderRadius.circular(18.r),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6C63FF).withOpacity(0.3),
+                  color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -304,14 +304,14 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: textColor.withOpacity(0.06),
+                    color: textColor.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(6.r),
                   ),
                   child: Text(
                     "${item.frequency.name.capitalizeFirst} • Due ${DateFormat('MMM dd').format(item.nextDueDate)}",
                     style: TextStyle(
                       fontSize: 11.sp,
-                      color: textColor.withOpacity(0.6),
+                      color: textColor.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -338,12 +338,12 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                 child: Container(
                   padding: EdgeInsets.all(6.w),
                   decoration: BoxDecoration(
-                    color: textColor.withOpacity(0.1),
+                    color: textColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.edit_rounded,
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                     size: 16.sp,
                   ),
                 ),
@@ -418,7 +418,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
 
                     // Frequency
                     DropdownButtonFormField<RecurringFrequency>(
-                      value: freq,
+                      initialValue: freq,
                       items: RecurringFrequency.values
                           .map(
                             (f) => DropdownMenuItem(

@@ -7,7 +7,7 @@ import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 
 class LegalTrustPage extends StatefulWidget {
-  const LegalTrustPage({Key? key}) : super(key: key);
+  const LegalTrustPage({super.key});
 
   @override
   State<LegalTrustPage> createState() => _LegalTrustPageState();
@@ -155,23 +155,23 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     setState(() => downloadingData = true);
 
     try {
-      final userDoc = FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.email);
+      // final userDoc = FirebaseFirestore.instance
+      //     .collection("users")
+      //     .doc(user.email);
 
-      final txSnap = await userDoc.collection("transactions").get();
-      final catSnap = await userDoc.collection("categories").get();
+      // final txSnap = await userDoc.collection("transactions").get();
+      // final catSnap = await userDoc.collection("categories").get();
 
       /// This map isn't strictly needed if using LocalBackupService, but kept for logic structure
-      final export = {
-        "email": user.email,
-        "transactions": txSnap.docs
-            .map((e) => {"id": e.id, ...e.data()})
-            .toList(),
-        "categories": catSnap.docs
-            .map((e) => {"id": e.id, ...e.data()})
-            .toList(),
-      };
+      // final export = {
+      //   "email": user.email,
+      //   "transactions": txSnap.docs
+      //       .map((e) => {"id": e.id, ...e.data()})
+      //       .toList(),
+      //   "categories": catSnap.docs
+      //       .map((e) => {"id": e.id, ...e.data()})
+      //       .toList(),
+      // };
 
       await LocalBackupService.exportBackupFile(
         FirebaseAuth.instance.currentUser!.email!,
@@ -206,7 +206,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [
             const Color(0xFFF5F7FA), // Premium Light
@@ -215,16 +215,16 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.6)
-        : const Color(0xFF1A1A2E).withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
 
     final cardColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.white.withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.6);
 
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.4);
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.4);
 
     return Container(
       decoration: BoxDecoration(
@@ -279,7 +279,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
                 isDark: isDark,
               ),
               SizedBox(height: 24.h),
-              _SectionTitle("Your Consents", textColor),
+              _sectionTitle("Your Consents", textColor),
               SizedBox(height: 10.h),
               _buildConsentSection(
                 cardColor,
@@ -288,7 +288,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
                 secondaryTextColor,
               ),
               SizedBox(height: 24.h),
-              _SectionTitle("Data Management", textColor),
+              _sectionTitle("Data Management", textColor),
               SizedBox(height: 10.h),
               _buildDataActions(cardColor, borderColor, textColor, isDark),
               SizedBox(height: 40.h),
@@ -299,7 +299,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     );
   }
 
-  Widget _SectionTitle(String title, Color color) {
+  Widget _sectionTitle(String title, Color color) {
     return Text(
       title,
       style: TextStyle(
@@ -328,7 +328,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -405,7 +405,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     Color secondaryColor,
   ) {
     return SwitchListTile(
-      activeColor: const Color(0xFF6C63FF),
+      activeThumbColor: const Color(0xFF6C63FF),
       contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       title: Text(
         title,
@@ -442,13 +442,13 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
               colors: isDark
                   ? [const Color(0xFF6C63FF), const Color(0xFF4834D4)]
                   : [
-                      const Color(0xFF6C63FF).withOpacity(0.8),
-                      const Color(0xFF4834D4).withOpacity(0.8),
+                      const Color(0xFF6C63FF).withValues(alpha: 0.8),
+                      const Color(0xFF4834D4).withValues(alpha: 0.8),
                     ],
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6C63FF).withOpacity(0.4),
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -522,9 +522,11 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
           Container(
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
-              color: Colors.redAccent.withOpacity(0.1),
+              color: Colors.redAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+              border: Border.all(
+                color: Colors.redAccent.withValues(alpha: 0.3),
+              ),
             ),
             child: Text(
               message!,

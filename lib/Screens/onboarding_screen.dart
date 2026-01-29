@@ -110,7 +110,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 "Let's set up your financial goals in 2 steps.",
                 style: TextStyle(
                   fontSize: 16.sp,
-                  color: textColor.withOpacity(0.6),
+                  color: textColor.withValues(alpha: 0.6),
                 ),
               ),
               SizedBox(height: 40.h),
@@ -133,10 +133,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       padding: EdgeInsets.symmetric(horizontal: 16.w),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? Colors.white.withOpacity(0.05)
+                            ? Colors.white.withValues(alpha: 0.05)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
@@ -182,27 +182,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: TextStyle(color: textColor),
                       decoration: InputDecoration(
                         hintText: "e.g. 20000",
-                        hintStyle: TextStyle(color: textColor.withOpacity(0.4)),
+                        hintStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
                         filled: true,
                         fillColor: isDark
-                            ? Colors.white.withOpacity(0.05)
+                            ? Colors.white.withValues(alpha: 0.05)
                             : Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                           borderSide: BorderSide(
-                            color: Colors.grey.withOpacity(0.2),
+                            color: Colors.grey.withValues(alpha: 0.2),
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                           borderSide: BorderSide(
-                            color: Colors.grey.withOpacity(0.2),
+                            color: Colors.grey.withValues(alpha: 0.2),
                           ),
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty)
+                        if (v == null || v.isEmpty) {
                           return "Please enter a budget";
+                        }
                         if (double.tryParse(v) == null) return "Invalid number";
                         return null;
                       },

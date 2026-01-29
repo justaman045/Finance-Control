@@ -7,7 +7,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:money_control/Models/transaction.dart';
 
 class LocalBackupService {
   LocalBackupService._();
@@ -123,7 +122,7 @@ class LocalBackupService {
         result[key] = value.toIso8601String();
       } else if (value is Map) {
         result[key] = _convertFirestoreTypes(
-          Map<String, dynamic>.from(value as Map),
+          Map<String, dynamic>.from(value),
         );
       } else {
         result[key] = value;

@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'dart:developer';
 import 'package:local_auth/local_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,7 +62,7 @@ class BiometricService extends GetxController {
       isAuthenticated.value = didAuthenticate;
       return didAuthenticate;
     } on PlatformException catch (e) {
-      print("Biometric Error: $e");
+      log("Biometric Error: $e");
       return false;
     }
   }

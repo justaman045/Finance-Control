@@ -29,10 +29,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -83,5 +80,4 @@ class DefaultFirebaseOptions {
     authDomain: 'moneycontroljustaman045.firebaseapp.com',
     storageBucket: 'moneycontroljustaman045.firebasestorage.app',
   );
-
 }

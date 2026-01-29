@@ -65,11 +65,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           "Success",
           "Profile updated successfully",
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFF1A1A2E).withOpacity(0.9),
+          backgroundColor: const Color(0xFF1A1A2E).withValues(alpha: 0.9),
           colorText: Colors.white,
           margin: EdgeInsets.all(20.w),
           borderRadius: 20.r,
-          borderColor: Colors.white.withOpacity(0.1),
+          borderColor: Colors.white.withValues(alpha: 0.1),
           borderWidth: 1,
           icon: Icon(
             Icons.check_circle,
@@ -85,7 +85,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           boxShadows: [
             BoxShadow(
-              color: const Color(0xFF00E5FF).withOpacity(0.2),
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
               blurRadius: 20,
               offset: const Offset(0, 5),
             ),
@@ -101,11 +101,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "Error",
         "Error saving profile: $e",
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.1),
+        backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
         colorText: Colors.white,
         margin: EdgeInsets.all(20.w),
         borderRadius: 20.r,
-        borderColor: Colors.redAccent.withOpacity(0.3),
+        borderColor: Colors.redAccent.withValues(alpha: 0.3),
         borderWidth: 1,
         icon: Icon(Icons.error_outline, color: Colors.redAccent, size: 30.sp),
         duration: const Duration(seconds: 4),
@@ -128,7 +128,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         gradient: LinearGradient(
           colors: [
             const Color(0xFF1A1A2E), // Midnight Void Top
-            const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+            const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -175,7 +175,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF00E5FF).withOpacity(0.3),
+                                color: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 spreadRadius: 2,
                               ),
@@ -183,7 +185,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           child: CircleAvatar(
                             radius: 50.r,
-                            backgroundColor: Colors.white.withOpacity(0.1),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.1,
+                            ),
                             backgroundImage: const AssetImage(
                               'assets/profile.png',
                             ),
@@ -258,7 +262,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           borderRadius: BorderRadius.circular(28.r),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              color: const Color(
+                                0xFF6C63FF,
+                              ).withValues(alpha: 0.4),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             ),
@@ -287,7 +293,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF00E5FF),
                           side: BorderSide(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
                           shape: RoundedRectangleBorder(
@@ -299,7 +305,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             await _auth.sendPasswordResetEmail(
                               email: user.email!,
                             );
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -349,9 +355,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         SizedBox(height: 8.h),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
           child: TextFormField(
             controller: controller,

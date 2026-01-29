@@ -69,7 +69,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         gradient: LinearGradient(
           colors: [
             const Color(0xFF1A1A2E), // Midnight Void Top
-            const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+            const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -181,20 +181,22 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                               margin: EdgeInsets.symmetric(horizontal: 5.w),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFF6C63FF).withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.05),
+                                    ? const Color(
+                                        0xFF6C63FF,
+                                      ).withValues(alpha: 0.3)
+                                    : Colors.white.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(30.r),
                                 border: Border.all(
                                   color: isSelected
                                       ? const Color(0xFF6C63FF)
-                                      : Colors.white.withOpacity(0.1),
+                                      : Colors.white.withValues(alpha: 0.1),
                                 ),
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
                                           color: const Color(
                                             0xFF6C63FF,
-                                          ).withOpacity(0.4),
+                                          ).withValues(alpha: 0.4),
                                           blurRadius: 12,
                                           spreadRadius: -2,
                                         ),
@@ -230,7 +232,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                         subtitle:
                             "You don't have any transactions in this category yet.",
                         icon: Icons.receipt_long_outlined,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                       ),
                     )
                   else
@@ -301,17 +303,19 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                       decoration: BoxDecoration(
                                         color: const Color(
                                           0xFF1E1E2C,
-                                        ).withOpacity(0.6), // Dark Glass
+                                        ).withValues(alpha: 0.6), // Dark Glass
                                         borderRadius: BorderRadius.circular(
                                           20.r,
                                         ),
                                         border: Border.all(
-                                          color: Colors.white.withOpacity(0.05),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.05,
+                                          ),
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.2,
+                                            color: Colors.black.withValues(
+                                              alpha: 0.2,
                                             ),
                                             blurRadius: 10,
                                             offset: const Offset(0, 4),
@@ -323,8 +327,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                           Container(
                                             padding: EdgeInsets.all(10.w),
                                             decoration: BoxDecoration(
-                                              color: amountColor.withOpacity(
-                                                0.1,
+                                              color: amountColor.withValues(
+                                                alpha: 0.1,
                                               ),
                                               shape: BoxShape.circle,
                                             ),
@@ -376,10 +380,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                       ),
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             );
-                          }).toList(),
+                          }),
                           SizedBox(height: 20.h),
                         ],
                       ),

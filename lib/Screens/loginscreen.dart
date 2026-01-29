@@ -104,19 +104,11 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // Corrected for google_sign_in 7.x:
       // authenticate() returns the user directly.
-      final GoogleSignInAccount? googleUser = await _googleSignIn
+      final GoogleSignInAccount googleUser = await _googleSignIn
           .authenticate();
 
-      if (googleUser == null) {
-        // User cancelled
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
       final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+          googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
@@ -158,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ]
         : [
             const Color(0xFFF5F7FA), // Premium Light
@@ -167,8 +159,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.6)
-        : const Color(0xFF1A1A2E).withOpacity(0.6);
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
 
     return Container(
       decoration: BoxDecoration(
@@ -193,12 +185,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.white.withOpacity(0.6),
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.white.withValues(alpha: 0.6),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                           ),
                         ],
@@ -235,17 +227,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: EdgeInsets.all(24.w),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.white.withOpacity(0.6),
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.white.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(24.r),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.white.withOpacity(0.4),
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: 0.4),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -324,13 +316,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                       const Color(0xFF4834D4),
                                     ]
                                   : [
-                                      const Color(0xFF6C63FF).withOpacity(0.9),
-                                      const Color(0xFF4834D4).withOpacity(0.9),
+                                      const Color(0xFF6C63FF).withValues(alpha: 0.9),
+                                      const Color(0xFF4834D4).withValues(alpha: 0.9),
                                     ],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF6C63FF).withOpacity(0.3),
+                                color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
                                 blurRadius: 10,
                                 offset: const Offset(0, 5),
                               ),
@@ -372,7 +364,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Expanded(
                               child: Divider(
-                                color: secondaryTextColor.withOpacity(0.2),
+                                color: secondaryTextColor.withValues(alpha: 0.2),
                               ),
                             ),
                             Padding(
@@ -387,7 +379,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             Expanded(
                               child: Divider(
-                                color: secondaryTextColor.withOpacity(0.2),
+                                color: secondaryTextColor.withValues(alpha: 0.2),
                               ),
                             ),
                           ],
@@ -412,7 +404,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: textColor,
                               side: BorderSide(
-                                color: secondaryTextColor.withOpacity(0.3),
+                                color: secondaryTextColor.withValues(alpha: 0.3),
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(26.r),
@@ -475,13 +467,13 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.black.withOpacity(0.2)
-              : Colors.black.withOpacity(0.03),
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
           ),
         ),
         child: TextFormField(

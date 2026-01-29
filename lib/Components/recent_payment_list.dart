@@ -57,9 +57,9 @@ class RecentPaymentList extends StatelessWidget {
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: 20.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Center(
               child: Text(
@@ -88,9 +88,9 @@ class RecentPaymentList extends StatelessWidget {
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: 20.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Center(
               child: Text(
@@ -107,12 +107,12 @@ class RecentPaymentList extends StatelessWidget {
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         final containerColor = isDark
-            ? Colors.white.withOpacity(0.05) // Dark Glass
-            : Colors.white.withOpacity(0.8);
+            ? Colors.white.withValues(alpha: 0.05) // Dark Glass
+            : Colors.white.withValues(alpha: 0.8);
 
         final borderColor = isDark
-            ? Colors.white.withOpacity(0.08)
-            : Colors.grey.withOpacity(0.1);
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.grey.withValues(alpha: 0.1);
 
         final textColor = isDark ? Colors.white : Colors.black87;
 
@@ -125,14 +125,14 @@ class RecentPaymentList extends StatelessWidget {
             boxShadow: isDark
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                   ]
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -175,7 +175,7 @@ class RecentPaymentList extends StatelessWidget {
           child: Container(
             height: 52.h,
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.08),
+              color: Colors.grey.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12.r),
             ),
           ),

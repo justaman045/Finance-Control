@@ -105,7 +105,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E),
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ] // Midnight Void
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
@@ -146,7 +146,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                 Text(
                   'Welcome back,',
                   style: TextStyle(
-                    color: scheme.onBackground,
+                    color: scheme.onSurface,
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w400,
                   ),
@@ -180,7 +180,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.sp,
-                        color: scheme.onBackground,
+                        color: scheme.onSurface,
                       ),
                     );
                   },
@@ -200,7 +200,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               child: IconButton(
                 icon: Icon(
                   Icons.search,
-                  color: scheme.onSurface.withOpacity(0.9),
+                  color: scheme.onSurface.withValues(alpha: 0.9),
                   size: 22.sp,
                 ),
                 onPressed: () {
@@ -221,7 +221,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               child: IconButton(
                 icon: Icon(
                   Icons.event_repeat,
-                  color: scheme.onSurface.withOpacity(0.8),
+                  color: scheme.onSurface.withValues(alpha: 0.8),
                   size: 24.sp,
                 ),
                 onPressed: () => gotoPage(const RecurringPaymentsScreen()),
@@ -240,7 +240,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               child: IconButton(
                 icon: Icon(
                   Icons.trending_up,
-                  color: scheme.onSurface.withOpacity(0.8),
+                  color: scheme.onSurface.withValues(alpha: 0.8),
                   size: 24.sp,
                 ),
                 onPressed: () => gotoPage(const ForecastScreen()),
@@ -310,7 +310,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     style: TextStyle(
       fontWeight: FontWeight.bold,
       fontSize: 16.sp,
-      color: scheme.onBackground.withOpacity(0.5),
+      color: scheme.onSurface.withValues(alpha: 0.5),
     ),
   );
 
@@ -319,7 +319,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     style: TextStyle(
       fontWeight: FontWeight.bold,
       fontSize: 16.sp,
-      color: scheme.onBackground,
+      color: scheme.onSurface,
     ),
   );
 }

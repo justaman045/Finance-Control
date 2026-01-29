@@ -88,9 +88,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         _categories = fetched;
         // If selected is null but transaction has one, pick it.
         // But wait, transaction stores String name.
-        if (_selectedCategory == null) {
-          _selectedCategory = widget.transaction.category;
-        }
+        _selectedCategory ??= widget.transaction.category;
       });
     } catch (e) {
       debugPrint("Load category error: $e");
@@ -105,14 +103,14 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
 
     await showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (_) => Dialog(
         backgroundColor: const Color(0xFF1E1E2C),
         elevation: 0,
         insetPadding: EdgeInsets.all(20.w),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24.r),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -124,7 +122,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6C63FF).withOpacity(0.2),
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
                 blurRadius: 20,
                 spreadRadius: 2,
               ),
@@ -147,9 +145,11 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               SizedBox(height: 20.h),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: TextField(
@@ -159,7 +159,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: "Category Name",
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
                   ),
                 ),
               ),
@@ -172,7 +174,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                     child: Text(
                       "Cancel",
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 16.sp,
                       ),
                     ),
@@ -193,7 +195,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                             .add({"name": text});
                         await _loadCategories();
                         setState(() => _selectedCategory = text);
-                        Navigator.pop(context);
+                        if (mounted) Navigator.pop(context);
                       } catch (e) {
                         // handle error
                       }
@@ -210,7 +212,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         borderRadius: BorderRadius.circular(12.r),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6C63FF).withOpacity(0.4),
+                            color: const Color(
+                              0xFF6C63FF,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 10,
                           ),
                         ],
@@ -320,12 +324,12 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       }
     } catch (e) {
       // ----------------- OFFLINE PATH: queue update -----------------
-      final Map<String, dynamic> updateJson = {
-        "operation": "update",
-        "transactionId": updated.id,
-        "user": user.email,
-        "newData": txMap,
-      };
+      // final Map<String, dynamic> updateJson = {
+      //   "operation": "update",
+      //   "transactionId": updated.id,
+      //   "user": user.email,
+      //   "newData": txMap,
+      // };
 
       await OfflineQueueService.savePending(
         txMap,
@@ -370,7 +374,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+              const Color(
+                0xFF16213E,
+              ).withValues(alpha: 0.95), // Deep Blue Bottom
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -384,8 +390,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _FieldLabel("Recipient Name"),
-                  _InputField(
+                  _fieldLabel("Recipient Name"),
+                  _inputField(
                     controller: _recipientNameController,
                     hint: "Recipient Name",
                     validator: (value) =>
@@ -394,28 +400,28 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         : null,
                   ),
 
-                  _FieldLabel("Amount"),
-                  _AmountField(_amountController),
+                  _fieldLabel("Amount"),
+                  _amountField(_amountController),
 
-                  _FieldLabel("Tax"),
-                  _InputField(
+                  _fieldLabel("Tax"),
+                  _inputField(
                     controller: _taxController,
                     hint: "0.00",
                     isNumber: true,
                   ),
 
-                  _FieldLabel("Category"),
-                  _CategorySelector(),
+                  _fieldLabel("Category"),
+                  _categorySelector(),
 
-                  _FieldLabel("Note"),
-                  _InputField(
+                  _fieldLabel("Note"),
+                  _inputField(
                     controller: _noteController,
                     hint: "Add a note...",
                     maxLines: 2,
                   ),
 
-                  _FieldLabel("Date"),
-                  _DateSelector(),
+                  _fieldLabel("Date"),
+                  _dateSelector(),
 
                   SizedBox(height: 40.h),
                   SizedBox(
@@ -439,7 +445,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                           borderRadius: BorderRadius.circular(28.r),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              color: const Color(
+                                0xFF6C63FF,
+                              ).withValues(alpha: 0.4),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -476,7 +484,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // WIDGETS
   // ------------------------------------------------------------------
 
-  Widget _FieldLabel(String text) {
+  Widget _fieldLabel(String text) {
     return Padding(
       padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
       child: Text(
@@ -490,16 +498,16 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     );
   }
 
-  Widget _GlassBox({required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _glassBox({required Widget child, EdgeInsetsGeometry? padding}) {
     return Container(
       padding: padding ?? EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05), // Dark Glass
+        color: Colors.white.withValues(alpha: 0.05), // Dark Glass
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -509,17 +517,17 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     );
   }
 
-  Widget _AmountField(TextEditingController c) {
-    return _GlassBox(
+  Widget _amountField(TextEditingController c) {
+    return _glassBox(
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: const Color(0xFF6C63FF).withOpacity(0.2),
+              color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8.r),
               border: Border.all(
-                color: const Color(0xFF6C63FF).withOpacity(0.3),
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
               ),
             ),
             margin: EdgeInsets.all(8.w),
@@ -561,14 +569,14 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     );
   }
 
-  Widget _InputField({
+  Widget _inputField({
     required TextEditingController controller,
     required String hint,
     int maxLines = 1,
     bool isNumber = false,
     String? Function(String?)? validator,
   }) {
-    return _GlassBox(
+    return _glassBox(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
       child: TextFormField(
         controller: controller,
@@ -595,7 +603,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     );
   }
 
-  Widget _CategorySelector() {
+  Widget _categorySelector() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -607,7 +615,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                 : const Color(0xFF00E5FF);
             final borderColor = isSelected
                 ? catColor
-                : Colors.white.withOpacity(0.1);
+                : Colors.white.withValues(alpha: 0.1);
 
             return Padding(
               padding: EdgeInsets.only(right: 12.w),
@@ -621,14 +629,14 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? catColor.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.05),
+                        ? catColor.withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(30.r),
                     border: Border.all(color: borderColor),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: catColor.withOpacity(0.3),
+                              color: catColor.withValues(alpha: 0.3),
                               blurRadius: 12,
                             ),
                           ]
@@ -664,10 +672,10 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
               decoration: BoxDecoration(
-                color: const Color(0xFF6C63FF).withOpacity(0.1),
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(30.r),
                 border: Border.all(
-                  color: const Color(0xFF6C63FF).withOpacity(0.5),
+                  color: const Color(0xFF6C63FF).withValues(alpha: 0.5),
                   style: BorderStyle.none,
                 ),
               ),
@@ -695,7 +703,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     );
   }
 
-  Widget _DateSelector() {
+  Widget _dateSelector() {
     return GestureDetector(
       onTap: () async {
         final picked = await showDatePicker(
@@ -712,7 +720,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                   surface: Color(0xFF1E1E2C),
                   onSurface: Colors.white,
                 ),
-                dialogBackgroundColor: const Color(0xFF1E1E2C),
+                dialogTheme: DialogThemeData(
+                  backgroundColor: const Color(0xFF1E1E2C),
+                ),
               ),
               child: child!,
             );
@@ -720,7 +730,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         );
         if (picked != null) setState(() => _selectedDate = picked);
       },
-      child: _GlassBox(
+      child: _glassBox(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
         child: Row(
           children: [

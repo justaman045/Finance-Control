@@ -64,7 +64,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
     final gradientColors = isDark
         ? [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
             const Color(0xFF0F3460),
           ]
         : [
@@ -75,8 +75,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
-        ? Colors.white.withOpacity(0.7)
-        : const Color(0xFF1A1A2E).withOpacity(0.7);
+        ? Colors.white.withValues(alpha: 0.7)
+        : const Color(0xFF1A1A2E).withValues(alpha: 0.7);
 
     return Scaffold(
       body: Container(
@@ -110,8 +110,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                           boxShadow: [
                             BoxShadow(
                               color: isDark
-                                  ? const Color(0xFF6C63FF).withOpacity(0.15)
-                                  : const Color(0xFF3F51B5).withOpacity(0.1),
+                                  ? const Color(0xFF6C63FF).withValues(alpha: 0.15)
+                                  : const Color(0xFF3F51B5).withValues(alpha: 0.1),
                               blurRadius: 60,
                               spreadRadius: 20,
                             ),
@@ -180,8 +180,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                         ? const Color(0xFF6C63FF)
                                         : Colors.deepPurple)
                                   : (isDark
-                                        ? Colors.white.withOpacity(0.2)
-                                        : Colors.black.withOpacity(0.1)),
+                                        ? Colors.white.withValues(alpha: 0.2)
+                                        : Colors.black.withValues(alpha: 0.1)),
                               borderRadius: BorderRadius.circular(4.r),
                             ),
                           ),
@@ -202,15 +202,15 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                     const Color(0xFF4834D4),
                                   ]
                                 : [
-                                    const Color(0xFF6C63FF).withOpacity(0.9),
-                                    const Color(0xFF4834D4).withOpacity(0.9),
+                                    const Color(0xFF6C63FF).withValues(alpha: 0.9),
+                                    const Color(0xFF4834D4).withValues(alpha: 0.9),
                                   ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF6C63FF).withOpacity(0.3),
+                              color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             ),

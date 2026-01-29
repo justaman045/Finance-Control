@@ -51,7 +51,7 @@ class _UpdatePageState extends State<UpdatePage> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: scheme.background,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
         title: const Text("Update Available"),
         centerTitle: true,
@@ -91,7 +91,7 @@ class _UpdatePageState extends State<UpdatePage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: scheme.onSurface.withOpacity(0.08),
+                  color: scheme.onSurface.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 )
@@ -112,7 +112,7 @@ class _UpdatePageState extends State<UpdatePage> {
                 Text(
                   "Version: $tag",
                   style: TextStyle(
-                    color: scheme.onSurface.withOpacity(.7),
+                    color: scheme.onSurface.withValues(alpha: .7),
                     fontSize: 15,
                   ),
                 ),
@@ -120,7 +120,7 @@ class _UpdatePageState extends State<UpdatePage> {
                 Text(
                   "Published: ${publishedDate != null ? publishedDate.toLocal().toString().split(' ')[0] : 'Unknown'}",
                   style: TextStyle(
-                    color: scheme.onSurface.withOpacity(.6),
+                    color: scheme.onSurface.withValues(alpha: .6),
                   ),
                 ),
               ],
@@ -150,14 +150,14 @@ class _UpdatePageState extends State<UpdatePage> {
             decoration: BoxDecoration(
               color: scheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: scheme.outline.withOpacity(0.3)),
+              border: Border.all(color: scheme.outline.withValues(alpha: 0.3)),
             ),
             child: Text(
               notes,
               style: TextStyle(
                 fontSize: 14.5,
                 height: 1.35,
-                color: scheme.onSurface.withOpacity(.9),
+                color: scheme.onSurface.withValues(alpha: .9),
               ),
             ),
           ),

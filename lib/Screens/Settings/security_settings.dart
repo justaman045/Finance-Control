@@ -20,14 +20,14 @@ class SecuritySettingsScreen extends StatelessWidget {
             content: Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E).withOpacity(0.95),
+                color: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(
-                  color: const Color(0xFF00E5FF).withOpacity(0.5),
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00E5FF).withOpacity(0.15),
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 5),
                   ),
@@ -102,7 +102,7 @@ class SecuritySettingsScreen extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E), // Midnight Void
-              const Color(0xFF16213E).withOpacity(0.95),
+              const Color(0xFF16213E).withValues(alpha: 0.95),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -122,7 +122,7 @@ class SecuritySettingsScreen extends StatelessWidget {
                     title: "Biometric App Lock",
                     trailing: Switch(
                       value: bioService.isBiometricEnabled.value,
-                      activeColor: const Color(0xFF00E5FF),
+                      activeThumbColor: const Color(0xFF00E5FF),
                       onChanged: (val) => bioService.toggleBiometric(val),
                     ),
                   ),
@@ -135,7 +135,7 @@ class SecuritySettingsScreen extends StatelessWidget {
                     title: "Privacy Mode (Blur)",
                     trailing: Switch(
                       value: privacyController.isPrivacyMode.value,
-                      activeColor: const Color(0xFF00E5FF),
+                      activeThumbColor: const Color(0xFF00E5FF),
                       onChanged: (val) => privacyController.togglePrivacy(),
                     ),
                   ),
@@ -201,7 +201,7 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Divider(color: Colors.white.withOpacity(0.1)),
+      child: Divider(color: Colors.white.withValues(alpha: 0.1)),
     );
   }
 }
@@ -236,9 +236,9 @@ class _SettingsTile extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Row(
               children: [
@@ -246,8 +246,8 @@ class _SettingsTile extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
-                      color: (iconColor ?? const Color(0xFF00E5FF)).withOpacity(
-                        0.1,
+                      color: (iconColor ?? const Color(0xFF00E5FF)).withValues(
+                        alpha: 0.1,
                       ),
                       shape: BoxShape.circle,
                     ),

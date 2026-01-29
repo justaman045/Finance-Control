@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Models/wealth_data.dart';
 
@@ -37,7 +38,7 @@ class WealthService {
         return WealthPortfolio.fromMap(doc.data() as Map<String, dynamic>);
       }
     } catch (e) {
-      print("Error fetching portfolio: $e");
+      log("Error fetching portfolio: $e");
     }
     return WealthPortfolio(lastUpdated: DateTime.now());
   }
@@ -50,7 +51,7 @@ class WealthService {
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print("Error updating asset $key: $e");
+      log("Error updating asset $key: $e");
       rethrow;
     }
   }
@@ -63,7 +64,7 @@ class WealthService {
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print("Error updating asset target $key: $e");
+      log("Error updating asset target $key: $e");
       rethrow;
     }
   }
@@ -79,7 +80,7 @@ class WealthService {
       }
       await _portfolioRef.set(data, SetOptions(merge: true));
     } catch (e) {
-      print("Error updating monthly expense override: $e");
+      log("Error updating monthly expense override: $e");
       rethrow;
     }
   }
@@ -92,7 +93,7 @@ class WealthService {
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print("Error updating hidden assets: $e");
+      log("Error updating hidden assets: $e");
       rethrow;
     }
   }
@@ -152,7 +153,7 @@ class WealthService {
         balance += amount;
       }
     } catch (e) {
-      print("Error calculating bank balance: $e");
+      log("Error calculating bank balance: $e");
     }
     return balance;
   }
@@ -240,8 +241,8 @@ class WealthService {
           getVisible('p2p', portfolio.p2p) +
           portfolio.custom.entries.fold(
             0,
-            (sum, e) =>
-                portfolio.hiddenKeys.contains(e.key) ? sum : sum + e.value,
+            (accum, e) =>
+                portfolio.hiddenKeys.contains(e.key) ? accum : accum + e.value,
           );
 
       final totalInvested = visibleTotal;
@@ -302,7 +303,7 @@ class WealthService {
         });
       }
     } catch (e) {
-      print("Error generating insights: $e");
+      log("Error generating insights: $e");
     }
 
     return insights;
@@ -418,7 +419,7 @@ class WealthService {
 
       return result;
     } catch (e) {
-      print("Error calculating targets: $e");
+      log("Error calculating targets: $e");
       return {};
     }
   }

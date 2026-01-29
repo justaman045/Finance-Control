@@ -106,8 +106,8 @@ class _QuickSendRowState extends State<QuickSendRow> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final containerColor = isDark
-        ? scheme.surface.withOpacity(0.6)
-        : Colors.white.withOpacity(0.8);
+        ? scheme.surface.withValues(alpha: 0.6)
+        : Colors.white.withValues(alpha: 0.8);
 
     if (loading) {
       return Container(
@@ -125,8 +125,8 @@ class _QuickSendRowState extends State<QuickSendRow> {
               width: 50.h,
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.grey.withOpacity(0.2)
-                    : Colors.grey.withOpacity(0.1),
+                    ? Colors.grey.withValues(alpha: 0.2)
+                    : Colors.grey.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
             ),
@@ -149,7 +149,7 @@ class _QuickSendRowState extends State<QuickSendRow> {
         child: Text(
           "No categories found",
           style: TextStyle(
-            color: scheme.onSurface.withOpacity(0.6),
+            color: scheme.onSurface.withValues(alpha: 0.6),
             fontSize: 13.sp,
           ),
         ),
@@ -164,14 +164,14 @@ class _QuickSendRowState extends State<QuickSendRow> {
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.grey.withOpacity(0.1),
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.grey.withValues(alpha: 0.1),
         ),
         boxShadow: isDark
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 5),
                 ),
@@ -261,10 +261,10 @@ class _QuickSendRowState extends State<QuickSendRow> {
             padding: EdgeInsets.all(4.w),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: color.withOpacity(0.5), width: 2),
+              border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.2),
+                  color: color.withValues(alpha: 0.2),
                   blurRadius: 10,
                   spreadRadius: 2,
                 ),
@@ -282,7 +282,7 @@ class _QuickSendRowState extends State<QuickSendRow> {
               style: TextStyle(
                 fontSize: 11.sp,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
                 letterSpacing: 0.3,
               ),
             ),

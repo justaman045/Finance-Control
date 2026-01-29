@@ -73,7 +73,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           gradient: LinearGradient(
             colors: [
               const Color(0xFF1A1A2E),
-              const Color(0xFF16213E).withOpacity(0.95),
+              const Color(0xFF16213E).withValues(alpha: 0.95),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -143,9 +143,9 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       onLongPress: () => _deleteCategory(cat),
       child: Container(
         decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: color.withOpacity(0.5)),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -153,7 +153,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             Container(
               padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 28.sp),
@@ -335,8 +335,8 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: _selectedIconCode == icon.codePoint
-                            ? Color(_selectedColor).withOpacity(0.3)
-                            : Colors.white.withOpacity(0.05),
+                            ? Color(_selectedColor).withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8.r),
                         border: _selectedIconCode == icon.codePoint
                             ? Border.all(color: Color(_selectedColor))

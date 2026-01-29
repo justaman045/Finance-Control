@@ -24,8 +24,8 @@ class NavItem extends StatelessWidget {
         : const Color(0xFF6C63FF); // Blurple
 
     final inactiveColor = isDark
-        ? Colors.white.withOpacity(0.5)
-        : Colors.black.withOpacity(0.5);
+        ? Colors.white.withValues(alpha: 0.5)
+        : Colors.black.withValues(alpha: 0.5);
 
     return Material(
       color: Colors.transparent,
@@ -39,15 +39,15 @@ class NavItem extends StatelessWidget {
           height: 42.h,
           padding: EdgeInsets.symmetric(horizontal: active ? 16.w : 12.w),
           decoration: BoxDecoration(
-            color: active ? activeColor.withOpacity(0.15) : Colors.transparent,
+            color: active ? activeColor.withValues(alpha: 0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(30.r),
             border: active
-                ? Border.all(color: activeColor.withOpacity(0.3), width: 1)
+                ? Border.all(color: activeColor.withValues(alpha: 0.3), width: 1)
                 : null,
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: activeColor.withOpacity(0.2),
+                      color: activeColor.withValues(alpha: 0.2),
                       blurRadius: 12,
                       spreadRadius: -2,
                     ),

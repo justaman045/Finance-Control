@@ -61,8 +61,8 @@ class _BalanceCardState extends State<BalanceCard> {
     final gradientColors = isDark
         ? [
             const Color(0xFF2E1A47), // Deep Violet
-            const Color(0xFF4A148C).withOpacity(0.8),
-            const Color(0xFF0D47A1).withOpacity(0.6), // Deep Blue
+            const Color(0xFF4A148C).withValues(alpha: 0.8),
+            const Color(0xFF0D47A1).withValues(alpha: 0.6), // Deep Blue
           ]
         : [
             const Color(0xFF4facfe), // Premium Blue
@@ -82,14 +82,14 @@ class _BalanceCardState extends State<BalanceCard> {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? const Color(0xFF6200EA).withOpacity(0.4)
-                : const Color(0xFF00f2fe).withOpacity(0.3),
+                ? const Color(0xFF6200EA).withValues(alpha: 0.4)
+                : const Color(0xFF00f2fe).withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 10),
             spreadRadius: -5,
           ),
         ],
-        border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.5),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
       ),
       child: Stack(
         children: [
@@ -105,8 +105,8 @@ class _BalanceCardState extends State<BalanceCard> {
                 gradient: RadialGradient(
                   colors: [
                     isDark
-                        ? Colors.cyanAccent.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.3),
+                        ? Colors.cyanAccent.withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.3),
                     Colors.transparent,
                   ],
                 ),
@@ -120,7 +120,7 @@ class _BalanceCardState extends State<BalanceCard> {
               Text(
                 'CURRENT BALANCE',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 11.sp,
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.w600,
@@ -161,7 +161,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                 letterSpacing: -0.5,
                                 shadows: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
+                                    color: Colors.black.withValues(alpha: 0.2),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -231,9 +231,9 @@ class _BalanceCardState extends State<BalanceCard> {
       child: Container(
         height: 50.h,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -268,7 +268,7 @@ class _BalanceCardState extends State<BalanceCard> {
     width: 120.w,
     height: 36.h,
     decoration: BoxDecoration(
-      color: scheme.onSurface.withOpacity(0.16),
+      color: scheme.onSurface.withValues(alpha: 0.16),
       borderRadius: BorderRadius.circular(12.r),
     ),
     margin: EdgeInsets.symmetric(vertical: 4.h),

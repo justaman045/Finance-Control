@@ -68,13 +68,13 @@ class ThemeSettingsScreen extends StatelessWidget {
           title: Text(
             "Select App Theme",
             style: TextStyle(
-              color: scheme.onBackground,
+              color: scheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: scheme.onBackground, size: 20.sp),
+            icon: Icon(Icons.arrow_back_ios, color: scheme.onSurface, size: 20.sp),
             onPressed: () => Navigator.of(context).pop(),
           ),
           toolbarHeight: 64.h,
@@ -91,7 +91,7 @@ class ThemeSettingsScreen extends StatelessWidget {
                   border: Border.all(color: border, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.012),
+                      color: Colors.black.withValues(alpha: 0.012),
                       blurRadius: 4,
                     ),
                   ],
@@ -163,7 +163,7 @@ class _ThemeModeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
-      leading: Icon(icon, color: selected ? scheme.primary : scheme.onSurface.withOpacity(0.6), size: 27.sp),
+      leading: Icon(icon, color: selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.6), size: 27.sp),
       title: Text(title, style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold)),
       subtitle: Text(subtitle, style: TextStyle(fontSize: 12.2.sp)),
       trailing: selected

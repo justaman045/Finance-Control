@@ -10,7 +10,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/budget_service.dart';
 
 class ReceiptScanPage extends StatefulWidget {
-  const ReceiptScanPage({Key? key}) : super(key: key);
+  const ReceiptScanPage({super.key});
 
   @override
   State<ReceiptScanPage> createState() => _ReceiptScanPageState();
@@ -117,15 +117,19 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         );
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Transaction saved successfully.")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Transaction saved successfully.")),
+        );
 
-      Navigator.pop(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to save transaction: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to save transaction: $e")),
+        );
+      }
     }
   }
 
@@ -145,8 +149,9 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
     final lower = text.toLowerCase();
     if (lower.contains('grocery')) return 'Groceries';
     if (lower.contains('fuel') || lower.contains('petrol')) return 'Fuel';
-    if (lower.contains('restaurant') || lower.contains('dining'))
+    if (lower.contains('restaurant') || lower.contains('dining')) {
       return 'Dining';
+    }
     if (lower.contains('rent')) return 'Rent';
     if (lower.contains('shopping')) return 'Shopping';
     return null;
@@ -176,7 +181,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         gradient: LinearGradient(
           colors: [
             const Color(0xFF1A1A2E), // Midnight Void Top
-            const Color(0xFF16213E).withOpacity(0.95), // Deep Blue Bottom
+            const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -209,12 +214,14 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                 flex: 2,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(24.r),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -254,7 +261,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
               Row(
                 children: [
                   Expanded(
-                    child: _GlassButton(
+                    child: _glassButton(
                       icon: Icons.camera_alt_outlined,
                       label: "Camera",
                       onTap: () => _pickImage(ImageSource.camera),
@@ -262,7 +269,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                   ),
                   SizedBox(width: 16.w),
                   Expanded(
-                    child: _GlassButton(
+                    child: _glassButton(
                       icon: Icons.photo_library_outlined,
                       label: "Gallery",
                       onTap: () => _pickImage(ImageSource.gallery),
@@ -279,7 +286,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                 child: Container(
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(20.r),
                     border: Border.all(color: Colors.white12),
                   ),
@@ -321,7 +328,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                     borderRadius: BorderRadius.circular(28.r),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6C63FF).withOpacity(0.4),
+                        color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
                         blurRadius: 15,
                         offset: const Offset(0, 8),
                       ),
@@ -347,7 +354,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
     );
   }
 
-  Widget _GlassButton({
+  Widget _glassButton({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -357,9 +364,9 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
       child: Container(
         height: 50.h,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -13,16 +13,16 @@ class BottomNavBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final containerColor = isDark
-        ? const Color(0xFF161622).withOpacity(0.8) // Deep Dark Glass
-        : Colors.white.withOpacity(0.9); // White Glass for Light Mode
+        ? const Color(0xFF161622).withValues(alpha: 0.8) // Deep Dark Glass
+        : Colors.white.withValues(alpha: 0.9); // White Glass for Light Mode
 
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.08)
-        : Colors.grey.withOpacity(0.2);
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.grey.withValues(alpha: 0.2);
 
     final shadowColor = isDark
-        ? Colors.black.withOpacity(0.4)
-        : Colors.black.withOpacity(0.1);
+        ? Colors.black.withValues(alpha: 0.4)
+        : Colors.black.withValues(alpha: 0.1);
 
     final glowColor = isDark
         ? const Color(0xFF00E5FF) // Neon Cyan
@@ -41,7 +41,7 @@ class BottomNavBar extends StatelessWidget {
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: glowColor.withOpacity(0.05), // Subtle Glow
+            color: glowColor.withValues(alpha: 0.05), // Subtle Glow
             blurRadius: 15,
             spreadRadius: 2,
           ),

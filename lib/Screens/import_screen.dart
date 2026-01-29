@@ -142,7 +142,7 @@ class _ImportScreenState extends State<ImportScreen> {
         gradient: LinearGradient(
           colors: [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -274,13 +274,13 @@ class _ImportScreenState extends State<ImportScreen> {
         padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 20.w),
         decoration: BoxDecoration(
           color: isHighlight
-              ? const Color(0xFF00E5FF).withOpacity(0.1)
-              : Colors.white.withOpacity(0.05),
+              ? const Color(0xFF00E5FF).withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isHighlight
                 ? const Color(0xFF00E5FF)
-                : Colors.white.withOpacity(0.1),
+                : Colors.white.withValues(alpha: 0.1),
             width: isHighlight ? 1.5 : 1,
           ),
         ),
@@ -315,9 +315,9 @@ class _ImportScreenState extends State<ImportScreen> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -358,7 +358,7 @@ class _ImportScreenState extends State<ImportScreen> {
         borderRadius: BorderRadius.circular(30.r),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00E5FF).withOpacity(0.3),
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),

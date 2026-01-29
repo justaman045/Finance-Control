@@ -158,8 +158,9 @@ class _ExportImportPageState extends State<ExportImportPage> {
           if (row.isEmpty) continue;
 
           String id = row[0].toString();
-          if (id.isEmpty)
+          if (id.isEmpty) {
             id = FirebaseFirestore.instance.collection('users').doc().id;
+          }
 
           String senderId = row[1].toString();
           String recipientId = row[2].toString();
@@ -228,8 +229,8 @@ class _ExportImportPageState extends State<ExportImportPage> {
       title,
       msg,
       backgroundColor: isError
-          ? Colors.redAccent.withOpacity(0.1)
-          : Colors.greenAccent.withOpacity(0.1),
+          ? Colors.redAccent.withValues(alpha: 0.1)
+          : Colors.greenAccent.withValues(alpha: 0.1),
       colorText: isError ? Colors.redAccent : Colors.green,
       snackPosition: SnackPosition.BOTTOM,
       barBlur: 20,
@@ -237,8 +238,8 @@ class _ExportImportPageState extends State<ExportImportPage> {
       borderRadius: 16.r,
       borderWidth: 1,
       borderColor: isError
-          ? Colors.redAccent.withOpacity(0.3)
-          : Colors.green.withOpacity(0.3),
+          ? Colors.redAccent.withValues(alpha: 0.3)
+          : Colors.green.withValues(alpha: 0.3),
     );
   }
 
@@ -247,7 +248,7 @@ class _ExportImportPageState extends State<ExportImportPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final gradientColors = isDark
-        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withOpacity(0.95)]
+        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withValues(alpha: 0.95)]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
@@ -288,7 +289,7 @@ class _ExportImportPageState extends State<ExportImportPage> {
               Text(
                 "Export or Import your financial data securely.",
                 style: TextStyle(
-                  color: textColor.withOpacity(0.7),
+                  color: textColor.withValues(alpha: 0.7),
                   fontSize: 14.sp,
                   height: 1.5,
                 ),
@@ -338,16 +339,16 @@ class _ExportImportPageState extends State<ExportImportPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20.r),
         color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.white.withOpacity(0.6),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.6),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.white.withOpacity(0.6),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.6),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -365,7 +366,7 @@ class _ExportImportPageState extends State<ExportImportPage> {
                 Container(
                   padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.15),
+                    color: accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                   child: isLoading

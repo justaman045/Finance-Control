@@ -1,4 +1,5 @@
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
+import 'dart:developer';
 import 'package:permission_handler/permission_handler.dart';
 
 class SmsTransaction {
@@ -181,7 +182,7 @@ class SmsService {
       }
       return transactions;
     } catch (e) {
-      print("Error scanning SMS: $e");
+      log("Error scanning SMS: $e");
       return [];
     }
   }

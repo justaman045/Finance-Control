@@ -188,7 +188,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
         gradient: LinearGradient(
           colors: [
             const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -227,9 +227,9 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: Column(
               children: [
@@ -272,7 +272,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                   ],
                 ),
                 SizedBox(height: 12.h),
-                Divider(color: Colors.white.withOpacity(0.1)),
+                Divider(color: Colors.white.withValues(alpha: 0.1)),
                 SizedBox(height: 12.h),
                 // Range Filter
                 Row(
@@ -319,12 +319,12 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
             child: Container(
               padding: EdgeInsets.fromLTRB(16.w, 32.h, 24.w, 16.h),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05), // Dark Glass
+                color: Colors.white.withValues(alpha: 0.05), // Dark Glass
                 borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -370,7 +370,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                 drawVerticalLine: false,
                                 horizontalInterval: _maxY / 5,
                                 getDrawingHorizontalLine: (value) => FlLine(
-                                  color: Colors.white.withOpacity(0.05),
+                                  color: Colors.white.withValues(alpha: 0.05),
                                   strokeWidth: 1,
                                 ),
                               ),
@@ -397,8 +397,8 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                           _getMonthLabel(idx),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                              0.5,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.5,
                                             ),
                                             fontSize: 10.sp,
                                           ),
@@ -416,7 +416,9 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                       return Text(
                                         "${(val / 1000).toStringAsFixed(1)}k",
                                         style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
                                           fontSize: 10.sp,
                                         ),
                                       );
@@ -445,10 +447,10 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                       colors: [
                                         const Color(
                                           0xFF00E5FF,
-                                        ).withOpacity(0.2),
+                                        ).withValues(alpha: 0.2),
                                         const Color(
                                           0xFF00E5FF,
-                                        ).withOpacity(0.0),
+                                        ).withValues(alpha: 0.0),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
