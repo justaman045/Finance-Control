@@ -9,6 +9,7 @@ import 'package:money_control/Screens/Settings/security_settings.dart';
 import 'package:money_control/Screens/Settings/data_support_settings.dart';
 import 'package:money_control/Screens/edit_profile.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Screens/sms_import_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -105,6 +106,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.help_outline_rounded,
                   color: Colors.orangeAccent,
                   onTap: () => Get.to(() => const DataSupportSettingsScreen()),
+                ),
+
+                SizedBox(height: 16.h),
+
+                _SettingsCategoryCard(
+                  title: "Automation",
+                  subtitle: "Import SMS",
+                  icon: Icons.auto_mode_rounded,
+                  color: Colors.greenAccent,
+                  onTap: () => Get.to(() => const SmsImportScreen()),
                 ),
 
                 SizedBox(height: 40.h),

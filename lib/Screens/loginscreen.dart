@@ -102,16 +102,21 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _googleSignIn.authenticate();
+      // Corrected for google_sign_in 7.x:
+      // authenticate() returns the user directly.
+      final GoogleSignInAccount? googleUser = await _googleSignIn
+          .authenticate();
 
-      final event = await _googleSignIn.authenticationEvents.first;
-
-      if (event is! GoogleSignInAuthenticationEventSignIn) {
-        throw Exception('Google sign-in cancelled');
+      if (googleUser == null) {
+        // User cancelled
+        setState(() {
+          _isLoading = false;
+        });
+        return;
       }
 
-      final googleUser = event.user;
-      final googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
@@ -130,10 +135,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
       setState(() => _isLoading = false);
       Get.offAll(() => BankingHomeScreen());
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
+      debugPrint("FirebaseAuthException: ${e.code} - ${e.message}");
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Google sign-in failed or cancelled';
+        _errorMessage = e.message ?? 'Authentication failed.';
+      });
+    } catch (e) {
+      debugPrint("Google Sign-In Error: $e");
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Google sign-in failed.';
       });
     }
   }

@@ -338,7 +338,6 @@ class WealthService {
       }
 
       final monthlyExpense = totalExpense / 3;
-      final annualExpense = monthlyExpense * 12;
 
       // Fetch user profile for age
       final userDoc = await _db.collection('users').doc(user.email).get();
@@ -357,6 +356,7 @@ class WealthService {
       }
 
       final effectiveMonthlyExpense = expenseOverride ?? monthlyExpense;
+      final annualExpense = effectiveMonthlyExpense * 12;
 
       final double P = portfolio.totalAssets;
 
@@ -368,32 +368,28 @@ class WealthService {
         cashMultiplier = 12; // Conservative, higher safety net
       }
 
-      // Default Formula Targets
-      // Store the Effective Expense as the 'formula' for Bank so UI can show it?
-      // No, UI expects 'formula' to be the Target usually.
-      // But for Bank, user wants to see "Monthly Expense".
-      // Previous UI code: `final monthlyExpense = (assetTargets['bank']?.formula ?? 0) / 6;`
-      // It assumed divider 6. Now divider changes.
-      // I should probably encode the multiplier or expense in the target.
-      // Or I can calculate Bank Target = EffectiveMonthlyExpense * Multiplier.
-      // And in UI, I display `Target / Multiplier`? I need to know the Multiplier in UI.
-      // OR, I pass `EffectiveMonthlyExpense` inside the WealthTarget structure if I can.
-      // `WealthTarget` has `formula` (double).
-      // Let's use `formula` to store the TARGET.
-      // The UI will likely need to know the Expense or Multiplier to display "Monthly Expense".
-      // If I store `Bank Target` in `formula`, UI gets `Target`.
-      // UI needs `Target / Multiplier` to get `Expense`.
-      // But Multiplier depends on age. UI knows Age.
-      // So UI can recalculate multiplier: `age < 30 ? 3 : ...`
-      // Then `Expense = Target / Multiplier`.
-      // This seems consistent.
+      // Age-Based Multiplier for SIP (Financial Freedom Milestones)
+      // < 30 : 1x Annual Expense (Foundation)
+      // 30-40: 3x Annual Expense
+      // 40-50: 8x Annual Expense
+      // 50-60: 15x Annual Expense
+      // 60+  : 25x Annual Expense (Retirement)
+      int sipMultiplier = 25;
+      if (age < 30) {
+        sipMultiplier = 1;
+      } else if (age < 40) {
+        sipMultiplier = 3;
+      } else if (age < 50) {
+        sipMultiplier = 8;
+      } else if (age < 60) {
+        sipMultiplier = 15;
+      }
 
+      // Default Formula Targets
       final formulaTargets = {
         'bank': effectiveMonthlyExpense * cashMultiplier,
-        'fd':
-            monthlyExpense *
-            3, // Keep FD as 3x actual average for now, or update? User only mentioned Bank.
-        'sip': annualExpense * 25,
+        'fd': effectiveMonthlyExpense * 3,
+        'sip': annualExpense * sipMultiplier,
         'stocks': P > 0 ? P * ((100 - age) / 100) : 0.0,
         'pf': P > 0 ? P * 0.20 : 0.0,
         'gold': P > 0 ? P * 0.10 : 0.0,

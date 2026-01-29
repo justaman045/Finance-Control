@@ -15,6 +15,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Screens/transaction_history.dart';
 import 'package:money_control/Screens/transaction_search.dart';
+import 'package:money_control/Screens/recurring_payments_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 🔥 import background worker
@@ -44,10 +45,15 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     });
   }
 
-  /// Save last time the home screen was opened
+  /// Save last time the home screen was opened AND user email for background tasks
   Future<void> _updateLastOpenedLocal() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt("lastOpened", DateTime.now().millisecondsSinceEpoch);
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && user.email != null) {
+      await prefs.setString("user_email", user.email!);
+    }
   }
 
   Future<void> _onRefresh() async {
@@ -200,6 +206,25 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                 onPressed: () {
                   gotoPage(const TransactionSearchPage());
                 },
+              ),
+            ),
+            SizedBox(width: 8.w),
+
+            // 📅 SUBSCRIPTIONS BUTTON
+            Container(
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(25.r),
+              ),
+              width: 45.w,
+              height: 40.h,
+              child: IconButton(
+                icon: Icon(
+                  Icons.event_repeat,
+                  color: scheme.onSurface.withOpacity(0.8),
+                  size: 24.sp,
+                ),
+                onPressed: () => gotoPage(const RecurringPaymentsScreen()),
               ),
             ),
             SizedBox(width: 8.w),

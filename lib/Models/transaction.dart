@@ -14,6 +14,7 @@ class TransactionModel {
   final String? attachmentUrl; // Could be avatar url or similar
   final String? status;
   final Timestamp? createdAt;
+  final String? recurringPaymentId;
 
   TransactionModel({
     required this.id,
@@ -29,6 +30,7 @@ class TransactionModel {
     this.attachmentUrl,
     this.status,
     this.createdAt,
+    this.recurringPaymentId,
   });
 
   double get total => amount + tax;
@@ -64,6 +66,7 @@ class TransactionModel {
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp)
           : Timestamp.now(),
+      recurringPaymentId: map['recurringPaymentId'],
     );
   }
 
@@ -81,6 +84,7 @@ class TransactionModel {
       'attachmentUrl': attachmentUrl,
       'status': status ?? 'success',
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'recurringPaymentId': recurringPaymentId,
     };
   }
 }

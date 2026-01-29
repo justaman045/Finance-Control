@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/loginscreen.dart';
-import 'package:money_control/Screens/homescreen.dart';
+import 'package:money_control/Screens/onboarding_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -125,7 +125,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }, SetOptions(merge: true));
 
       setState(() => _isLoading = false);
-      Get.offAll(() => BankingHomeScreen());
+      Get.offAll(() => const OnboardingScreen());
     } catch (e) {
       setState(() {
         _isLoading = false;

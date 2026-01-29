@@ -15,6 +15,7 @@ import 'package:money_control/Components/methods.dart';
 import 'package:money_control/firebase_options.dart';
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
+import 'package:money_control/Screens/onboarding_screen.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Services/local_backup_service.dart';
@@ -23,6 +24,7 @@ import 'package:money_control/Services/biometric_service.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---- THEME CONTROLLER ----
 class ThemeController extends GetxController {
@@ -269,7 +271,26 @@ class _AuthCheckerState extends State<AuthChecker> {
               _didInitialBackup = true;
               LocalBackupService.backupUserTransactions(user.email!);
             }
-            return const BankingHomeScreen();
+
+            // Check Onboarding Status
+            return FutureBuilder<SharedPreferences>(
+              future: SharedPreferences.getInstance(),
+              builder: (context, prefsSnapshot) {
+                if (prefsSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final isOnboarded =
+                    prefsSnapshot.data?.getBool('is_onboarded') ?? false;
+
+                if (isOnboarded) {
+                  return const BankingHomeScreen();
+                } else {
+                  return const OnboardingScreen();
+                }
+              },
+            );
           }
           FirebaseAuth.instance.signOut();
         }

@@ -152,8 +152,8 @@ class SecuritySettingsScreen extends StatelessWidget {
                 ),
 
                 _SettingsTile(
-                  icon: Icons.person_off_outlined,
-                  title: "Deactivate Account", // Or Delete Account
+                  icon: Icons.delete_forever_outlined,
+                  title: "Delete Account",
                   iconColor: Colors.redAccent,
                   textColor: Colors.redAccent,
                   onTap: () => Get.to(() => const DeactivateAccountScreen()),

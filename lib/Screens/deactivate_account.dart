@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Screens/loginscreen.dart';
+
+import 'package:money_control/Services/user_service.dart';
 
 class DeactivateAccountScreen extends StatefulWidget {
   const DeactivateAccountScreen({super.key});
@@ -19,34 +19,19 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
   String? error;
   String? success;
 
-  Future<void> _deactivateAccount() async {
+  Future<void> _deleteAccount() async {
     setState(() {
       processing = true;
       error = null;
       success = null;
     });
 
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      setState(() {
-        error = "No user logged in.";
-        processing = false;
-      });
-      return;
-    }
-
     try {
-      // Soft deactivate: flag user as deactivated in Firestore
-      await FirebaseFirestore.instance.collection('users').doc(user.email).set({
-        "deactivated": true,
-        "deactivatedAt": DateTime.now(),
-      }, SetOptions(merge: true));
-
-      await FirebaseAuth.instance.signOut();
+      // Hard Delete using UserService
+      await UserService().deleteAccount();
 
       setState(() {
-        success =
-            "Your account has been deactivated. You have been logged out.";
+        success = "Your account has been deleted. You have been logged out.";
         processing = false;
       });
 
@@ -55,8 +40,11 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
         Get.offAll(() => const LoginScreen());
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        error = "Failed to deactivate account: $e";
+        error = e.toString().contains("Security Check")
+            ? "Please log out and log in again to confirm deletion."
+            : "Failed to delete account: $e";
         processing = false;
       });
     }
@@ -64,24 +52,19 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ... (keep existing theme setup)
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // ... (keep gradient colors setup)
     final gradientColors = isDark
-        ? [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withOpacity(0.95),
-          ]
-        : [
-            const Color(0xFFF5F7FA), // Premium Light
-            const Color(0xFFC3CFE2),
-          ];
+        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withOpacity(0.95)]
+        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final secondaryTextColor = isDark
         ? Colors.white.withOpacity(0.6)
         : const Color(0xFF1A1A2E).withOpacity(0.6);
-
     final cardColor = isDark
         ? Colors.white.withOpacity(0.05)
         : Colors.white.withOpacity(0.6);
@@ -105,7 +88,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
           elevation: 0,
           centerTitle: true,
           title: Text(
-            "Deactivate Account",
+            "Delete Account",
             style: TextStyle(
               color: textColor,
               fontWeight: FontWeight.bold,
@@ -146,14 +129,14 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.warning_amber_rounded,
+                        Icons.delete_forever_rounded,
                         color: Colors.redAccent,
                         size: 40.sp,
                       ),
                     ),
                     SizedBox(height: 16.h),
                     Text(
-                      "Are you sure you want to deactivate?",
+                      "Delete Account Permanently?",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: textColor,
@@ -163,7 +146,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                     ),
                     SizedBox(height: 12.h),
                     Text(
-                      "Your account will be deactivated and you will be logged out immediately. Your data is retained for audit purposes but will not be accessible.",
+                      "This action cannot be undone. All your data including transactions, recurring payments, and wealth records will be permanently erased.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: secondaryTextColor,
@@ -215,11 +198,11 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                                         ? const Color(0xFF1E1E2C)
                                         : Colors.white,
                                     title: Text(
-                                      "Confirm Deactivation",
+                                      "Final Confirmation",
                                       style: TextStyle(color: textColor),
                                     ),
                                     content: Text(
-                                      "This action requires you to login again to reactivate. Proceed?",
+                                      "Are you absolutely sure? This implies permanent data loss.",
                                       style: TextStyle(
                                         color: secondaryTextColor,
                                       ),
@@ -237,10 +220,10 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                                       TextButton(
                                         onPressed: () async {
                                           Navigator.pop(ctx);
-                                          await _deactivateAccount();
+                                          await _deleteAccount();
                                         },
                                         child: const Text(
-                                          "Deactivate",
+                                          "DELETE",
                                           style: TextStyle(
                                             color: Colors.redAccent,
                                             fontWeight: FontWeight.bold,
@@ -261,7 +244,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                                 ),
                               )
                             : Text(
-                                "Deactivate My Account",
+                                "Permanently Delete",
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15.sp,
