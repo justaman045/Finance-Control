@@ -45,7 +45,9 @@ class UserModel {
       currentBalance: map['currentBalance'] != null
           ? (map['currentBalance'] as num).toDouble()
           : null,
-      age: map['age'] != null ? (map['age'] as num).toInt() : null,
+      age: map['dob'] != null
+          ? _calculateAgeFromDob(map['dob'])
+          : (map['age'] != null ? (map['age'] as num).toInt() : null),
       dob: map['dob'],
       createdAt: map['createdAt'],
       updatedAt: map['updatedAt'],
@@ -67,5 +69,28 @@ class UserModel {
       'createdAt': createdAt,
       'updatedAt': FieldValue.serverTimestamp(),
     };
+  }
+
+  int? get calculatedAge {
+    if (dob == null) return age;
+    final now = DateTime.now();
+    final dateOfBirth = dob!.toDate();
+    int calcAge = now.year - dateOfBirth.year;
+    if (now.month < dateOfBirth.month ||
+        (now.month == dateOfBirth.month && now.day < dateOfBirth.day)) {
+      calcAge--;
+    }
+    return calcAge;
+  }
+
+  static int _calculateAgeFromDob(Timestamp dob) {
+    final now = DateTime.now();
+    final dateOfBirth = dob.toDate();
+    int calcAge = now.year - dateOfBirth.year;
+    if (now.month < dateOfBirth.month ||
+        (now.month == dateOfBirth.month && now.day < dateOfBirth.day)) {
+      calcAge--;
+    }
+    return calcAge;
   }
 }
