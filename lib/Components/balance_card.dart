@@ -89,7 +89,10 @@ class _BalanceCardState extends State<BalanceCard> {
             spreadRadius: -5,
           ),
         ],
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 1.5,
+        ),
       ),
       child: Stack(
         children: [
@@ -141,36 +144,54 @@ class _BalanceCardState extends State<BalanceCard> {
                     String formattedBalance =
                         '${CurrencyController.to.currencySymbol.value} ${balanceSnapshot.data!.toStringAsFixed(2)}';
 
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        ShaderMask(
-                          shaderCallback: (bounds) => const LinearGradient(
-                            colors: [Colors.white, Color(0xFFE0E0E0)],
-                          ).createShader(bounds),
-                          child: Obx(() {
-                            final text = _privacyController.isPrivacyMode.value
-                                ? "••••"
-                                : formattedBalance;
-                            return Text(
-                              text,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 32.sp,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                                shadows: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.2),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
+                    return GestureDetector(
+                      onTap: () {
+                        _privacyController.togglePrivacy();
+                      },
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [Colors.white, Color(0xFFE0E0E0)],
+                            ).createShader(bounds),
+                            child: Obx(() {
+                              final text =
+                                  _privacyController.isPrivacyMode.value
+                                  ? "••••"
+                                  : formattedBalance;
+                              return Text(
+                                text,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 32.sp,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
+                                  shadows: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
+                          SizedBox(width: 12.w),
+                          Obx(
+                            () => Icon(
+                              _privacyController.isPrivacyMode.value
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: Colors.white.withValues(alpha: 0.5),
+                              size: 20.sp,
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   },
                 )

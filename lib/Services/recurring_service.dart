@@ -85,6 +85,28 @@ class RecurringService {
         .update(payment.toMap());
   }
 
+  // Toggle active status
+  Future<void> togglePaymentStatus(
+    String id,
+    bool isActive, {
+    DateTime? nextDueDate,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final Map<String, dynamic> updates = {'isActive': isActive};
+    if (nextDueDate != null) {
+      updates['nextDueDate'] = Timestamp.fromDate(nextDueDate);
+    }
+
+    await _db
+        .collection('users')
+        .doc(user.email)
+        .collection('recurring_payments')
+        .doc(id)
+        .update(updates);
+  }
+
   // Link an existing transaction to this payment
   Future<void> linkTransaction(String paymentId, String transactionId) async {
     final user = _auth.currentUser;

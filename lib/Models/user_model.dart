@@ -11,6 +11,7 @@ class UserModel {
   final String? profileImage;
   final double? currentBalance;
   final int? age; // Added age field
+  final Timestamp? dob; // Added dob field
   final Timestamp? createdAt;
   final Timestamp? updatedAt;
 
@@ -25,6 +26,7 @@ class UserModel {
     this.profileImage,
     this.currentBalance,
     this.age,
+    this.dob,
     this.createdAt,
     this.updatedAt,
   });
@@ -44,6 +46,7 @@ class UserModel {
           ? (map['currentBalance'] as num).toDouble()
           : null,
       age: map['age'] != null ? (map['age'] as num).toInt() : null,
+      dob: map['dob'],
       createdAt: map['createdAt'],
       updatedAt: map['updatedAt'],
     );
@@ -60,6 +63,7 @@ class UserModel {
       'profileImage': profileImage ?? '',
       'currentBalance': currentBalance ?? 0.0,
       'age': age,
+      'dob': dob,
       'createdAt': createdAt,
       'updatedAt': FieldValue.serverTimestamp(),
     };

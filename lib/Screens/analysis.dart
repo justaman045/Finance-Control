@@ -25,6 +25,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   double forecastTotal = 0;
   double currentMonthSpent = 0;
   double todaySpent = 0;
+  double todayVariableSpent = 0;
 
   /// UI treats this as MONTH TARGET
   double usualMonthAvg = 0;
@@ -35,12 +36,16 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   Map<DateTime, double> dailySpending = {};
 
   final Set<String> fixedCategories = {
-    "Rent",
-    "EMI",
-    "Insurance",
-    "Subscription",
-    "Electricity",
-    "Internet",
+    "rent",
+    "emi",
+    "insurance",
+    "subscription",
+    "electricity",
+    "internet",
+    "broadband",
+    "bill",
+    "loan",
+    "fee",
   };
 
   @override
@@ -67,7 +72,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         forecastVariable = 0;
         currentMonthSpent = 0;
         currentVariableSpent = 0;
+        currentVariableSpent = 0;
         todaySpent = 0;
+        todayVariableSpent = 0;
         usualMonthAvg = 0;
         overshootPercent = 0;
         dailySpending.clear();
@@ -128,7 +135,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         final d = tx.date;
         final monthKey = d.year * 100 + d.month;
         final cat = tx.category ?? "Others";
-        final isFixed = fixedCategories.contains(cat);
+        final isFixed = fixedCategories.contains(cat.toLowerCase());
 
         // Category Aggregation
         categoryMonthly.putIfAbsent(cat, () => {});
@@ -161,6 +168,20 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         }
       }
       todaySpent = dailySpending[DateTime(now.year, now.month, now.day)] ?? 0;
+
+      // Calculate Today's Variable Spent separately
+      double todayVar = 0;
+      for (final tx in allTx) {
+        final d = tx.date;
+        if (d.year == now.year && d.month == now.month && d.day == now.day) {
+          final cat = (tx.category ?? "Others").toLowerCase();
+          if (!fixedCategories.contains(cat)) {
+            todayVar += tx.amount.abs();
+          }
+        }
+      }
+      todayVariableSpent = todayVar;
+
       currentVariableSpent = currentVar;
 
       // Historical Months (Excluding current)
@@ -176,7 +197,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       Set<String> allKnownFixedCats = {
         ...fixedCategories,
-        ...categoryMonthly.keys.where((c) => fixedCategories.contains(c)),
+        ...fixedCategories,
+        ...categoryMonthly.keys.where(
+          (c) => fixedCategories.contains(c.toLowerCase()),
+        ),
       };
 
       for (var cat in allKnownFixedCats) {
@@ -335,7 +359,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       categoryMonthly.forEach((cat, months) {
         final currentSpent = months[currentKey] ?? 0;
-        final isFixed = fixedCategories.contains(cat);
+        final isFixed = fixedCategories.contains(cat.toLowerCase());
 
         // Historical Average
         double catHistAvg = 0;
@@ -697,8 +721,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         : 0.0;
 
     // For "Today's Status", we compare to the limit
-    final today =
-        todaySpent; // Note: todaySpent might include fixed bills if paid today.
+    final today = todayVariableSpent; // Using Variable spend only
+    // Refinement: Users usually care about variable daily spend.
     // Ideally we filter "todaySpent" to be variable only too, but usually fine for guidance.
     // Let's assume dailySpending map captures total. If we pay rent today, it might spike.
     // Refinement: Users usually care about variable daily spend.
@@ -768,7 +792,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                 scheme.onSurface,
               ),
               _limitTile(
-                "Today’s spending",
+                "Today’s variable",
                 "${CurrencyController.to.currencySymbol.value}${today.toStringAsFixed(0)}",
                 today > dailyLimit ? Colors.redAccent : Colors.green.shade700,
               ),
@@ -923,7 +947,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                     borderRadius: BorderRadius.circular(8.r),
                     border: isToday
                         ? Border.all(color: Colors.blueAccent, width: 1.5)
-                        : Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                        : Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
                     boxShadow: [
                       if (intensity > 0.3)
                         BoxShadow(

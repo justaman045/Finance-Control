@@ -19,7 +19,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
+  // final TextEditingController _ageController = TextEditingController(); // Replaced by DOB
+  DateTime? _dob;
 
   bool _isLoading = false;
 
@@ -32,11 +33,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final doc = await _firestore.collection('users').doc(user.email).get();
       if (doc.exists) {
         final data = doc.data()!;
-        _firstNameController.text = data['firstName'] ?? user.displayName;
-        _lastNameController.text = data['lastName'] ?? '';
-        _phoneController.text = data['phone'] ?? '';
-        _addressController.text = data['address'] ?? '';
-        _ageController.text = data['age']?.toString() ?? '';
+        if (mounted) {
+          setState(() {
+            _firstNameController.text = data['firstName'] ?? user.displayName;
+            _lastNameController.text = data['lastName'] ?? '';
+            _phoneController.text = data['phone'] ?? '';
+            _addressController.text = data['address'] ?? '';
+
+            if (data['dob'] != null) {
+              _dob = (data['dob'] as Timestamp).toDate();
+            }
+          });
+        }
       }
     } catch (e) {
       debugPrint("Error loading user data: $e");
@@ -55,7 +63,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'lastName': _lastNameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'address': _addressController.text.trim(),
-        'age': int.tryParse(_ageController.text.trim()),
+        'dob': _dob != null ? Timestamp.fromDate(_dob!) : null,
+        'age': _dob != null ? _calculateAge(_dob!) : null,
         'email': user.email, // auto from auth
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true)); // keep existing fields
@@ -227,10 +236,54 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       label: "Last Name",
                       controller: _lastNameController,
                     ),
-                    _buildGlassTextField(
-                      label: "Age",
-                      controller: _ageController,
+                    _buildDatePickerField(
+                      label: "Date of Birth",
+                      selectedDate: _dob,
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _dob ?? DateTime(2000),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: Color(0xFF00E5FF),
+                                  onPrimary: Colors.black,
+                                  surface: Color(0xFF1E1E2C),
+                                  onSurface: Colors.white,
+                                ),
+                                dialogBackgroundColor: const Color(0xFF1E1E2C),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked != null) {
+                          setState(() => _dob = picked);
+                        }
+                      },
                     ),
+                    // Show Age separately if needed, or integrated into the label above?
+                    // User said "only dob is visible to the user".
+                    // But also "getting the dob ... then calculating the age".
+                    // I'll show Age as a read-only info snippet below DOB or inside it.
+                    if (_dob != null)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 20.h),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Age: ${_calculateAge(_dob!)} years",
+                            style: TextStyle(
+                              color: const Color(0xFF00E5FF),
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                     _buildGlassTextField(
                       label: "Email",
                       value: user?.email ?? '',
@@ -384,5 +437,69 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         SizedBox(height: 20.h),
       ],
     );
+  }
+
+  Widget _buildDatePickerField({
+    required String label,
+    required DateTime? selectedDate,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  selectedDate != null
+                      ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"
+                      : "Select Date",
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: selectedDate != null ? Colors.white : Colors.white38,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Icon(
+                  Icons.calendar_today_rounded,
+                  color: Colors.white70,
+                  size: 20.sp,
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 20.h),
+      ],
+    );
+  }
+
+  int _calculateAge(DateTime dob) {
+    final now = DateTime.now();
+    int age = now.year - dob.year;
+    if (now.month < dob.month ||
+        (now.month == dob.month && now.day < dob.day)) {
+      age--;
+    }
+    return age;
   }
 }

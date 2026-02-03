@@ -43,6 +43,83 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
           onPressed: () => Get.back(),
         ),
+        actions: [
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(_auth.currentUser?.email)
+                .collection('recurring_payments')
+                .doc(widget.payment.id)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return const SizedBox();
+              }
+              final paymentData = RecurringPayment.fromMap(
+                snapshot.data!.id,
+                snapshot.data!.data() as Map<String, dynamic>,
+              );
+
+              return PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert_rounded, color: textColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+                onSelected: (value) {
+                  if (value == 'toggle') {
+                    _handleToggleStatus(paymentData);
+                  } else if (value == 'delete') {
+                    _handleDelete(paymentData);
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'toggle',
+                    child: Row(
+                      children: [
+                        Icon(
+                          paymentData.isActive
+                              ? Icons.pause_circle_outline_rounded
+                              : Icons.play_circle_outline_rounded,
+                          color: isDark ? Colors.white : Colors.black87,
+                          size: 20.sp,
+                        ),
+                        SizedBox(width: 12.w),
+                        Text(
+                          paymentData.isActive
+                              ? 'Pause Payment'
+                              : 'Resume Payment',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.redAccent,
+                          size: 20.sp,
+                        ),
+                        SizedBox(width: 12.w),
+                        Text(
+                          'Delete',
+                          style: TextStyle(color: Colors.redAccent),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          SizedBox(width: 8.w),
+        ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -71,8 +148,10 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               children: [
                 _buildHeaderCard(isDark, textColor, paymentData),
                 SizedBox(height: 24.h),
-                _buildActionButtons(isDark, textColor, paymentData),
-                SizedBox(height: 32.h),
+                if (paymentData.isActive) ...[
+                  _buildActionButtons(isDark, textColor, paymentData),
+                  SizedBox(height: 32.h),
+                ],
                 Text(
                   "Payment History",
                   style: TextStyle(
@@ -119,10 +198,14 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         children: [
           CircleAvatar(
             radius: 30.r,
-            backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+            backgroundColor: payment.isActive
+                ? const Color(0xFF6C63FF).withValues(alpha: 0.1)
+                : Colors.grey.withValues(alpha: 0.1),
             child: Icon(
-              Icons.receipt_long_rounded,
-              color: const Color(0xFF6C63FF),
+              payment.isActive
+                  ? Icons.receipt_long_rounded
+                  : Icons.pause_rounded,
+              color: payment.isActive ? const Color(0xFF6C63FF) : Colors.grey,
               size: 30.sp,
             ),
           ),
@@ -144,6 +227,28 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
+          if (!payment.isActive)
+            Padding(
+              padding: EdgeInsets.only(top: 8.h),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  "PAUSED",
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ),
           SizedBox(height: 24.h),
           Divider(color: textColor.withValues(alpha: 0.1)),
           SizedBox(height: 16.h),
@@ -153,9 +258,11 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               _buildInfoItem("Category", payment.category, textColor),
               _buildInfoItem(
                 "Next Due",
-                DateFormat('MMM dd, yyyy').format(payment.nextDueDate),
+                payment.isActive
+                    ? DateFormat('MMM dd, yyyy').format(payment.nextDueDate)
+                    : "Paused",
                 textColor,
-                isHighlight: true,
+                isHighlight: payment.isActive,
               ),
             ],
           ),
@@ -175,7 +282,10 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 12.sp, color: textColor.withValues(alpha: 0.4)),
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: textColor.withValues(alpha: 0.4),
+          ),
         ),
         SizedBox(height: 4.h),
         Text(
@@ -279,7 +389,9 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               child: Container(
                 padding: EdgeInsets.all(16.w),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(16.r),
                   border: Border.all(
                     color: isDark
@@ -467,5 +579,71 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         );
       },
     );
+  }
+
+  Future<void> _handleToggleStatus(RecurringPayment payment) async {
+    final newState = !payment.isActive;
+    DateTime? nextDate;
+
+    // If resuming, ask for Next Due Date
+    if (newState) {
+      nextDate = await showDatePicker(
+        context: context,
+        initialDate: payment.nextDueDate.isAfter(DateTime.now())
+            ? payment.nextDueDate
+            : DateTime.now(),
+        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+        lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+        helpText: "Select Next Due Date",
+      );
+
+      // If user cancelled date picker, cancel the resume action
+      if (nextDate == null) return;
+    }
+
+    await _service.togglePaymentStatus(
+      payment.id,
+      newState,
+      nextDueDate: nextDate,
+    );
+
+    if (mounted) {
+      String msg = newState ? "Subscription Resumed" : "Subscription Paused";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+      );
+    }
+  }
+
+  Future<void> _handleDelete(RecurringPayment payment) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Subscription?"),
+        content: const Text(
+          "Are you sure you want to delete this subscription? Past transactions will remain, but future reminders will stop.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _service.deletePayment(payment.id);
+      Get.back(); // Close screen
+      Get.snackbar(
+        "Deleted",
+        "Subscription removed successfully",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 }
