@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Screens/transaction_details.dart';
@@ -61,14 +62,36 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               );
 
               return PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert_rounded, color: textColor),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
+                icon: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: textColor.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: textColor.withValues(alpha: 0.1)),
+                  ),
+                  child: Icon(
+                    Icons.more_vert_rounded,
+                    color: textColor,
+                    size: 20.sp,
+                  ),
                 ),
-                color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+                offset: const Offset(0, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  side: BorderSide(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                ),
+                color: isDark ? const Color(0xFF25253B) : Colors.white,
+                elevation: 10,
                 onSelected: (value) {
                   if (value == 'toggle') {
                     _handleToggleStatus(paymentData);
+                  } else if (value == 'skip') {
+                    _handleSkip(paymentData);
                   } else if (value == 'delete') {
                     _handleDelete(paymentData);
                   }
@@ -78,12 +101,25 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     value: 'toggle',
                     child: Row(
                       children: [
-                        Icon(
-                          paymentData.isActive
-                              ? Icons.pause_circle_outline_rounded
-                              : Icons.play_circle_outline_rounded,
-                          color: isDark ? Colors.white : Colors.black87,
-                          size: 20.sp,
+                        Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            color:
+                                (paymentData.isActive
+                                        ? Colors.orange
+                                        : Colors.green)
+                                    .withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            paymentData.isActive
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            color: paymentData.isActive
+                                ? Colors.orange
+                                : Colors.green,
+                            size: 18.sp,
+                          ),
                         ),
                         SizedBox(width: 12.w),
                         Text(
@@ -92,24 +128,64 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                               : 'Resume Payment',
                           style: TextStyle(
                             color: isDark ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
+                  if (paymentData.isActive)
+                    PopupMenuItem<String>(
+                      value: 'skip',
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8.w),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.skip_next_rounded,
+                              color: Colors.blue,
+                              size: 18.sp,
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Text(
+                            'Skip this Payment',
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const PopupMenuDivider(),
                   PopupMenuItem<String>(
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.delete_outline_rounded,
-                          color: Colors.redAccent,
-                          size: 20.sp,
+                        Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.redAccent,
+                            size: 18.sp,
+                          ),
                         ),
                         SizedBox(width: 12.w),
-                        Text(
+                        const Text(
                           'Delete',
-                          style: TextStyle(color: Colors.redAccent),
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -159,7 +235,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
-                ),
+                ).animate().fadeIn(delay: 300.ms).slideX(),
                 SizedBox(height: 16.h),
                 _buildHistoryList(isDark, textColor),
               ],
@@ -268,7 +344,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1, end: 0);
   }
 
   Widget _buildInfoItem(
@@ -305,41 +381,22 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     Color textColor,
     RecurringPayment payment,
   ) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () => _showMarkPaidDialog(context, isDark, payment),
-            icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-            label: const Text("Mark Paid"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6C63FF),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-            ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => _showMarkPaidDialog(context, isDark, payment),
+        icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+        label: const Text("Mark Paid"),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6C63FF),
+          foregroundColor: Colors.white,
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
           ),
         ),
-        SizedBox(width: 16.w),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _showLinkExistingDialog(context, isDark),
-            icon: const Icon(Icons.link_rounded, size: 18),
-            label: const Text("Link Txn"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: textColor,
-              side: BorderSide(color: textColor.withValues(alpha: 0.2)),
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+      ),
+    ).animate().fadeIn(delay: 200.ms);
   }
 
   Widget _buildHistoryList(bool isDark, Color textColor) {
@@ -364,7 +421,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 style: TextStyle(color: textColor.withValues(alpha: 0.4)),
               ),
             ),
-          );
+          ).animate().fadeIn(delay: 400.ms);
         }
 
         return ListView.separated(
@@ -380,80 +437,83 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             );
 
             return GestureDetector(
-              onTap: () => Get.to(
-                () => TransactionResultScreen(
-                  transaction: tx,
-                  type: TransactionResultType.success,
-                ),
-              ),
-              child: Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.grey.withValues(alpha: 0.1),
+                  onTap: () => Get.to(
+                    () => TransactionResultScreen(
+                      transaction: tx,
+                      type: TransactionResultType.success,
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(10.w),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check_rounded,
-                        color: Colors.green,
-                        size: 18.sp,
+                  child: Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.grey.withValues(alpha: 0.1),
                       ),
                     ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('MMM dd, yyyy').format(tx.date),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14.sp,
-                              color: textColor,
-                            ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(10.w),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
                           ),
-                          Text(
-                            tx.note ?? 'Payment',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: textColor.withValues(alpha: 0.5),
-                            ),
+                          child: Icon(
+                            Icons.check_rounded,
+                            color: Colors.green,
+                            size: 18.sp,
                           ),
-                        ],
-                      ),
+                        ),
+                        SizedBox(width: 16.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                DateFormat('MMM dd, yyyy').format(tx.date),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14.sp,
+                                  color: textColor,
+                                ),
+                              ),
+                              Text(
+                                tx.note ?? 'Payment',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: textColor.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          "₹${tx.amount.toStringAsFixed(0)}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.sp,
+                            color: textColor,
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: textColor.withValues(alpha: 0.3),
+                          size: 20.sp,
+                        ),
+                      ],
                     ),
-                    Text(
-                      "₹${tx.amount.toStringAsFixed(0)}",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.sp,
-                        color: textColor,
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: textColor.withValues(alpha: 0.3),
-                      size: 20.sp,
-                    ),
-                  ],
-                ),
-              ),
-            );
+                  ),
+                )
+                .animate(delay: (index * 50).ms)
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
           },
         );
       },
@@ -501,86 +561,6 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     );
   }
 
-  void _showLinkExistingDialog(BuildContext context, bool isDark) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(24.w),
-          height: 600.h,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Link Existing Transaction",
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16.h),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(_auth.currentUser?.email)
-                      .collection('transactions')
-                      .orderBy('date', descending: true)
-                      .limit(30)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final docs = snapshot.data!.docs;
-                    return ListView.separated(
-                      itemCount: docs.length,
-                      separatorBuilder: (c, i) =>
-                          Divider(color: Colors.grey.withValues(alpha: 0.1)),
-                      itemBuilder: (context, index) {
-                        final doc = docs[index];
-                        final data = doc.data() as Map<String, dynamic>;
-                        final amount = (data['amount'] ?? 0).toDouble();
-
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(data['recipientName'] ?? 'Unknown'),
-                          subtitle: Text(
-                            DateFormat(
-                              'MMM dd',
-                            ).format((data['date'] as Timestamp).toDate()),
-                          ),
-                          trailing: Text("₹$amount"),
-                          onTap: () async {
-                            await _service.linkTransaction(
-                              widget.payment.id,
-                              doc.id,
-                            );
-                            if (context.mounted) Navigator.pop(context);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Transaction Linked"),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _handleToggleStatus(RecurringPayment payment) async {
     final newState = !payment.isActive;
     DateTime? nextDate;
@@ -612,6 +592,49 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
       );
+    }
+  }
+
+  Future<void> _handleSkip(RecurringPayment payment) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+          title: const Text("Skip this payment?"),
+          content: Text(
+            "This will advance the due date to the next cycle without recording a payment.",
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Skip"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await _service.markAsPaid(payment, createTransaction: false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Payment skipped. Next due date updated."),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
     }
   }
 

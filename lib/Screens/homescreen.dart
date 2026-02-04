@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' as rendering;
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Components/balance_card.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/methods.dart';
+
+import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Components/quick_send.dart';
 import 'package:money_control/Components/recent_payment_list.dart';
 import 'package:money_control/Components/section_title.dart';
 import 'package:money_control/Screens/cateogaries_history.dart';
 import 'package:money_control/Screens/edit_profile.dart';
-import 'package:money_control/Screens/forcast.dart';
+import 'package:money_control/Screens/forecast_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/user_model.dart';
@@ -21,7 +27,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 // 🔥 import background worker
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/glass_container.dart';
 
 class BankingHomeScreen extends StatefulWidget {
   const BankingHomeScreen({super.key});
@@ -31,7 +40,22 @@ class BankingHomeScreen extends StatefulWidget {
 }
 
 class _BankingHomeScreenState extends State<BankingHomeScreen> {
-  final TutorialController _tutorialController = Get.put(TutorialController());
+  final ProfileController _profileController = Get.put(ProfileController());
+
+  final TransactionController _transactionController = Get.put(
+    TransactionController(),
+  );
+
+  final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
+
+  final GlobalKey _keyTransactionList = GlobalKey();
+  final GlobalKey _keyNavBar = GlobalKey();
+
+  @override
+  void dispose() {
+    _isBottomBarVisible.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -41,7 +65,11 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     // Start WorkManager & Tutorial
     WidgetsBinding.instance.addPostFrameCallback((_) {
       BackgroundWorker.init();
-      _tutorialController.showTutorial(context);
+      TutorialController.showHomeTutorial(
+        context,
+        keyTransactionList: _keyTransactionList,
+        keyNavBar: _keyNavBar,
+      );
     });
   }
 
@@ -57,62 +85,24 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
   }
 
   Future<void> _onRefresh() async {
+    HapticFeedback.mediumImpact();
     await _updateLastOpenedLocal();
     setState(() {}); // Simple rebuild
     await Future.delayed(const Duration(milliseconds: 400));
   }
 
-  Future<List<String>> fetchCategoriesSortedByUsage() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return [];
-    }
-
-    final txRef = FirebaseFirestore.instance
-        .collection('transactions')
-        .doc(user.email)
-        .collection('transactions');
-
-    try {
-      final snapshot = await txRef.get();
-      Map<String, int> categoryCounts = {};
-
-      for (var doc in snapshot.docs) {
-        final category = doc['category'] as String?;
-        if (category != null && category.isNotEmpty) {
-          categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
-        }
-      }
-
-      final sortedCategories = categoryCounts.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-
-      return sortedCategories.map((e) => e.key).toList();
-    } catch (e) {
-      debugPrint('Error fetching categories sorted by usage: $e');
-      return [];
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     final user = FirebaseAuth.instance.currentUser;
-
-    // Dynamic Gradient
-    final gradientColors = isDark
-        ? [
-            const Color(0xFF1A1A2E),
-            const Color(0xFF16213E).withValues(alpha: 0.95),
-          ] // Midnight Void
-        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: gradientColors,
+          colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -126,16 +116,35 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             padding: EdgeInsets.only(left: 16.w, top: 2.h, bottom: 2.h),
             child: GestureDetector(
               onTap: () => gotoPage(const EditProfileScreen()),
-              child: CircleAvatar(
-                radius: 17.w,
-                backgroundColor: scheme.surface,
-                child: Image.asset(
-                  'assets/profile.png',
-                  width: 28.w,
-                  height: 28.w,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              child: Obx(() {
+                final url = _profileController.photoURL.value;
+                return Hero(
+                  tag: 'profile_pic',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.1),
+                        width: 1.5,
+                      ),
+                      image: DecorationImage(
+                        image: url.isNotEmpty
+                            ? NetworkImage(url)
+                            : const AssetImage('assets/profile.png')
+                                  as ImageProvider,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    child: Container(
+                      width: 34.w,
+                      height: 34.w,
+                      decoration: const BoxDecoration(shape: BoxShape.circle),
+                    ),
+                  ),
+                );
+              }),
             ),
           ),
           title: GestureDetector(
@@ -144,12 +153,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back,',
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w400,
-                  ),
+                  AppLocalizations.of(context)!.welcomeBack,
+                  style: theme.textTheme.bodyMedium,
                 ),
                 StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                   stream: user == null
@@ -160,10 +165,10 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                             .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return shimmerText(scheme);
+                      return shimmerText(theme);
                     }
                     if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return blankText(scheme);
+                      return blankText(theme);
                     }
                     final userModel = UserModel.fromMap(
                       user!.uid,
@@ -177,10 +182,9 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                                     user.displayName!.isNotEmpty
                                 ? user.displayName!
                                 : 'User'),
-                      style: TextStyle(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 16.sp,
-                        color: scheme.onSurface,
                       ),
                     );
                   },
@@ -190,136 +194,167 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
           ),
           actions: [
             // 🔍 NEW SEARCH BUTTON
-            Container(
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(25.r),
-              ),
-              width: 45.w,
-              height: 40.h,
-              child: IconButton(
-                icon: Icon(
-                  Icons.search,
-                  color: scheme.onSurface.withValues(alpha: 0.9),
-                  size: 22.sp,
-                ),
-                onPressed: () {
-                  gotoPage(const TransactionSearchPage());
-                },
-              ),
+            _buildActionButton(
+              icon: Icons.search,
+              onTap: () => gotoPage(const TransactionSearchPage()),
+              theme: theme,
+              heroTag: 'search_bar',
             ),
             SizedBox(width: 8.w),
 
             // 📅 SUBSCRIPTIONS BUTTON
-            Container(
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(25.r),
-              ),
-              width: 45.w,
-              height: 40.h,
-              child: IconButton(
-                icon: Icon(
-                  Icons.event_repeat,
-                  color: scheme.onSurface.withValues(alpha: 0.8),
-                  size: 24.sp,
-                ),
-                onPressed: () => gotoPage(const RecurringPaymentsScreen()),
-              ),
+            _buildActionButton(
+              icon: Icons.event_repeat,
+              onTap: () => gotoPage(const RecurringPaymentsScreen()),
+              theme: theme,
             ),
             SizedBox(width: 8.w),
 
             // 📈 FORECAST BUTTON
-            Container(
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(25.r),
-              ),
-              width: 45.w,
-              height: 40.h,
-              child: IconButton(
-                icon: Icon(
-                  Icons.trending_up,
-                  color: scheme.onSurface.withValues(alpha: 0.8),
-                  size: 24.sp,
-                ),
-                onPressed: () => gotoPage(const ForecastScreen()),
-              ),
+            _buildActionButton(
+              icon: Icons.trending_up,
+              onTap: () => gotoPage(const ForecastScreen()),
+              theme: theme,
             ),
             SizedBox(width: 6.w),
           ],
 
           toolbarHeight: 64.h,
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              BalanceCard(key: _tutorialController.keyBalance),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _onRefresh,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 16.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SectionTitle(
-                          title: 'Quick Send',
+        body: NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            if (notification.direction == rendering.ScrollDirection.reverse) {
+              if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
+            } else if (notification.direction ==
+                rendering.ScrollDirection.forward) {
+              if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
+            }
+            return true;
+          },
+          child: SafeArea(
+            bottom: false,
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BalanceCard()
+                        .animate()
+                        .fadeIn(duration: 600.ms)
+                        .slideY(begin: -0.1, end: 0, curve: Curves.easeOutBack),
+                    SizedBox(height: 12.h), // Added some spacing after card
+                    SectionTitle(
+                          title: AppLocalizations.of(context)!.quickSend,
                           color: scheme.onSurface,
-                          accentColor: scheme.primary,
+                          accentColor: AppColors.primary,
                           onTap: () =>
                               gotoPage(const CategoriesHistoryScreen()),
-                        ),
-                        SizedBox(height: 12.h),
-                        QuickSendRow(
-                          key: _tutorialController.keyQuickSend,
-                          cardColor: scheme.surface,
+                        )
+                        .animate()
+                        .fadeIn(delay: 200.ms, duration: 500.ms)
+                        .slideX(begin: -0.1, end: 0, curve: Curves.easeOut),
+                    SizedBox(height: 12.h),
+                    QuickSendRow(
+                          cardColor: isDark
+                              ? AppColors.darkSurface.withValues(alpha: 0.5)
+                              : AppColors.lightSurface.withValues(alpha: 0.6),
                           textColor: scheme.onSurface,
-                        ),
-                        SizedBox(height: 18.h),
-                        SectionTitle(
-                          title: 'Recent Transactions',
+                        )
+                        .animate()
+                        .fadeIn(delay: 300.ms, duration: 500.ms)
+                        .slideX(begin: 0.1, end: 0, curve: Curves.easeOut),
+                    SizedBox(height: 18.h),
+                    SectionTitle(
+                          title: AppLocalizations.of(
+                            context,
+                          )!.recentTransactions,
                           color: scheme.onSurface,
-                          accentColor: scheme.primary,
+                          accentColor: AppColors.primary,
                           onTap: () => gotoPage(TransactionHistoryScreen()),
-                        ),
-                        SizedBox(height: 12.h),
-                        RecentPaymentList(
-                          key: _tutorialController.keyRecentTx,
-                          cardColor: scheme.surface,
+                        )
+                        .animate()
+                        .fadeIn(delay: 400.ms, duration: 500.ms)
+                        .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
+                    SizedBox(height: 12.h),
+                    RecentPaymentList(
+                          key: _keyTransactionList,
+                          cardColor: isDark
+                              ? AppColors.darkSurface.withValues(alpha: 0.5)
+                              : AppColors.lightSurface.withValues(alpha: 0.6),
                           textColor: scheme.onSurface,
-                          receivedColor: const Color(0xFF0FA958),
-                          sentColor: scheme.error,
-                        ),
-                      ],
-                    ),
-                  ),
+                          receivedColor: AppColors.success,
+                          sentColor: AppColors.error,
+                        )
+                        .animate()
+                        .fadeIn(delay: 500.ms, duration: 600.ms)
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
-        bottomNavigationBar: const BottomNavBar(currentIndex: 0),
+        extendBody: true,
+        bottomNavigationBar: ValueListenableBuilder<bool>(
+          valueListenable: _isBottomBarVisible,
+          builder: (context, visible, child) {
+            return AnimatedSlide(
+              duration: const Duration(milliseconds: 200),
+              offset: visible ? Offset.zero : const Offset(0, 1),
+              child: child,
+            );
+          },
+          child: BottomNavBar(key: _keyNavBar, currentIndex: 0),
+        ),
       ),
     );
   }
 
-  Widget shimmerText(ColorScheme scheme) => Text(
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required ThemeData theme,
+    String? heroTag,
+  }) {
+    Widget content = Icon(
+      icon,
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+      size: 22.sp,
+    );
+
+    if (heroTag != null) {
+      content = Hero(tag: heroTag, child: content);
+    }
+
+    return GlassContainer(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(25.r),
+      width: 45.w,
+      height: 40.h,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: content,
+    );
+  }
+
+  Widget shimmerText(ThemeData theme) => Text(
     '...',
-    style: TextStyle(
+    style: theme.textTheme.bodyLarge?.copyWith(
       fontWeight: FontWeight.bold,
       fontSize: 16.sp,
-      color: scheme.onSurface.withValues(alpha: 0.5),
     ),
   );
 
-  Widget blankText(ColorScheme scheme) => Text(
-    '',
-    style: TextStyle(
+  Widget blankText(ThemeData theme) => Text(
+    'User',
+    style: theme.textTheme.bodyLarge?.copyWith(
       fontWeight: FontWeight.bold,
       fontSize: 16.sp,
-      color: scheme.onSurface,
     ),
   );
 }

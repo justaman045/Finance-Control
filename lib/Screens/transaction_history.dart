@@ -3,12 +3,21 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart'; // Haptic Feedback
+import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Screens/sms_import_screen.dart';
 import 'package:money_control/Components/empty_state.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/l10n/app_localizations.dart';
+import 'package:money_control/Components/shimmer_loading.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:money_control/Screens/edit_transaction.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -20,9 +29,8 @@ class TransactionHistoryScreen extends StatefulWidget {
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   int selectedTab = 0;
-  final List<String> tabs = ["All", "Income", "Outcome"];
 
-  String formatDateLabel(DateTime date) {
+  String formatDateLabel(DateTime date, AppLocalizations l10n) {
     final now = DateTime.now();
 
     final today = DateTime(now.year, now.month, now.day);
@@ -30,8 +38,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
     final diff = today.difference(txDay).inDays;
 
-    if (diff == 0) return "Today";
-    if (diff == 1) return "Yesterday";
+    if (diff == 0) return l10n.today;
+    if (diff == 1) return l10n.yesterday;
 
     return "${date.day} ${_monthAbbr(date.month)}";
   }
@@ -57,8 +65,13 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final colorIncome = const Color(0xFF00E5FF); // Neon Cyan
-    final colorOutcome = const Color(0xFFFF2975); // Neon Pink
+    final colorIncome = AppColors.success;
+    final colorOutcome = AppColors.error;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
+
+    final List<String> tabs = [l10n.tabAll, l10n.tabIncome, l10n.tabOutcome];
 
     if (user == null) {
       return const Scaffold(body: Center(child: Text("Not logged in")));
@@ -67,10 +80,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1A1A2E), // Midnight Void Top
-            const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
-          ],
+          colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -81,31 +91,38 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            "Transaction History",
-            style: TextStyle(
-              color: Colors.white,
+            l10n.transactionHistoryTitle,
+            style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              fontSize: 17.sp,
-              letterSpacing: 0.5,
+              fontSize: 18.sp,
             ),
           ),
           centerTitle: true,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 19.sp),
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              color: theme.iconTheme.color,
+              size: 20.sp,
+            ),
             onPressed: () => goBack(),
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.sms_rounded, color: Colors.white, size: 22.sp),
-              tooltip: "Import from SMS",
+              icon: Icon(
+                Icons.sms_rounded,
+                color: theme.iconTheme.color,
+                size: 24.sp,
+              ),
+              tooltip: l10n.importSmsTooltip,
               onPressed: () async {
+                HapticFeedback.lightImpact();
                 await Get.to(
                   () => const SmsImportScreen(),
                   transition: Transition.rightToLeftWithFade,
                 );
               },
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: 8.w),
           ],
         ),
         body: StreamBuilder<QuerySnapshot>(
@@ -117,8 +134,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                child: const TransactionListShimmer(),
               );
             }
 
@@ -152,75 +170,66 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               ..sort((a, b) => b.compareTo(a));
 
             return RefreshIndicator(
-              color: const Color(0xFF00E5FF),
-              backgroundColor: const Color(0xFF1A1A2E),
+              color: AppColors.secondary,
+              backgroundColor: theme.scaffoldBackgroundColor,
               onRefresh: () async {
+                HapticFeedback.mediumImpact();
                 await Future.delayed(const Duration(milliseconds: 800));
                 if (context.mounted) setState(() {});
               },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
                 children: [
                   SizedBox(height: 10.h),
                   // Tab selector
                   Center(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(tabs.length, (i) {
-                          final isSelected = i == selectedTab;
-                          return GestureDetector(
-                            onTap: () => setState(() => selectedTab = i),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 24.w,
-                                vertical: 10.h,
-                              ),
-                              margin: EdgeInsets.symmetric(horizontal: 5.w),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(
-                                        0xFF6C63FF,
-                                      ).withValues(alpha: 0.3)
-                                    : Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(30.r),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF6C63FF)
-                                      : Colors.white.withValues(alpha: 0.1),
+                      child: GlassContainer(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4.w,
+                          vertical: 4.h,
+                        ),
+                        borderRadius: BorderRadius.circular(30.r),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(tabs.length, (i) {
+                            final isSelected = i == selectedTab;
+                            return GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() => selectedTab = i);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.w,
+                                  vertical: 10.h,
                                 ),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: const Color(
-                                            0xFF6C63FF,
-                                          ).withValues(alpha: 0.4),
-                                          blurRadius: 12,
-                                          spreadRadius: -2,
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: Text(
-                                tabs[i],
-                                style: TextStyle(
+                                decoration: BoxDecoration(
                                   color: isSelected
-                                      ? Colors.white
-                                      : Colors.white60,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14.sp,
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(30.r),
+                                ),
+                                child: Text(
+                                  tabs[i],
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : theme.textTheme.bodyMedium?.color,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14.sp,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          }),
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(height: 20.h),
-
                   SizedBox(height: 20.h),
 
                   if (filteredTxs.isEmpty)
@@ -228,11 +237,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       height: 0.6.sh,
                       alignment: Alignment.center,
                       child: EmptyStateWidget(
-                        title: "No Transactions",
-                        subtitle:
-                            "You don't have any transactions in this category yet.",
+                        title: l10n.noTransactions,
+                        subtitle: l10n.noTransactionsSubtitle,
                         icon: Icons.receipt_long_outlined,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: theme.disabledColor,
                       ),
                     )
                   else
@@ -240,149 +248,199 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       padding: EdgeInsets.symmetric(horizontal: 20.w),
                       child: Column(
                         children: [
-                          ...sections.map((sectionDate) {
+                          ...sections.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final sectionDate = entry.value;
                             final txns = grouped[sectionDate]!;
-                            final label = formatDateLabel(sectionDate);
+                            final label = formatDateLabel(sectionDate, l10n);
 
                             return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom: 12.h,
-                                    top: 10.h,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        label,
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14.sp,
-                                        ),
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom: 12.h,
+                                        top: 10.h,
+                                        left: 4.w,
                                       ),
-                                      Text(
-                                        "${sectionDate.day.toString().padLeft(2, '0')} "
-                                        "${_monthAbbr(sectionDate.month)}, "
-                                        "${sectionDate.year}",
-                                        style: TextStyle(
-                                          color: Colors.white38,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 12.sp,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                ...txns.map((tx) {
-                                  final received = tx.recipientId == user.uid;
-                                  final amountColor = received
-                                      ? colorIncome
-                                      : colorOutcome;
-
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Get.to(
-                                        () => TransactionResultScreen(
-                                          type: getTransactionTypeFromStatus(
-                                            tx.status,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            label,
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16.sp,
+                                                ),
                                           ),
-                                          transaction: tx,
-                                        ),
-                                        curve: curve,
-                                        transition: transition,
-                                        duration: duration,
-                                      );
-                                    },
-                                    child: Container(
-                                      margin: EdgeInsets.only(bottom: 12.h),
-                                      padding: EdgeInsets.all(16.w),
-                                      decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF1E1E2C,
-                                        ).withValues(alpha: 0.6), // Dark Glass
-                                        borderRadius: BorderRadius.circular(
-                                          20.r,
-                                        ),
-                                        border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.05,
-                                          ),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.2,
-                                            ),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
+                                          Text(
+                                            "${sectionDate.day.toString().padLeft(2, '0')} "
+                                            "${_monthAbbr(sectionDate.month)}, "
+                                            "${sectionDate.year}",
+                                            style: theme.textTheme.bodyMedium,
                                           ),
                                         ],
                                       ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.all(10.w),
-                                            decoration: BoxDecoration(
-                                              color: amountColor.withValues(
-                                                alpha: 0.1,
+                                    ),
+                                    ...txns.map((tx) {
+                                      final received =
+                                          tx.recipientId == user.uid;
+                                      final amountColor = received
+                                          ? colorIncome
+                                          : colorOutcome;
+
+                                      return Padding(
+                                        padding: EdgeInsets.only(bottom: 12.h),
+                                        child: Slidable(
+                                          key: ValueKey(tx.id),
+                                          startActionPane: ActionPane(
+                                            motion: const ScrollMotion(),
+                                            extentRatio: 0.25,
+                                            children: [
+                                              SlidableAction(
+                                                onPressed: (context) {
+                                                  Get.to(
+                                                    () => TransactionEditScreen(
+                                                      transaction: tx,
+                                                    ),
+                                                  );
+                                                },
+                                                backgroundColor: const Color(
+                                                  0xFF21B7CA,
+                                                ),
+                                                foregroundColor: Colors.white,
+                                                icon: Icons.edit,
+                                                label: 'Edit',
+                                                borderRadius:
+                                                    BorderRadius.horizontal(
+                                                      left: Radius.circular(
+                                                        20.r,
+                                                      ),
+                                                    ),
                                               ),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              received
-                                                  ? Icons.arrow_downward_rounded
-                                                  : Icons.arrow_upward_rounded,
-                                              color: amountColor,
-                                              size: 20.sp,
-                                            ),
+                                            ],
                                           ),
-                                          SizedBox(width: 16.w),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                          endActionPane: ActionPane(
+                                            motion: const ScrollMotion(),
+                                            extentRatio: 0.25,
+                                            children: [
+                                              SlidableAction(
+                                                onPressed: (context) =>
+                                                    _confirmDelete(context, tx),
+                                                backgroundColor: const Color(
+                                                  0xFFFE4A49,
+                                                ),
+                                                foregroundColor: Colors.white,
+                                                icon: Icons.delete,
+                                                label: 'Delete',
+                                                borderRadius:
+                                                    BorderRadius.horizontal(
+                                                      right: Radius.circular(
+                                                        20.r,
+                                                      ),
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                          child: GlassContainer(
+                                            onTap: () {
+                                              Get.to(
+                                                () => TransactionResultScreen(
+                                                  type:
+                                                      getTransactionTypeFromStatus(
+                                                        tx.status,
+                                                      ),
+                                                  transaction: tx,
+                                                ),
+                                                curve: curve,
+                                                transition: transition,
+                                                duration: duration,
+                                              );
+                                            },
+                                            padding: EdgeInsets.all(16.w),
+                                            child: Row(
                                               children: [
-                                                Text(
-                                                  tx.recipientName.isEmpty
-                                                      ? "Unknown"
-                                                      : tx.recipientName,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 15.sp,
-                                                    color: Colors.white,
+                                                Container(
+                                                  padding: EdgeInsets.all(10.w),
+                                                  decoration: BoxDecoration(
+                                                    color: amountColor
+                                                        .withValues(alpha: 0.1),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: Icon(
+                                                    received
+                                                        ? Icons
+                                                              .arrow_downward_rounded
+                                                        : Icons
+                                                              .arrow_upward_rounded,
+                                                    color: amountColor,
+                                                    size: 20.sp,
                                                   ),
                                                 ),
-                                                SizedBox(height: 4.h),
+                                                SizedBox(width: 16.w),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        tx.recipientName.isEmpty
+                                                            ? l10n.unknownRecipient
+                                                            : tx.recipientName,
+                                                        style: theme
+                                                            .textTheme
+                                                            .bodyLarge
+                                                            ?.copyWith(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontSize: 16.sp,
+                                                            ),
+                                                      ),
+                                                      SizedBox(height: 4.h),
+                                                      Text(
+                                                        tx.category ??
+                                                            l10n.uncategorized,
+                                                        style: theme
+                                                            .textTheme
+                                                            .bodyMedium
+                                                            ?.copyWith(
+                                                              fontSize: 13.sp,
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                                 Text(
-                                                  tx.category ??
-                                                      'Uncategorized',
+                                                  '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(2)}',
                                                   style: TextStyle(
-                                                    color: Colors.white54,
-                                                    fontSize: 12.sp,
+                                                    color: amountColor,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 17.sp,
+                                                    letterSpacing: 0.5,
                                                   ),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                          Text(
-                                            '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              color: amountColor,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16.sp,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ],
-                            );
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                )
+                                .animate()
+                                .fadeIn(
+                                  duration: 400.ms,
+                                  delay: (index * 50).ms,
+                                )
+                                .slideY(
+                                  begin: 0.1,
+                                  end: 0,
+                                  curve: Curves.easeOut,
+                                );
                           }),
                           SizedBox(height: 20.h),
                         ],
@@ -395,5 +453,36 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, TransactionModel tx) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        title: Text(l10n.delete),
+        content: const Text(
+          "Are you sure you want to delete this transaction?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // ignore: use_build_context_synchronously
+      if (!context.mounted) return;
+      final ctrl = Get.find<TransactionController>();
+      await ctrl.deleteTransaction(tx);
+    }
   }
 }

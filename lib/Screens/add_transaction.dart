@@ -1,21 +1,17 @@
 // lib/Screens/add_transaction.dart
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'package:money_control/Components/methods.dart';
-import 'package:money_control/Models/cateogary.dart';
-import 'package:money_control/Models/transaction.dart';
-import 'package:money_control/Screens/add_transaction_from_recipt.dart';
-import 'package:money_control/Services/local_backup_service.dart';
-import 'package:money_control/Services/offline_queue.dart';
+import 'package:pattern_formatter/pattern_formatter.dart';
+import 'package:money_control/l10n/app_localizations.dart';
+import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
-import 'package:money_control/Services/budget_service.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Models/cateogary.dart';
+import 'package:money_control/Screens/add_transaction_from_recipt.dart';
 import 'package:money_control/Utils/icon_helper.dart';
 
 enum PaymentType { send, receive }
@@ -31,144 +27,86 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
-
+  final TransactionController _transactionController = Get.put(
+    TransactionController(),
+  );
   final TextEditingController _amount = TextEditingController();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _note = TextEditingController();
   final TextEditingController _newCategory = TextEditingController();
 
-  List<CategoryModel> _categories = [];
   String? selectedCategory;
-
   DateTime selectedDate = DateTime.now();
-  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    loadCategories();
-  }
-
-  // ——————————————————————————————————————
-  //  LOAD CATEGORIES
-  // ——————————————————————————————————————
-  Future<void> loadCategories() async {
-    try {
-      final snapshot = await _firestore
-          .collection("users")
-          .doc(_auth.currentUser!.email)
-          .collection("categories")
-          .get();
-
-      final data = snapshot.docs
-          .map((d) => CategoryModel.fromMap(d.id, d.data()))
-          .toList();
-
-      if (widget.cateogary != null) {
-        data.sort(
-          (a, b) => a.name == widget.cateogary
-              ? -1
-              : b.name == widget.cateogary
-              ? 1
-              : 0,
-        );
-      }
-
-      setState(() {
-        _categories = data;
-        selectedCategory =
-            widget.cateogary ?? (data.isNotEmpty ? data.first.name : null);
-      });
-    } catch (e) {
-      // debugPrint("Error loading categories: $e");
+    // Initialize selected category if passed from widget
+    if (widget.cateogary != null) {
+      selectedCategory = widget.cateogary;
     }
   }
 
-  // ——————————————————————————————————————
-  //  ADD CATEGORY
-  // ——————————————————————————————————————
   Future<void> _addCategoryDialog() async {
     _newCategory.clear();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     await showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (_) => Dialog(
-        backgroundColor: const Color(0xFF1E1E2C), // Fallback
+        backgroundColor: Colors.transparent,
         elevation: 0,
         insetPadding: EdgeInsets.all(20.w),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24.r),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24.r),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
+        child: GlassContainer(
           padding: EdgeInsets.all(24.w),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "New Category",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20.sp,
+                AppLocalizations.of(context)!.newCategory,
+                style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 ),
               ),
               SizedBox(height: 20.h),
-
-              // Custom Glass Input
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
-                  ),
-                ),
+              GlassContainer(
+                margin: EdgeInsets.zero,
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
+                borderRadius: BorderRadius.circular(16.r),
                 child: TextField(
                   controller: _newCategory,
                   autofocus: true,
-                  style: const TextStyle(color: Colors.white),
+                  style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: "Category Name",
-                    hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    hintText: AppLocalizations.of(context)!.categoryNameHint,
+                    hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color?.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                   ),
                 ),
               ),
               SizedBox(height: 24.h),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text(
-                      "Cancel",
+                      AppLocalizations.of(context)!.cancel,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: theme.textTheme.bodyMedium?.color?.withValues(
+                          alpha: 0.7,
+                        ),
                         fontSize: 16.sp,
                       ),
                     ),
@@ -176,47 +114,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   SizedBox(width: 12.w),
                   GestureDetector(
                     onTap: () async {
-                      final text = _newCategory.text.trim();
-
-                      if (text.isEmpty) {
-                        Get.snackbar(
-                          "Error",
-                          "Category name cannot be empty",
-                          backgroundColor: Colors.white10,
-                          colorText: Colors.white,
-                        );
-                        return;
-                      }
-                      if (_categories.any(
-                        (c) => c.name.toLowerCase() == text.toLowerCase(),
-                      )) {
-                        Get.snackbar(
-                          "Error",
-                          "Category already exists",
-                          backgroundColor: Colors.white10,
-                          colorText: Colors.white,
-                        );
-                        return;
-                      }
-
-                      try {
-                        final doc = await _firestore
-                            .collection("users")
-                            .doc(_auth.currentUser!.email)
-                            .collection("categories")
-                            .add({"name": text});
-
+                      final success = await _transactionController.addCategory(
+                        _newCategory.text.trim(),
+                      );
+                      if (success) {
                         setState(() {
-                          _categories.add(
-                            CategoryModel(id: doc.id, name: text),
-                          );
-                          selectedCategory = text;
+                          selectedCategory = _newCategory.text.trim();
                         });
-
                         if (mounted) Navigator.pop(context);
-                      } catch (e) {
-                        debugPrint('Add category error: $e');
-                        Get.snackbar("Error", "Failed to add category");
                       }
                     },
                     child: Container(
@@ -225,21 +130,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         vertical: 12.h,
                       ),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
-                        ),
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(12.r),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(
-                              0xFF6C63FF,
-                            ).withValues(alpha: 0.4),
+                            color: AppColors.primary.withValues(alpha: 0.4),
                             blurRadius: 10,
                           ),
                         ],
                       ),
                       child: Text(
-                        "Add",
+                        AppLocalizations.of(context)!.add,
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -257,35 +158,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  // ——————————————————————————————————————
-  //  DELETE CATEGORY (long press)
-  // ——————————————————————————————————————
   Future<void> _deleteCategory(CategoryModel category) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    if (_categories.length == 1) {
-      Get.snackbar("Action blocked", "At least one category must exist.");
-      return;
-    }
-
+    final theme = Theme.of(context);
     final confirm = await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Delete Category"),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        title: Text(
+          AppLocalizations.of(context)!.deleteCategoryTitle,
+          style: theme.textTheme.titleLarge,
+        ),
         content: Text(
-          "Do you want to delete '${category.name}'?\n\n"
-          "• This will NOT delete existing transactions.\n"
-          "• Category will simply be removed from your list.",
+          AppLocalizations.of(context)!.deleteCategoryContent(category.name),
+          style: theme.textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete"),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(
+              AppLocalizations.of(context)!.delete,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -293,152 +191,69 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     if (confirm != true) return;
 
-    try {
-      await _firestore
-          .collection("users")
-          .doc(user.email)
-          .collection("categories")
-          .doc(category.id)
-          .delete();
-
+    final success = await _transactionController.deleteCategory(category);
+    if (success && selectedCategory == category.name) {
       setState(() {
-        _categories.removeWhere((c) => c.id == category.id);
-
-        if (selectedCategory == category.name) {
-          selectedCategory = _categories.first.name;
+        selectedCategory = null;
+        if (_transactionController.categories.isNotEmpty) {
+          selectedCategory = _transactionController.categories.first.name;
         }
       });
-
-      Get.snackbar(
-        "Deleted",
-        "'${category.name}' removed successfully",
-        snackPosition: SnackPosition.BOTTOM,
-        colorText: Colors.white,
-        backgroundColor: Colors.redAccent,
-        icon: const Icon(Icons.delete, color: Colors.white),
-      );
-    } catch (e) {
-      Get.snackbar("Error", "Failed to delete category");
     }
   }
 
-  // ——————————————————————————————————————
-  //  SAVE TRANSACTION  +  JSON BACKUP
-  // ——————————————————————————————————————
   Future<void> saveTransaction() async {
-    if (_saving) return;
-    _saving = true;
-
-    final user = _auth.currentUser;
-    if (user == null) {
-      _saving = false;
-      return;
-    }
-
-    final amount = double.tryParse(_amount.text.trim()) ?? 0;
-    if (amount <= 0) {
-      _saving = false;
-      Get.snackbar("Error", "Enter valid amount");
-      return;
-    }
-
-    if (_name.text.trim().isEmpty) {
-      _saving = false;
-      Get.snackbar("Error", "Enter valid name");
-      return;
-    }
-
     if (selectedCategory == null) {
-      _saving = false;
-      Get.snackbar("Error", "Select a category");
+      Get.snackbar(
+        AppLocalizations.of(context)!.error,
+        AppLocalizations.of(context)!.selectCategoryError,
+      );
       return;
     }
 
-    // Negate amount if it's an expense (send)
-    final finalAmount = widget.type == PaymentType.send ? -amount : amount;
+    final amountVal = double.tryParse(_amount.text.trim()) ?? 0;
 
-    final tx = TransactionModel(
-      id: "",
-      senderId: widget.type == PaymentType.send ? user.uid : "",
-      recipientId: widget.type == PaymentType.send ? "" : user.uid,
-      recipientName: _name.text.trim(),
-      amount: finalAmount,
-      currency: CurrencyController.to.currencyCode.value,
-      tax: 0.0,
+    final success = await _transactionController.saveTransaction(
+      amount: amountVal,
+      name: _name.text.trim(),
       note: _note.text.trim(),
-      category: selectedCategory,
+      category: selectedCategory!,
       date: selectedDate,
-      status: "success",
-      createdAt: Timestamp.now(),
+      type: widget.type == PaymentType.send ? 'send' : 'receive',
+      currency: CurrencyController.to.currencyCode.value,
     );
 
-    final txMap = tx.toMap();
-
-    try {
-      // 🔥 FIRESTORE WRITE WITH TIMEOUT FIX
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.email)
-          .collection("transactions")
-          .add(txMap)
-          .timeout(const Duration(seconds: 5)); // <<<<<< IMPORTANT
-    } on TimeoutException catch (e) {
-      debugPrint("Firebase error: $e");
-      await OfflineQueueService.savePending(txMap);
-      Get.snackbar("Offline", "Saved locally. Will sync later.");
-    }
-
-    // Backup JSON
-    LocalBackupService.backupUserTransactions(user.email!);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "₹${amount.toStringAsFixed(2)} ${widget.type == PaymentType.send ? 'sent' : 'received'}",
+    if (success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.transactionSaved),
+            backgroundColor: AppColors.success,
           ),
-          backgroundColor: Colors.green,
-        ),
-      );
+        );
+      }
+      Get.back();
     }
-
-    // Check Budget Limit (Only for Expenses)
-    if (widget.type == PaymentType.send &&
-        selectedCategory != null &&
-        user.email != null) {
-      BudgetService.checkBudgetExceeded(
-        userId: user.email!,
-        category: selectedCategory!,
-        newAmount: amount, // Pass positive amount for check logic
-      );
-    }
-
-    _saving = false;
-    goBack();
   }
 
-  // ——————————————————————————————————————
-  //  UI BUILD
-  // ——————————————————————————————————————
   @override
   Widget build(BuildContext context) {
     final title = widget.type == PaymentType.send
-        ? "Send Money"
-        : "Receive Money";
-    final nameLabel = widget.type == PaymentType.send ? "Recipient" : "Sender";
+        ? AppLocalizations.of(context)!.sendMoney
+        : AppLocalizations.of(context)!.receiveMoney;
+    final nameLabel = widget.type == PaymentType.send
+        ? AppLocalizations.of(context)!.recipient
+        : AppLocalizations.of(context)!.sender;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: _buildAppBar(title),
+      appBar: _buildAppBar(title, theme, isDark),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(
-                0xFF16213E,
-              ).withValues(alpha: 0.95), // Deep Blue Bottom
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -449,31 +264,35 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _fieldLabel("Amount"),
-                _amountField(_amount),
-
-                _fieldLabel(nameLabel),
-                _inputField(controller: _name, hint: "Enter name"),
-
-                _fieldLabel("Select Category"),
-                _categorySelector(),
-
-                _fieldLabel("Note"),
+                _fieldLabel(AppLocalizations.of(context)!.amount, theme),
+                _amountField(_amount, theme),
+                _fieldLabel(nameLabel, theme),
+                _inputField(
+                  controller: _name,
+                  hint: AppLocalizations.of(context)!.enterNameHint,
+                  theme: theme,
+                ),
+                _fieldLabel(
+                  AppLocalizations.of(context)!.selectCategory,
+                  theme,
+                ),
+                _categorySelector(theme),
+                _fieldLabel(AppLocalizations.of(context)!.note, theme),
                 _inputField(
                   controller: _note,
-                  hint: "Add a note...",
+                  hint: AppLocalizations.of(context)!.addNoteHint,
                   maxLines: 2,
+                  theme: theme,
                 ),
-
-                _fieldLabel("Date"),
-                _dateSelector(),
-
+                _fieldLabel(AppLocalizations.of(context)!.date, theme),
+                _dateSelector(theme),
                 SizedBox(height: 40.h),
                 _submitButton(
-                  label: widget.type == PaymentType.send ? "Send" : "Receive",
+                  label: widget.type == PaymentType.send
+                      ? AppLocalizations.of(context)!.send
+                      : AppLocalizations.of(context)!.receive,
                   onTap: saveTransaction,
                 ),
-
                 SizedBox(height: 20.h),
               ],
             ),
@@ -483,31 +302,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  // ——————————————————————————————————————
-  //  WIDGETS
-  // ——————————————————————————————————————
-
-  AppBar _buildAppBar(String title) {
+  AppBar _buildAppBar(String title, ThemeData theme, bool isDark) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
       title: Text(
         title,
-        style: TextStyle(
-          color: Colors.white,
+        style: theme.textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
+          color: theme.colorScheme.onSurface,
         ),
       ),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-        onPressed: goBack,
+        icon: Icon(
+          Icons.arrow_back_ios_new,
+          color: theme.colorScheme.onSurface,
+        ),
+        onPressed: () => Get.back(),
       ),
       actions: [
         if (widget.type == PaymentType.send)
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+            icon: Icon(
+              Icons.qr_code_scanner,
+              color: theme.colorScheme.onSurface,
+            ),
             onPressed: () {
               Get.to(() => const ReceiptScanPage());
             },
@@ -516,38 +336,36 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _fieldLabel(String text) {
+  Widget _fieldLabel(String text, ThemeData theme) {
     return Padding(
       padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
       child: Text(
         text,
-        style: TextStyle(
-          color: Colors.white70,
-          fontSize: 14.sp,
+        style: theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
 
-  Widget _amountField(TextEditingController c) {
-    return _glassBox(
+  Widget _amountField(TextEditingController c, ThemeData theme) {
+    return GlassContainer(
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
             decoration: BoxDecoration(
-              color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+              color: AppColors.primary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8.r),
               border: Border.all(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
               ),
             ),
             child: Obx(
               () => Text(
                 CurrencyController.to.currencyCode.value,
                 style: TextStyle(
-                  color: const Color(0xFF6C63FF), // Blurple
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w800,
                   fontSize: 15.sp,
                 ),
@@ -558,15 +376,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Expanded(
             child: TextField(
               controller: c,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [ThousandsFormatter(allowFraction: true)],
               decoration: InputDecoration(
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 hintText: "0.00",
-                hintStyle: TextStyle(color: Colors.white24, fontSize: 22.sp),
+                hintStyle: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color?.withValues(
+                    alpha: 0.4,
+                  ),
+                  fontSize: 22.sp,
+                ),
               ),
               style: TextStyle(
                 fontSize: 22.sp,
-                color: Colors.white,
+                color: theme.textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
               ),
@@ -580,18 +408,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget _inputField({
     required TextEditingController controller,
     required String hint,
+    required ThemeData theme,
     int maxLines = 1,
   }) {
-    return _glassBox(
+    return GlassContainer(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
       child: TextField(
         controller: controller,
         maxLines: maxLines,
         decoration: InputDecoration(
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           hintText: hint,
           hintStyle: TextStyle(
-            color: Colors.white24,
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
             fontSize: 18.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -599,7 +430,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
         style: TextStyle(
           fontSize: 18.sp,
-          color: Colors.white,
+          color: theme.textTheme.bodyLarge?.color,
           fontWeight: FontWeight.w500,
           letterSpacing: 0.5,
         ),
@@ -607,98 +438,127 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _categorySelector() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          ..._categories.map((cat) {
-            final isSelected = selectedCategory == cat.name;
-            final catColor = cat.color != null
-                ? Color(cat.color!)
-                : const Color(0xFF00E5FF);
-            final borderColor = isSelected ? catColor : Colors.white12;
+  Widget _categorySelector(ThemeData theme) {
+    return Obx(() {
+      final categories = _transactionController.categories;
 
-            return Padding(
-              padding: EdgeInsets.only(right: 12.w),
-              child: GestureDetector(
-                onTap: () => setState(() => selectedCategory = cat.name),
-                onLongPress: () => _deleteCategory(cat),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 12.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? catColor.withValues(alpha: 0.25)
-                        : Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(24.r),
-                    border: Border.all(color: borderColor, width: 1.5),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: catColor.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              spreadRadius: -2,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    children: [
-                      if (cat.iconCode != null) ...[
-                        Icon(
-                          IconHelper.getIconFromCode(cat.iconCode),
-                          size: 18.sp,
-                          color: isSelected ? catColor : Colors.white60,
+      // Auto-select first category if none selected and categories exist
+      if (selectedCategory == null && categories.isNotEmpty) {
+        // Defer state update to next frame to avoid build error
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && selectedCategory == null) {
+            setState(() => selectedCategory = categories.first.name);
+          }
+        });
+      }
+
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            ...categories.map((cat) {
+              final isSelected = selectedCategory == cat.name;
+              final catColor = cat.color != null
+                  ? Color(cat.color!)
+                  : AppColors.secondary;
+              final borderColor = isSelected
+                  ? catColor
+                  : theme.dividerColor.withValues(alpha: 0.3);
+
+              return Padding(
+                padding: EdgeInsets.only(right: 12.w),
+                child: GestureDetector(
+                  onTap: () => setState(() => selectedCategory = cat.name),
+                  onLongPress: () => _deleteCategory(cat),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 12.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? catColor.withValues(alpha: 0.25)
+                          : theme.cardColor.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(24.r),
+                      border: Border.all(color: borderColor, width: 1.5),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: catColor.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                spreadRadius: -2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Row(
+                      children: [
+                        if (cat.iconCode != null) ...[
+                          Icon(
+                            IconHelper.getIconFromCode(cat.iconCode),
+                            size: 18.sp,
+                            color: isSelected
+                                ? catColor
+                                : theme.textTheme.bodyMedium?.color,
+                          ),
+                          SizedBox(width: 8.w),
+                        ],
+                        Text(
+                          cat.name,
+                          style: TextStyle(
+                            color: isSelected
+                                ? theme.textTheme.bodyLarge?.color
+                                : theme.textTheme.bodyMedium?.color,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15.sp,
+                          ),
                         ),
-                        SizedBox(width: 8.w),
                       ],
-                      Text(
-                        cat.name,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white60,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15.sp,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
 
-          // ADD BUTTON
-          GestureDetector(
-            onTap: _addCategoryDialog,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.add, color: Colors.white70, size: 20.sp),
-                  SizedBox(width: 6.w),
-                  Text(
-                    "Add",
-                    style: TextStyle(color: Colors.white70, fontSize: 15.sp),
+            // ADD BUTTON
+            GestureDetector(
+              onTap: _addCategoryDialog,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  color: theme.cardColor.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(24.r),
+                  border: Border.all(
+                    color: theme.dividerColor.withValues(alpha: 0.3),
                   ),
-                ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.add,
+                      color: theme.textTheme.bodyMedium?.color,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      AppLocalizations.of(context)!.add,
+                      style: TextStyle(
+                        color: theme.textTheme.bodyMedium?.color,
+                        fontSize: 15.sp,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
-  Widget _dateSelector() {
+  Widget _dateSelector(ThemeData theme) {
     return GestureDetector(
       onTap: () async {
         final picked = await showDatePicker(
@@ -706,26 +566,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
           initialDate: selectedDate,
           firstDate: DateTime(2015),
           lastDate: DateTime(2100),
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: const ColorScheme.dark(
-                  primary: Color(0xFF6C63FF),
-                  onPrimary: Colors.white,
-                  surface: Color(0xFF1E1E2C),
-                  onSurface: Colors.white,
-                ),
-                dialogTheme: DialogThemeData(
-                  backgroundColor: const Color(0xFF1E1E2C),
-                ),
-              ),
-              child: child!,
-            );
-          },
         );
         if (picked != null) setState(() => selectedDate = picked);
       },
-      child: _glassBox(
+      child: GlassContainer(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
         child: Row(
           children: [
@@ -733,12 +577,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
               style: TextStyle(
                 fontSize: 18.sp,
-                color: Colors.white,
+                color: theme.textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const Spacer(),
-            const Icon(Icons.calendar_today_outlined, color: Color(0xFF6C63FF)),
+            Icon(Icons.calendar_today_outlined, color: AppColors.primary),
           ],
         ),
       ),
@@ -746,50 +590,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _submitButton({required String label, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: 54.h,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(27.r),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+    return Obx(
+      () => GestureDetector(
+        onTap: _transactionController.isSaving.value
+            ? null
+            : () {
+                HapticFeedback.mediumImpact();
+                onTap();
+              },
+        child: Container(
+          width: double.infinity,
+          height: 54.h,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, AppColors.secondary],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16.sp,
-            letterSpacing: 1.5,
+            borderRadius: BorderRadius.circular(27.r),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.4),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
+          alignment: Alignment.center,
+          child: _transactionController.isSaving.value
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.sp,
+                    letterSpacing: 1.5,
+                  ),
+                ),
         ),
       ),
-    );
-  }
-
-  Widget _glassBox({required Widget child, EdgeInsetsGeometry? padding}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      padding:
-          padding ?? EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-      child: child,
     );
   }
 }

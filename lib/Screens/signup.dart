@@ -4,8 +4,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/methods.dart';
-import 'package:money_control/Screens/loginscreen.dart';
+import 'package:money_control/Components/glass_container.dart'; // Unified Glass Container
+import 'package:money_control/Components/colors.dart'; // App Colors
 import 'package:money_control/Screens/onboarding_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -136,43 +138,38 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    final gradientColors = isDark
-        ? [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
-          ]
-        : [
-            const Color(0xFFF5F7FA), // Premium Light
-            const Color(0xFFC3CFE2),
-          ];
-
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
-    final hintColor = isDark
-        ? Colors.white.withValues(alpha: 0.5)
-        : const Color(0xFF1A1A2E).withValues(alpha: 0.5);
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
-            child: Column(
-              children: [
-                SizedBox(height: 40.h),
-                _buildHeader(textColor),
-                SizedBox(height: 30.h),
-                _buildGlassCard(isDark, textColor, hintColor),
-              ],
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Column(
+                children: [
+                  SizedBox(height: 20.h),
+                  _buildHeader(
+                        isDark ? Colors.white : AppColors.lightTextPrimary,
+                      )
+                      .animate()
+                      .fadeIn(duration: 600.ms)
+                      .slideY(begin: -0.2, end: 0, curve: Curves.easeOutBack),
+                  SizedBox(height: 30.h),
+                  _buildFormCard(isDark, theme)
+                      .animate()
+                      .fadeIn(duration: 600.ms, delay: 200.ms)
+                      .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                ],
+              ),
             ),
           ),
         ),
@@ -197,33 +194,22 @@ class _AuthScreenState extends State<AuthScreen> {
         SizedBox(height: 6.h),
         Text(
           "Join Money Control today",
-          style: TextStyle(fontSize: 14.sp, color: textColor.withValues(alpha: 0.6)),
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: textColor.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildGlassCard(bool isDark, Color textColor, Color hintColor) {
-    return Container(
+  Widget _buildFormCard(bool isDark, ThemeData theme) {
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    final hintColor = isDark ? Colors.white54 : AppColors.lightTextSecondary;
+
+    return GlassContainer(
       padding: EdgeInsets.all(24.w),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.4),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      borderRadius: BorderRadius.circular(24.r),
       child: Form(
         key: _formKey,
         child: Column(
@@ -294,17 +280,10 @@ class _AuthScreenState extends State<AuthScreen> {
               height: 52.h,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(26.r),
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF6C63FF), const Color(0xFF4834D4)]
-                      : [
-                          const Color(0xFF6C63FF).withValues(alpha: 0.8),
-                          const Color(0xFF4834D4).withValues(alpha: 0.8),
-                        ],
-                ),
+                color: AppColors.primary,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -374,7 +353,7 @@ class _AuthScreenState extends State<AuthScreen> {
             SizedBox(height: 24.h),
 
             GestureDetector(
-              onTap: () => Get.off(() => const LoginScreen()),
+              onTap: () => Get.back(),
               child: RichText(
                 text: TextSpan(
                   text: "Already have an account? ",
@@ -383,9 +362,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     TextSpan(
                       text: "Log In",
                       style: TextStyle(
-                        color: isDark
-                            ? const Color(0xFF6C63FF)
-                            : Colors.deepPurple,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -416,12 +393,12 @@ class _AuthScreenState extends State<AuthScreen> {
         decoration: BoxDecoration(
           color: isDark
               ? Colors.black.withValues(alpha: 0.2)
-              : Colors.black.withValues(alpha: 0.03),
+              : AppColors.lightSurface,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.05),
+                ? Colors.white.withValues(alpha: 0.1)
+                : AppColors.lightBorder,
           ),
         ),
         child: TextFormField(

@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Services/wealth_service.dart';
+import 'package:money_control/Components/skeleton_loader.dart';
 
 import 'package:intl/intl.dart';
+
+import 'package:flutter/rendering.dart' as rendering;
 
 class WealthBuilderScreen extends StatefulWidget {
   const WealthBuilderScreen({super.key});
@@ -24,11 +28,18 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   Map<String, WealthTarget> assetTargets = {};
   List<Map<String, dynamic>> smartInsights = [];
   int? userAge;
+  final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _isBottomBarVisible.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -66,7 +77,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final gradientColors = isDark
-        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withValues(alpha: 0.95)]
+        ? [
+            const Color(0xFF1A1A2E),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
+          ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
 
     return Container(
@@ -92,110 +106,136 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           centerTitle: true,
           automaticallyImplyLeading: false,
         ),
-        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
-        body: loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _loadData,
-                color: const Color(0xFF00E5FF),
-                backgroundColor: const Color(0xFF1A1A2E),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 10.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (userAge != null)
-                        Container(
-                          width: double.infinity,
-                          margin: EdgeInsets.only(bottom: 20.h),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 12.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16.r),
-                            border: Border.all(
-                              color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+        extendBody: true,
+        bottomNavigationBar: ValueListenableBuilder<bool>(
+          valueListenable: _isBottomBarVisible,
+          builder: (context, visible, child) {
+            return AnimatedSlide(
+              duration: const Duration(milliseconds: 200),
+              offset: visible ? Offset.zero : const Offset(0, 1),
+              child: child,
+            );
+          },
+          child: const BottomNavBar(currentIndex: 3),
+        ),
+        body: NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            if (notification.direction == rendering.ScrollDirection.reverse) {
+              if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
+            } else if (notification.direction ==
+                rendering.ScrollDirection.forward) {
+              if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
+            }
+            return true;
+          },
+          child: loading
+              ? const WealthSkeleton()
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  color: const Color(0xFF00E5FF),
+                  backgroundColor: const Color(0xFF1A1A2E),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 10.h,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (userAge != null)
+                          Container(
+                            width: double.infinity,
+                            margin: EdgeInsets.only(bottom: 20.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 12.h,
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.verified_user_outlined,
-                                color: const Color(0xFF00E5FF),
-                                size: 20.sp,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF00E5FF,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.3),
                               ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: Text(
-                                  "Personalized Strategy (Age: $userAge)",
-                                  style: TextStyle(
-                                    color: const Color(0xFF00E5FF),
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.bold,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.verified_user_outlined,
+                                  color: const Color(0xFF00E5FF),
+                                  size: 20.sp,
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    "Personalized Strategy (Age: $userAge)",
+                                    style: TextStyle(
+                                      color: const Color(0xFF00E5FF),
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+                        _buildNetWorthCard(scheme),
+                        SizedBox(height: 20.h),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Your Assets",
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                                color: scheme.onSurface,
                               ),
-                            ],
-                          ),
-                        ),
-                      _buildNetWorthCard(scheme),
-                      SizedBox(height: 20.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Your Assets",
-                            style: TextStyle(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                              color: scheme.onSurface,
                             ),
-                          ),
-                          IconButton(
-                            onPressed: _showVisibilityDialog,
-                            icon: Icon(
-                              Icons.tune_rounded,
-                              color: scheme.onSurface.withValues(alpha: 0.6),
+                            IconButton(
+                              onPressed: _showVisibilityDialog,
+                              icon: Icon(
+                                Icons.tune_rounded,
+                                color: scheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                              tooltip: "Manage Visibility",
                             ),
-                            tooltip: "Manage Visibility",
+                          ],
+                        ),
+                        SizedBox(height: 10.h),
+                        _buildAssetGrid(scheme),
+                        SizedBox(height: 20.h),
+                        Text(
+                          "Allocation",
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: scheme.onSurface,
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 10.h),
-                      _buildAssetGrid(scheme),
-                      SizedBox(height: 20.h),
-                      Text(
-                        "Allocation",
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: scheme.onSurface,
                         ),
-                      ),
-                      SizedBox(height: 10.h),
-                      _buildPieChart(scheme),
-                      SizedBox(height: 20.h),
-                      Text(
-                        "Smart Suggestions",
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: scheme.onSurface,
+                        SizedBox(height: 10.h),
+                        _buildPieChart(scheme),
+                        SizedBox(height: 20.h),
+                        Text(
+                          "Smart Suggestions",
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: scheme.onSurface,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 10.h),
-                      _buildSuggestions(scheme),
-                      SizedBox(height: 80.h), // Bottom padding
-                    ],
+                        SizedBox(height: 10.h),
+                        _buildSuggestions(scheme),
+                        SizedBox(height: 100.h), // Bottom padding
+                      ],
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -310,7 +350,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         decoration: BoxDecoration(
           color: scheme.surface.withValues(alpha: 0.1), // Glassy background
           borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
+          ),
           gradient: LinearGradient(
             colors: [
               Colors.white.withValues(alpha: 0.05),
@@ -560,7 +603,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                           borderSide: BorderSide(
-                            color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
+                            color: const Color(
+                              0xFF00E5FF,
+                            ).withValues(alpha: 0.5),
                           ),
                         ),
                         prefixText: symbol,
@@ -838,13 +883,18 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       );
     }
 
-    return SizedBox(
-      height: 200.h,
-      child: PieChart(
-        PieChartData(
-          sections: sections,
-          centerSpaceRadius: 40,
-          sectionsSpace: 2,
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(24.r),
+      padding: EdgeInsets.all(20.w),
+      child: SizedBox(
+        height: 200.h,
+        child: PieChart(
+          PieChartData(
+            sections: sections,
+            centerSpaceRadius: 40,
+            sectionsSpace: 2,
+            borderData: FlBorderData(show: false),
+          ),
         ),
       ),
     );

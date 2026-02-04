@@ -3,16 +3,14 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
-import 'package:money_control/Services/offline_queue.dart'; // <── ADDED
-import 'package:money_control/Services/local_backup_service.dart'; // <── ADDED
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -49,9 +47,6 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
   // DELETE TRANSACTION (OFFLINE SAFE)
   // ----------------------------------------------------------------------
   Future<void> _deleteTransaction() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -74,43 +69,13 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
 
     if (confirm != true) return;
 
-    final txId = widget.transaction.id;
+    if (!mounted) return;
 
-    try {
-      // Try Firestore delete
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.email)
-          .collection("transactions")
-          .doc(txId)
-          .delete()
-          .timeout(const Duration(seconds: 5));
+    final ctrl = Get.find<TransactionController>();
+    final success = await ctrl.deleteTransaction(widget.transaction);
 
-      LocalBackupService.backupUserTransactions(user.email!);
-
-      if (mounted) {
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      // Device offline → SAVE DELETE TO QUEUE
-      final deleteJson = {
-        "operation": "delete",
-        "transactionId": txId,
-        "user": user.email,
-      };
-
-      await OfflineQueueService.savePending(deleteJson);
-
-      Get.snackbar(
-        "Offline",
-        "Delete queued and will sync when online",
-        snackPosition: SnackPosition.BOTTOM,
-        colorText: Colors.white,
-      );
-
-      if (mounted) {
-        Navigator.pop(context);
-      }
+    if (success && mounted) {
+      Navigator.pop(context);
     }
   }
 

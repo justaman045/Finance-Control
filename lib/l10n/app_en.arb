@@ -1,0 +1,81 @@
+{
+  "@@locale": "en",
+  "appTitle": "Money Control",
+  "welcomeBack": "Welcome back,",
+  "loginTitle": "Login to your account",
+  "loginSubtitle": "Welcome back! Please enter your details.",
+  "emailHint": "Email Address",
+  "passwordHint": "Password",
+  "loginButton": "Login",
+  "googleLogin": "Sign in with Google",
+  "dontHaveAccount": "Don't have an account?",
+  "signUp": "Sign Up",
+  "home": "Home",
+  "analytics": "Analytics",
+  "transactions": "Transactions",
+  "settings": "Settings",
+  "recentTransactions": "Recent Transactions",
+  "quickSend": "Quick Send",
+  "noTransactions": "No Transactions",
+  "noTransactionsSubtitle": "You haven't made any transactions yet.",
+  "sendMoney": "Send Money",
+  "receiveMoney": "Receive Money",
+  "amount": "Amount",
+  "recipient": "Recipient",
+  "sender": "Sender",
+  "selectCategory": "Select Category",
+  "note": "Note",
+  "date": "Date",
+  "add": "Add",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "deleteCategoryTitle": "Delete Category",
+  "deleteCategoryContent": "Do you want to delete '{category}'?\n\n• This will NOT delete existing transactions.\n• Category will simply be removed from your list.",
+  "@deleteCategoryContent": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "error": "Error",
+  "success": "Success",
+  "transactionSaved": "Transaction saved successfully",
+  "newCategory": "New Category",
+  "categoryNameHint": "Category Name",
+  "enterNameHint": "Enter name",
+  "addNoteHint": "Add a note...",
+  "selectCategoryError": "Select a category",
+  "send": "Send",
+  "receive": "Receive",
+  "welcomeUser": "Welcome, {name}",
+  "@welcomeUser": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingSubtitle": "Let's set up your financial goals in 2 steps.",
+  "chooseCurrencyStep": "1. Choose Currency",
+  "setBudgetStep": "2. Set Monthly Budget",
+  "budgetHint": "e.g. 20000",
+  "startTracking": "Start Tracking",
+  "enterBudgetError": "Please enter a budget",
+  "invalidNumberError": "Invalid number",
+  "transactionHistoryTitle": "Transaction History",
+  "importSmsTooltip": "Import from SMS",
+  "tabAll": "All",
+  "tabIncome": "Income",
+  "tabOutcome": "Outcome",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "unknownRecipient": "Unknown",
+  "uncategorized": "Uncategorized",
+  "monthlyForecastTitle": "Monthly Forecast",
+  "incomeSectionTitle": "INCOME",
+  "expenseSectionTitle": "EXPENSES",
+  "incomeSoFar": "Income So Far",
+  "projectedRemaining": "Projected Remaining",
+  "expensesSoFar": "Expenses So Far"
+}

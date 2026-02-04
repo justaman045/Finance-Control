@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Controllers/profile_controller.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -12,6 +13,7 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  final ProfileController _profileController = Get.find<ProfileController>();
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
@@ -179,31 +181,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     Stack(
                       alignment: Alignment.bottomRight,
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF00E5FF,
-                                ).withValues(alpha: 0.3),
-                                blurRadius: 20,
-                                spreadRadius: 2,
+                        Obx(() {
+                          final url = _profileController.photoURL.value;
+                          final isLoading = _profileController.isLoading.value;
+                          return Hero(
+                            tag: 'profile_pic',
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF00E5FF,
+                                    ).withValues(alpha: 0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 50.r,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.1,
+                              child: CircleAvatar(
+                                radius: 50.r,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.1,
+                                ),
+                                backgroundImage: url.isNotEmpty
+                                    ? NetworkImage(url)
+                                    : const AssetImage('assets/profile.png')
+                                          as ImageProvider,
+                                child: isLoading
+                                    ? const CircularProgressIndicator(
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
                             ),
-                            backgroundImage: const AssetImage(
-                              'assets/profile.png',
-                            ),
-                          ),
-                        ),
+                          );
+                        }),
                         GestureDetector(
-                          onTap: () {},
+                          onTap: _profileController.pickAndUploadImage,
                           child: Container(
                             height: 32.r,
                             width: 32.r,
@@ -216,7 +231,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.edit,
+                              Icons.camera_alt_rounded,
                               size: 16.sp,
                               color: const Color(0xFF1A1A2E),
                             ),
@@ -254,7 +269,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   surface: Color(0xFF1E1E2C),
                                   onSurface: Colors.white,
                                 ),
-                                dialogBackgroundColor: const Color(0xFF1E1E2C),
+                                dialogTheme: DialogThemeData(
+                                  backgroundColor: const Color(0xFF1E1E2C),
+                                ),
                               ),
                               child: child!,
                             );

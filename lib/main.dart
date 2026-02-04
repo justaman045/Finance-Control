@@ -1,6 +1,7 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -201,9 +202,13 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
           // navigatorKey is properly handled by GetX internally
           debugShowCheckedModeBanner: false,
           title: "Finance Control",
+          defaultTransition: Transition.fadeIn,
+          transitionDuration: const Duration(milliseconds: 300),
           themeMode: themeController.themeMode,
           theme: buildLightTheme(),
           darkTheme: buildDarkTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Obx(() {
             if (_bioService.isBiometricEnabled.value &&
                 !_bioService.isAuthenticated.value) {

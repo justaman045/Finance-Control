@@ -5,12 +5,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/analytics_trends.dart';
 import 'package:money_control/Services/export_service.dart';
+import 'package:money_control/Controllers/tutorial_controller.dart';
 
 import 'package:money_control/Controllers/currency_controller.dart';
+
+import 'package:flutter/rendering.dart' as rendering;
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -27,6 +31,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   bool _loading = true;
   List<TransactionModel> _all = [];
+  final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
+  int _touchedIndex = -1;
+  final GlobalKey _keyChart = GlobalKey();
 
   // ---- PERIOD SELECTION ----
   String _period = "This Month";
@@ -51,6 +58,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     email = user?.email;
 
     _loadTx();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      TutorialController.showAnalyticsTutorial(context, keyChart: _keyChart);
+    });
+  }
+
+  @override
+  void dispose() {
+    _isBottomBarVisible.dispose();
+    super.dispose();
   }
 
   // ---------------- FIRESTORE LOAD ------------------
@@ -337,12 +354,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ],
         ),
         backgroundColor: Colors.transparent,
-        bottomNavigationBar: const BottomNavBar(currentIndex: 1),
-        body: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
-              )
-            : _buildBody(),
+        extendBody: true,
+        bottomNavigationBar: ValueListenableBuilder<bool>(
+          valueListenable: _isBottomBarVisible,
+          builder: (context, visible, child) {
+            return AnimatedSlide(
+              duration: const Duration(milliseconds: 200),
+              offset: visible ? Offset.zero : const Offset(0, 1),
+              child: child,
+            );
+          },
+          child: const BottomNavBar(currentIndex: 1),
+        ),
+        body: NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            if (notification.direction == rendering.ScrollDirection.reverse) {
+              if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
+            } else if (notification.direction ==
+                rendering.ScrollDirection.forward) {
+              if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
+            }
+            return true;
+          },
+          child: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                )
+              : _buildBody(),
+        ),
       ),
     );
   }
@@ -351,7 +390,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final categories = spendingByCategory.keys.toList();
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 30.h),
+      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 100.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -932,6 +971,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
 
     return Container(
+      key: _keyChart,
       height: 300.h,
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -1099,6 +1139,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ],
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) =>
+                        const Color(0xFF16213E).withValues(alpha: 0.9),
+                    tooltipPadding: const EdgeInsets.all(8),
+                    tooltipBorder: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
                         return LineTooltipItem(
@@ -1256,123 +1303,152 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     ),
   );
 
-  // ================= PIE CHART ===================
-
   Widget _buildPieChart() {
     final data = spendingByCategory;
+    if (data.isEmpty) return const SizedBox.shrink();
 
-    // Calculate total first
-    final total = data.values.fold(0.0, (s, v) => s + v);
+    final total = totalExpense;
+    if (total <= 0) return const SizedBox.shrink();
 
-    if (data.isEmpty || total == 0) {
-      return _emptyCard("No expenses in this period.");
+    // Sort descending
+    final sortedKeys = data.keys.toList()
+      ..sort((a, b) => data[b]!.compareTo(data[a]!));
+
+    // Limit to top 5 + "Others"
+    Map<String, double> finalMap = {};
+    if (sortedKeys.length > 5) {
+      for (int i = 0; i < 5; i++) {
+        finalMap[sortedKeys[i]] = data[sortedKeys[i]]!;
+      }
+      double otherSum = 0;
+      for (int i = 5; i < sortedKeys.length; i++) {
+        otherSum += data[sortedKeys[i]]!;
+      }
+      finalMap["Others"] = otherSum;
+    } else {
+      finalMap = data;
     }
 
-    final entries = data.entries.toList();
+    // Pie chart needs sections
+    int i = 0;
+    final List<Color> colors = [
+      const Color(0xFF00E5FF), // Cyan
+      const Color(0xFF2979FF), // Blue
+      const Color(0xFF651FFF), // Deep Purple
+      const Color(0xFFFF4081), // Pink Accent
+      const Color(0xFFFF9100), // Orange Accent
+      Colors.grey,
+    ];
 
-    return Container(
-      height: 260.h,
+    final sections = finalMap.entries.map((e) {
+      final val = e.value;
+      final pct = (val / total * 100).toStringAsFixed(1);
+      final color = colors[i % colors.length];
+
+      final isTouched = i == _touchedIndex;
+      final fontSize = isTouched ? 14.sp : 10.sp;
+      final radius = isTouched ? 60.r : 50.r;
+
+      i++;
+      return PieChartSectionData(
+        value: val,
+        title: isTouched ? "$pct%" : "$pct%",
+        color: color,
+        radius: radius,
+        titleStyle: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          shadows: const [Shadow(color: Colors.black45, blurRadius: 2)],
+        ),
+      );
+    }).toList();
+
+    return GlassContainer(
       padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 15,
-            spreadRadius: -2,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+      borderRadius: BorderRadius.circular(24.r),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Spending by Category",
+            "Expense Breakdown",
             style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w600,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          SizedBox(height: 8.h),
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 4,
+          SizedBox(height: 24.h),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: AspectRatio(
+                  aspectRatio: 1,
                   child: PieChart(
                     PieChartData(
-                      sectionsSpace: 2,
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              _touchedIndex = -1;
+                              return;
+                            }
+                            _touchedIndex = pieTouchResponse
+                                .touchedSection!
+                                .touchedSectionIndex;
+                          });
+                        },
+                      ),
+                      sections: sections,
                       centerSpaceRadius: 30.r,
-                      sections: [
-                        for (int i = 0; i < entries.length; i++)
-                          PieChartSectionData(
-                            value: entries[i].value,
-                            title:
-                                "${(entries[i].value / total * 100).toStringAsFixed(1)}%",
-                            titleStyle: TextStyle(
-                              fontSize: 10.sp,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            color:
-                                Colors.primaries[i % Colors.primaries.length],
-                            radius: 45.r,
-                          ),
-                      ],
+                      sectionsSpace: 2,
+                      borderData: FlBorderData(show: false),
                     ),
                   ),
                 ),
-                Expanded(
-                  flex: 6,
-                  child: ListView.builder(
-                    itemCount: entries.length,
-                    itemBuilder: (_, i) {
-                      final e = entries[i];
-                      final color =
-                          Colors.primaries[i % Colors.primaries.length];
-
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 8.h),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 10.w,
-                              height: 10.w,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                flex: 3,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: finalMap.entries.toList().asMap().entries.map((e) {
+                    final index = e.key;
+                    final entry = e.value;
+                    final color = colors[index % colors.length];
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 8.h),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 10.w,
+                            height: 10.w,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
                             ),
-                            SizedBox(width: 6.w),
-                            Expanded(
-                              child: Text(
-                                e.key,
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.white70,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              "${CurrencyController.to.currencySymbol.value}${e.value.toStringAsFixed(0)}",
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Text(
+                              entry.key,
                               style: TextStyle(
+                                color: Colors.white70,
                                 fontSize: 12.sp,
-                                color: Colors.white.withValues(alpha: 0.7),
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1463,3 +1539,7 @@ class _StaggeredSlideFadeState extends State<_StaggeredSlideFade>
     );
   }
 }
+
+// ... (existing imports)
+
+// ... (in _AnalyticsScreenState)

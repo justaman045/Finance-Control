@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
@@ -8,6 +10,7 @@ import 'package:money_control/Components/cateogary_initial_icon.dart';
 
 import 'package:money_control/Screens/cateogary_history.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Components/empty_state.dart';
 
 class CategoriesHistoryScreen extends StatefulWidget {
   const CategoriesHistoryScreen({super.key});
@@ -152,6 +155,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
 
   void _onTabChanged(int index) {
     if (index != selectedTab) {
+      HapticFeedback.selectionClick();
       setState(() {
         selectedTab = index;
       });
@@ -238,23 +242,11 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                     )
                   : categoryItems.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.category_outlined,
-                            size: 60.sp,
-                            color: Colors.white24,
-                          ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            "No categories found.",
-                            style: TextStyle(
-                              color: Colors.white38,
-                              fontSize: 16.sp,
-                            ),
-                          ),
-                        ],
+                      child: EmptyStateWidget(
+                        title: "No Categories",
+                        subtitle: "No transactions found for this category.",
+                        icon: Icons.category_outlined,
+                        color: Colors.white38,
                       ),
                     )
                   : ListView.builder(
@@ -263,7 +255,10 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                       itemBuilder: (context, index) {
                         final category = categoryItems[index];
                         final budget = budgetMap[category.name] ?? 0;
-                        return _buildCategoryCard(category, budget);
+                        return _buildCategoryCard(category, budget)
+                            .animate(delay: (index * 50).ms)
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
                       },
                     ),
             ),

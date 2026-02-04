@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/animated_widget.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Models/splash_data.dart';
@@ -105,20 +106,26 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                     children: [
                       // Image Container with Glow
                       Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: isDark
-                                  ? const Color(0xFF6C63FF).withValues(alpha: 0.15)
-                                  : const Color(0xFF3F51B5).withValues(alpha: 0.1),
-                              blurRadius: 60,
-                              spreadRadius: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isDark
+                                      ? const Color(
+                                          0xFF6C63FF,
+                                        ).withValues(alpha: 0.15)
+                                      : const Color(
+                                          0xFF3F51B5,
+                                        ).withValues(alpha: 0.1),
+                                  blurRadius: 60,
+                                  spreadRadius: 20,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: CAnimatedWidget(image: splashData.image),
-                      ),
+                            child: CAnimatedWidget(image: splashData.image),
+                          )
+                          .animate(key: ValueKey(currentIndex))
+                          .scale(duration: 600.ms, curve: Curves.easeOutBack),
                       SizedBox(height: 40.h),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -128,25 +135,35 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                             key: ValueKey(splashData.headline),
                             children: [
                               Text(
-                                splashData.headline,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 28.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
+                                    splashData.headline,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 28.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  )
+                                  .animate()
+                                  .fadeIn(duration: 600.ms)
+                                  .slideY(
+                                    begin: 0.3,
+                                    end: 0,
+                                    curve: Curves.easeOut,
+                                  ),
                               SizedBox(height: 16.h),
                               Text(
-                                splashData.subtitle,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  color: secondaryTextColor,
-                                  height: 1.5,
-                                ),
-                              ),
+                                    splashData.subtitle,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 15.sp,
+                                      color: secondaryTextColor,
+                                      height: 1.5,
+                                    ),
+                                  )
+                                  .animate()
+                                  .fadeIn(duration: 600.ms, delay: 100.ms)
+                                  .slideY(begin: 0.1, end: 0),
                             ],
                           ),
                         ),
@@ -191,51 +208,67 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
 
                       // Action Button
                       Container(
-                        width: double.infinity,
-                        height: 56.h,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28.r),
-                          gradient: LinearGradient(
-                            colors: isDark
-                                ? [
-                                    const Color(0xFF6C63FF),
-                                    const Color(0xFF4834D4),
-                                  ]
-                                : [
-                                    const Color(0xFF6C63FF).withValues(alpha: 0.9),
-                                    const Color(0xFF4834D4).withValues(alpha: 0.9),
-                                  ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _nextPage,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
+                            width: double.infinity,
+                            height: 56.h,
+                            decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(28.r),
+                              gradient: LinearGradient(
+                                colors: isDark
+                                    ? [
+                                        const Color(0xFF6C63FF),
+                                        const Color(0xFF4834D4),
+                                      ]
+                                    : [
+                                        const Color(
+                                          0xFF6C63FF,
+                                        ).withValues(alpha: 0.9),
+                                        const Color(
+                                          0xFF4834D4,
+                                        ).withValues(alpha: 0.9),
+                                      ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF6C63FF,
+                                  ).withValues(alpha: 0.3),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                             ),
-                          ),
-                          child: Text(
-                            splashData.buttonText,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
+                            child: ElevatedButton(
+                              onPressed: _nextPage,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28.r),
+                                ),
+                              ),
+                              child: Text(
+                                splashData.buttonText,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                             ),
+                          )
+                          .animate(
+                            target: currentIndex == splashPages.length - 1
+                                ? 1
+                                : 0,
+                          )
+                          .fadeIn(duration: 500.ms)
+                          .scale(
+                            begin: const Offset(0.9, 0.9),
+                            end: const Offset(1, 1),
                           ),
-                        ),
-                      ),
                       SizedBox(height: 30.h),
                     ],
                   ),

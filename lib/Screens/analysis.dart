@@ -7,6 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:flutter/rendering.dart' as rendering;
+import 'package:money_control/Components/skeleton_loader.dart';
+
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
@@ -21,6 +24,7 @@ class AIInsightsScreen extends StatefulWidget {
 class _AIInsightsScreenState extends State<AIInsightsScreen> {
   bool loading = true;
   String? error;
+  final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
   double forecastTotal = 0;
   double currentMonthSpent = 0;
@@ -52,6 +56,12 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   void initState() {
     super.initState();
     _runInsights();
+  }
+
+  @override
+  void dispose() {
+    _isBottomBarVisible.dispose();
+    super.dispose();
   }
 
   // Class Level State for UI
@@ -478,12 +488,37 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _runInsights),
         ],
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-          ? Center(child: Text(error!))
-          : _buildContent(scheme),
+      bottomNavigationBar: ValueListenableBuilder<bool>(
+        valueListenable: _isBottomBarVisible,
+        builder: (context, visible, child) {
+          return AnimatedSlide(
+            duration: const Duration(milliseconds: 200),
+            offset: visible ? Offset.zero : const Offset(0, 1),
+            child: child,
+          );
+        },
+        child: const BottomNavBar(currentIndex: 2),
+      ),
+      extendBody: true,
+      body: NotificationListener<UserScrollNotification>(
+        onNotification: (notification) {
+          if (notification.direction == rendering.ScrollDirection.reverse) {
+            if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
+          } else if (notification.direction ==
+              rendering.ScrollDirection.forward) {
+            if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
+          }
+          return true;
+        },
+        child: SafeArea(
+          bottom: false,
+          child: loading
+              ? const InsightsSkeleton()
+              : error != null
+              ? Center(child: Text(error!))
+              : _buildContent(scheme),
+        ),
+      ),
     );
   }
 
@@ -520,7 +555,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
               child: _buildInsightCard(c, scheme),
             );
           }),
-          SizedBox(height: 30.h),
+          SizedBox(height: 100.h),
         ],
       ),
     );

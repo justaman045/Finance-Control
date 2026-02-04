@@ -5,10 +5,10 @@ packages:
     dependency: transitive
     description:
       name: _flutterfire_internals
-      sha256: f871a7d1b686bea1f13722aa51ab31554d05c81f47054d6de48cc8c45153508b
+      sha256: cd83f7d6bd4e4c0b0b4fef802e8796784032e1cc23d7b0e982cf5d05d9bbe182
       url: "https://pub.dev"
     source: hosted
-    version: "1.3.63"
+    version: "1.3.66"
   archive:
     dependency: transitive
     description:
@@ -105,6 +105,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  confetti:
+    dependency: "direct main"
+    description:
+      name: confetti
+      sha256: "79376a99648efbc3f23582f5784ced0fe239922bd1a0fb41f582051eba750751"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.0"
   cross_file:
     dependency: transitive
     description:
@@ -245,10 +253,10 @@ packages:
     dependency: "direct main"
     description:
       name: firebase_core
-      sha256: "132e1c311bc41e7d387b575df0aacdf24efbf4930365eb61042be5bde3978f03"
+      sha256: "923085c881663ef685269b013e241b428e1fb03cdd0ebde265d9b40ff18abf80"
       url: "https://pub.dev"
     source: hosted
-    version: "4.2.0"
+    version: "4.4.0"
   firebase_core_platform_interface:
     dependency: transitive
     description:
@@ -261,10 +269,10 @@ packages:
     dependency: transitive
     description:
       name: firebase_core_web
-      sha256: ecde2def458292404a4fcd3731ee4992fd631a0ec359d2d67c33baa8da5ec8ae
+      sha256: "83e7356c704131ca4d8d8dd57e360d8acecbca38b1a3705c7ae46cc34c708084"
       url: "https://pub.dev"
     source: hosted
-    version: "3.2.0"
+    version: "3.4.0"
   firebase_crashlytics:
     dependency: "direct main"
     description:
@@ -329,6 +337,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.7+20"
+  firebase_storage:
+    dependency: "direct main"
+    description:
+      name: firebase_storage
+      sha256: d6a0ed2ecb860cbf7537fc94773926036952e89a6ef5b6714673c9d1cb741baa
+      url: "https://pub.dev"
+    source: hosted
+    version: "13.0.6"
+  firebase_storage_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_storage_platform_interface
+      sha256: "99032301dd8ac20acd094270a4472ff8e9510701d9c6ed335df0b91a3ddf4eac"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.17"
+  firebase_storage_web:
+    dependency: transitive
+    description:
+      name: firebase_storage_web
+      sha256: d820ddb9419d563f398c85a3c7ad6255af28c3bf9d53d9af7b346b872f54a901
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.11.2"
   fixnum:
     dependency: transitive
     description:
@@ -350,6 +382,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_animate:
+    dependency: "direct main"
+    description:
+      name: flutter_animate
+      sha256: "7befe2d3252728afb77aecaaea1dec88a89d35b9b1d2eea6d04479e8af9117b5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.5.2"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -390,6 +430,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.3"
+  flutter_localizations:
+    dependency: "direct main"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -406,6 +451,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.9.3"
+  flutter_shaders:
+    dependency: transitive
+    description:
+      name: flutter_shaders
+      sha256: "34794acadd8275d971e02df03afee3dee0f98dbfb8c4837082ad0034f612a3e2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.3"
+  flutter_slidable:
+    dependency: "direct main"
+    description:
+      name: flutter_slidable
+      sha256: a857de7ea701f276fd6a6c4c67ae885b60729a3449e42766bb0e655171042801
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.2"
   flutter_sms_inbox:
     dependency: "direct main"
     description:
@@ -784,6 +845,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
+  pattern_formatter:
+    dependency: "direct main"
+    description:
+      name: pattern_formatter
+      sha256: f5fe03f7425524237465561a6a5f049616b09f99e35138df515f6b7b9aaa823b
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.1"
   pdf:
     dependency: "direct main"
     description:
@@ -976,6 +1045,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.1"
+  shimmer:
+    dependency: "direct main"
+    description:
+      name: shimmer
+      sha256: "5f88c883a22e9f9f299e5ba0e4f7e6054857224976a5d9f839d4ebdc94a14ac9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   sign_in_with_apple:
     dependency: "direct main"
     description:

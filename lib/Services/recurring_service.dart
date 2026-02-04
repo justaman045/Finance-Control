@@ -44,9 +44,17 @@ class RecurringService {
         .collection('recurring_payments')
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
+          final list = snapshot.docs.map((doc) {
             return RecurringPayment.fromMap(doc.id, doc.data());
           }).toList();
+
+          list.sort((a, b) {
+            int dateComp = a.nextDueDate.compareTo(b.nextDueDate);
+            if (dateComp != 0) return dateComp;
+            return b.amount.compareTo(a.amount);
+          });
+
+          return list;
         });
   }
 

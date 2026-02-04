@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Components/nav_item.dart';
@@ -60,31 +61,46 @@ class BottomNavBar extends StatelessWidget {
                   active: currentIndex == 0,
                   icon: Icons.grid_view_rounded, // Improved Icon
                   label: 'Home',
-                  onTap: () => gotoScreen(0, currentIndex),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    gotoScreen(0, currentIndex);
+                  },
                 ),
                 NavItem(
                   active: currentIndex == 1,
                   icon: Icons.pie_chart_outline_rounded,
                   label: 'Analytics',
-                  onTap: () => gotoScreen(1, currentIndex),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    gotoScreen(1, currentIndex);
+                  },
                 ),
                 NavItem(
                   active: currentIndex == 2,
                   icon: Icons.auto_awesome_outlined,
                   label: 'Insights', // Shortened from AI Insights
-                  onTap: () => gotoScreen(2, currentIndex),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    gotoScreen(2, currentIndex);
+                  },
                 ),
                 NavItem(
                   active: currentIndex == 3,
                   icon: Icons.monetization_on_outlined,
                   label: 'Wealth', // New Tab
-                  onTap: () => gotoScreen(3, currentIndex),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    gotoScreen(3, currentIndex);
+                  },
                 ),
                 NavItem(
                   active: currentIndex == 4,
                   icon: Icons.tune_rounded,
                   label: 'Settings',
-                  onTap: () => gotoScreen(4, currentIndex),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    gotoScreen(4, currentIndex);
+                  },
                 ),
               ],
             ),

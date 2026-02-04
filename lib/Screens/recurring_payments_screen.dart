@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Screens/subscription_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -96,126 +98,173 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             icon: const Icon(Icons.add_rounded, color: Colors.black),
           ),
         ),
-        body: Column(
-          children: [
-            // Monthly Summary Card
-            StreamBuilder<double>(
-              stream: _service.getMonthlyTotal(),
-              builder: (context, snapshot) {
-                final total = snapshot.data ?? 0;
-                return Container(
-                  width: double.infinity,
-                  margin: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 10.h),
-                  padding: EdgeInsets.all(20.w),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
-                    borderRadius: BorderRadius.circular(20.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+        body: RefreshIndicator(
+          onRefresh: () async {
+            // Simulate refresh delay
+            await Future.delayed(const Duration(seconds: 1));
+          },
+          color: const Color(0xFF00E5FF),
+          backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            children: [
+              // Monthly Summary Card
+              StreamBuilder<double>(
+                stream: _service.getMonthlyTotal(),
+                builder: (context, snapshot) {
+                  final total = snapshot.data ?? 0;
+                  return Container(
+                    width: double.infinity,
+                    margin: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 10.h),
+                    padding: EdgeInsets.all(24.w),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF1E1E2C).withValues(alpha: 0.6)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(24.r),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.white,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        "Monthly Commitment",
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: textColor.withValues(alpha: 0.6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(
+                            0xFF6C63FF,
+                          ).withValues(alpha: 0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        "₹${total.toStringAsFixed(0)}",
-                        style: TextStyle(
-                          fontSize: 32.sp,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          "Monthly Commitment",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: textColor.withValues(alpha: 0.6),
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                        SizedBox(height: 12.h),
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: total),
+                          duration: const Duration(milliseconds: 1500),
+                          curve: Curves.easeOutExpo,
+                          builder: (context, value, child) {
+                            return Text(
+                              "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
+                              style: TextStyle(
+                                fontSize: 36.sp,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                                letterSpacing: -1.0,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn().slideY(begin: -0.2, end: 0);
+                },
+              ),
 
-            Expanded(
-              child: StreamBuilder<List<RecurringPayment>>(
+              StreamBuilder<List<RecurringPayment>>(
                 stream: _service.getPayments(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return SizedBox(
+                      height: 400.h,
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
                   }
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(30.w),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withValues(alpha: 0.05),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(
-                                    alpha: isDark ? 0.2 : 0.05,
+                    return SizedBox(
+                      height: 500.h,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                                  padding: EdgeInsets.all(30.w),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF00E5FF,
+                                        ).withValues(alpha: 0.1),
+                                        blurRadius: 30,
+                                        spreadRadius: 5,
+                                      ),
+                                    ],
                                   ),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
+                                  child: Icon(
+                                    Icons.subscriptions_outlined,
+                                    size: 60.sp,
+                                    color: textColor.withValues(alpha: 0.3),
+                                  ),
+                                )
+                                .animate(onPlay: (c) => c.repeat(reverse: true))
+                                .scale(
+                                  begin: const Offset(1, 1),
+                                  end: const Offset(1.05, 1.05),
+                                  duration: const Duration(seconds: 2),
                                 ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.subscriptions_outlined,
-                              size: 60.sp,
-                              color: textColor.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          SizedBox(height: 24.h),
-                          Text(
-                            "No subscriptions yet",
-                            style: TextStyle(
-                              color: textColor.withValues(alpha: 0.6),
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(height: 8.h),
-                          Text(
-                            "Track Netflix, Rent, Spotify, etc.",
-                            style: TextStyle(
-                              color: textColor.withValues(alpha: 0.4),
-                              fontSize: 12.sp,
-                            ),
-                          ),
-                        ],
+                            SizedBox(height: 24.h),
+                            Text(
+                                  "No subscriptions yet",
+                                  style: TextStyle(
+                                    color: textColor.withValues(alpha: 0.6),
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                )
+                                .animate()
+                                .fadeIn(delay: 200.ms)
+                                .slideY(begin: 0.2, end: 0),
+                            SizedBox(height: 8.h),
+                            Text(
+                              "Track Netflix, Rent, Spotify, etc.",
+                              style: TextStyle(
+                                color: textColor.withValues(alpha: 0.4),
+                                fontSize: 12.sp,
+                              ),
+                            ).animate().fadeIn(delay: 400.ms),
+                          ],
+                        ),
                       ),
                     );
                   }
 
                   final list = snapshot.data!;
                   return ListView.separated(
-                    padding: EdgeInsets.all(20.w),
+                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 100.h),
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
                     itemCount: list.length,
                     separatorBuilder: (c, i) => SizedBox(height: 16.h),
                     itemBuilder: (context, index) {
                       final item = list[index];
                       return GestureDetector(
-                        onTap: () => Get.to(
-                          () => SubscriptionDetailsScreen(payment: item),
-                        ),
-                        child: _buildCard(item, isDark, textColor, context),
-                      );
+                            onTap: () => Get.to(
+                              () => SubscriptionDetailsScreen(payment: item),
+                            ),
+                            child: _buildCard(item, isDark, textColor, context),
+                          )
+                          .animate(delay: (index * 100).ms)
+                          .fadeIn(duration: 400.ms)
+                          .slideX(begin: 0.1, end: 0, curve: Curves.easeOut);
                     },
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -225,132 +274,153 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     RecurringPayment item,
     bool isDark,
     Color textColor,
-    BuildContext context, // Added context param
+    BuildContext context,
   ) {
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(
+    final isPaused = !item.isActive;
+
+    return Opacity(
+      opacity: isPaused ? 0.6 : 1.0,
+      child: Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.5),
-          width: 1,
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.5),
+            width: 1,
+          ),
+          gradient: isDark
+              ? LinearGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.05),
+                    Colors.white.withValues(alpha: 0.01),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        gradient: isDark
-            ? LinearGradient(
-                colors: [
-                  Colors.white.withValues(alpha: 0.05),
-                  Colors.white.withValues(alpha: 0.01),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF6C63FF),
-                  Color(0xFF4834D4),
-                ], // Blurple Gradient
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18.r),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(14.w),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isPaused
+                      ? [Colors.grey.shade700, Colors.grey.shade800]
+                      : [const Color(0xFF6C63FF), const Color(0xFF4834D4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
+                borderRadius: BorderRadius.circular(18.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isPaused ? Colors.grey : const Color(0xFF6C63FF))
+                        .withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                isPaused ? Icons.pause_rounded : Icons.receipt_long_rounded,
+                color: Colors.white,
+                size: 22.sp,
+              ),
             ),
-            child: Icon(
-              Icons.receipt_long_rounded,
-              color: Colors.white,
-              size: 22.sp,
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      letterSpacing: 0.3,
+                      decoration: isPaused ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 4.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isPaused
+                          ? Colors.orange.withValues(alpha: 0.1)
+                          : textColor.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: isPaused
+                          ? Border.all(
+                              color: Colors.orange.withValues(alpha: 0.3),
+                              width: 1,
+                            )
+                          : null,
+                    ),
+                    child: Text(
+                      isPaused
+                          ? "PAUSED"
+                          : "${item.frequency.name.capitalizeFirst} • Due ${DateFormat('MMM dd').format(item.nextDueDate)}",
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: isPaused
+                            ? Colors.orange
+                            : textColor.withValues(alpha: 0.6),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  item.title,
+                  "₹${item.amount.toStringAsFixed(0)}",
                   style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w800,
                     color: textColor,
-                    letterSpacing: 0.3,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                SizedBox(height: 6.h),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                  decoration: BoxDecoration(
-                    color: textColor.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(6.r),
-                  ),
-                  child: Text(
-                    "${item.frequency.name.capitalizeFirst} • Due ${DateFormat('MMM dd').format(item.nextDueDate)}",
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: textColor.withValues(alpha: 0.6),
-                      fontWeight: FontWeight.w500,
+                SizedBox(height: 8.h),
+                // Edit only
+                GestureDetector(
+                  onTap: () => _showAddDialog(context, isDark, payment: item),
+                  child: Container(
+                    padding: EdgeInsets.all(6.w),
+                    decoration: BoxDecoration(
+                      color: textColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.edit_rounded,
+                      color: textColor.withValues(alpha: 0.7),
+                      size: 16.sp,
                     ),
                   ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                "₹${item.amount.toStringAsFixed(0)}",
-                style: TextStyle(
-                  fontSize: 17.sp,
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              // Edit only
-              GestureDetector(
-                onTap: () => _showAddDialog(context, isDark, payment: item),
-                child: Container(
-                  padding: EdgeInsets.all(6.w),
-                  decoration: BoxDecoration(
-                    color: textColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.edit_rounded,
-                    color: textColor.withValues(alpha: 0.7),
-                    size: 16.sp,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
