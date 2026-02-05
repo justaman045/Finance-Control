@@ -161,11 +161,12 @@ class RecurringService {
 
       final newTx = {
         'id': txId,
-        'amount': payment.amount,
+        'amount': -payment.amount,
         'recipientName': payment.title,
         'recipientId': 'External',
         'senderId': uid,
         'date': Timestamp.now(),
+        'createdAt': FieldValue.serverTimestamp(),
         'category': payment.category,
         'status': 'success',
         'type': 'debit',
@@ -209,11 +210,12 @@ class RecurringService {
       if (uid != null) {
         final newTx = {
           'id': txId,
-          'amount': payment.amount,
+          'amount': -payment.amount,
           'recipientName': payment.title,
           'recipientId': 'External',
           'senderId': uid,
-          'date': Timestamp.fromDate(DateTime.now()),
+          'date': Timestamp.now(),
+          'createdAt': FieldValue.serverTimestamp(),
           'category': payment.category,
           'status': 'success',
           'type': 'debit',

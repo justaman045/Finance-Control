@@ -13,6 +13,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Screens/add_transaction_from_recipt.dart';
 import 'package:money_control/Utils/icon_helper.dart';
+import 'package:money_control/Controllers/tutorial_controller.dart';
 
 enum PaymentType { send, receive }
 
@@ -35,6 +36,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final TextEditingController _note = TextEditingController();
   final TextEditingController _newCategory = TextEditingController();
 
+  final GlobalKey _keyCategory = GlobalKey();
+  final GlobalKey _keyReceipt = GlobalKey();
+
   String? selectedCategory;
   DateTime selectedDate = DateTime.now();
 
@@ -45,6 +49,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (widget.cateogary != null) {
       selectedCategory = widget.cateogary;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      TutorialController.showAddTransactionTutorial(
+        context,
+        keyCategory: _keyCategory,
+        keyReceipt: widget.type == PaymentType.send ? _keyReceipt : null,
+      );
+    });
   }
 
   Future<void> _addCategoryDialog() async {
@@ -211,7 +223,29 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
-    final amountVal = double.tryParse(_amount.text.trim()) ?? 0;
+    // Remove commas from the formatted text before parsing
+    String cleanAmount = _amount.text.replaceAll(',', '').trim();
+    final amountVal = double.tryParse(cleanAmount) ?? 0;
+
+    if (amountVal <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Please enter a valid amount"),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_name.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Please enter a valid name"),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final success = await _transactionController.saveTransaction(
       amount: amountVal,
@@ -324,6 +358,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       actions: [
         if (widget.type == PaymentType.send)
           IconButton(
+            key: _keyReceipt,
             icon: Icon(
               Icons.qr_code_scanner,
               color: theme.colorScheme.onSurface,
@@ -453,6 +488,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
 
       return SingleChildScrollView(
+        key: _keyCategory,
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [

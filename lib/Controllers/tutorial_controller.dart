@@ -108,6 +108,73 @@ class TutorialController {
     });
   }
 
+  // --- ADD TRANSACTION TUTORIAL ---
+  static const _keyAddTransactionSeen = 'tutorial_add_transaction_seen';
+
+  static Future<void> showAddTransactionTutorial(
+    BuildContext context, {
+    GlobalKey? keyReceipt,
+    required GlobalKey keyCategory,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_keyAddTransactionSeen) == true) return;
+
+    await Future.delayed(const Duration(seconds: 1));
+    if (!context.mounted) return;
+
+    List<TargetFocus> targets = [];
+
+    // Target 1: Receipt Scanner (Optional)
+    if (keyReceipt != null) {
+      targets.add(
+        TargetFocus(
+          identify: "receipt_scanner",
+          keyTarget: keyReceipt,
+          alignSkip: Alignment.bottomLeft,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder: (context, controller) {
+                return _buildTutorialContent(
+                  "AI Receipt Scanner",
+                  "Scan receipts to automatically extract details like Amount, Date, and Category.",
+                );
+              },
+            ),
+          ],
+          shape: ShapeLightFocus.Circle,
+          radius: 10,
+        ),
+      );
+    }
+
+    // Target 2: Category Selector
+    targets.add(
+      TargetFocus(
+        identify: "category_selector",
+        keyTarget: keyCategory,
+        alignSkip: Alignment.topRight,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            builder: (context, controller) {
+              return _buildTutorialContent(
+                "Smart Categories",
+                "Easily categorize your spending. Tap to select, press and hold to manage.",
+              );
+            },
+          ),
+        ],
+        shape: ShapeLightFocus.RRect,
+        radius: 10,
+      ),
+    );
+
+    _showTutorial(context, targets, () async {
+      await prefs.setBool(_keyAddTransactionSeen, true);
+    });
+  }
+
   // --- HELPER ---
   static void _showTutorial(
     BuildContext context,

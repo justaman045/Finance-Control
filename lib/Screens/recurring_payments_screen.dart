@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Screens/subscription_details.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class RecurringPaymentsScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class RecurringPaymentsScreen extends StatefulWidget {
 class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
   final RecurringService _service = RecurringService();
   final _formKey = GlobalKey<FormState>();
+  final TransactionController _txController = Get.find<TransactionController>();
 
   @override
   Widget build(BuildContext context) {
@@ -276,10 +278,16 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     Color textColor,
     BuildContext context,
   ) {
+    final now = DateTime.now();
+    // Check if paid: If due date is NOT in current month AND is in future
+    final isDueThisMonth =
+        item.nextDueDate.year == now.year &&
+        item.nextDueDate.month == now.month;
+    final isPaid = !isDueThisMonth && item.nextDueDate.isAfter(now);
     final isPaused = !item.isActive;
 
     return Opacity(
-      opacity: isPaused ? 0.6 : 1.0,
+      opacity: isPaused ? 0.6 : (isPaid ? 0.8 : 1.0),
       child: Container(
         padding: EdgeInsets.all(20.w),
         decoration: BoxDecoration(
@@ -288,10 +296,14 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               : Colors.white.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(24.r),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.5),
-            width: 1,
+            color: isPaid
+                ? const Color(0xFF00E676).withValues(
+                    alpha: 0.3,
+                  ) // Green glow for paid
+                : (isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.white.withValues(alpha: 0.5)),
+            width: isPaid ? 1.5 : 1,
           ),
           gradient: isDark
               ? LinearGradient(
@@ -305,7 +317,9 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              color: isPaid
+                  ? const Color(0xFF00E676).withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -319,22 +333,36 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                 gradient: LinearGradient(
                   colors: isPaused
                       ? [Colors.grey.shade700, Colors.grey.shade800]
-                      : [const Color(0xFF6C63FF), const Color(0xFF4834D4)],
+                      : (isPaid
+                            ? [const Color(0xFF00E676), const Color(0xFF00C853)]
+                            : [
+                                const Color(0xFF6C63FF),
+                                const Color(0xFF4834D4),
+                              ]),
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(18.r),
                 boxShadow: [
                   BoxShadow(
-                    color: (isPaused ? Colors.grey : const Color(0xFF6C63FF))
-                        .withValues(alpha: 0.3),
+                    color:
+                        (isPaused
+                                ? Colors.grey
+                                : (isPaid
+                                      ? const Color(0xFF00E676)
+                                      : const Color(0xFF6C63FF)))
+                            .withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Icon(
-                isPaused ? Icons.pause_rounded : Icons.receipt_long_rounded,
+                isPaused
+                    ? Icons.pause_rounded
+                    : (isPaid
+                          ? Icons.check_circle_outline_rounded
+                          : Icons.receipt_long_rounded),
                 color: Colors.white,
                 size: 22.sp,
               ),
@@ -363,24 +391,36 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                     decoration: BoxDecoration(
                       color: isPaused
                           ? Colors.orange.withValues(alpha: 0.1)
-                          : textColor.withValues(alpha: 0.06),
+                          : (isPaid
+                                ? const Color(0xFF00E676).withValues(alpha: 0.1)
+                                : textColor.withValues(alpha: 0.06)),
                       borderRadius: BorderRadius.circular(6.r),
                       border: isPaused
                           ? Border.all(
                               color: Colors.orange.withValues(alpha: 0.3),
                               width: 1,
                             )
-                          : null,
+                          : (isPaid
+                                ? Border.all(
+                                    color: const Color(
+                                      0xFF00E676,
+                                    ).withValues(alpha: 0.3),
+                                  )
+                                : null),
                     ),
                     child: Text(
                       isPaused
                           ? "PAUSED"
-                          : "${item.frequency.name.capitalizeFirst} • Due ${DateFormat('MMM dd').format(item.nextDueDate)}",
+                          : (isPaid
+                                ? "PAID • Due ${DateFormat('MMM dd').format(item.nextDueDate)}"
+                                : "${item.frequency.name.capitalizeFirst} • Due ${DateFormat('MMM dd').format(item.nextDueDate)}"),
                       style: TextStyle(
                         fontSize: 11.sp,
                         color: isPaused
                             ? Colors.orange
-                            : textColor.withValues(alpha: 0.6),
+                            : (isPaid
+                                  ? const Color(0xFF00E676)
+                                  : textColor.withValues(alpha: 0.6)),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -435,7 +475,23 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     RecurringFrequency freq = payment?.frequency ?? RecurringFrequency.monthly;
     DateTime nextPaymentDate =
         payment?.nextDueDate ?? DateTime.now().add(const Duration(days: 30));
+
+    // Category Logic
+    final categories = _txController.categories;
     String category = payment?.category ?? 'Utilities';
+
+    // Ensure category exists in list (optional but good for UX)
+    // If exact match not found, we keep the string but it might not show as selected if we enforce strict values.
+    // However, DropdownButton requires the value to be in the items list.
+    // Let's create a safe list including the current category if it's missing.
+    final categoryNames = categories.map((e) => e.name).toSet();
+    if (category.isNotEmpty) categoryNames.add(category);
+    final sortedCategories = categoryNames.toList()..sort();
+
+    // Default if empty
+    if (category.isEmpty && sortedCategories.isNotEmpty) {
+      category = sortedCategories.first;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -499,6 +555,20 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                           .toList(),
                       onChanged: (v) => setModalState(() => freq = v!),
                       decoration: const InputDecoration(labelText: "Frequency"),
+                    ),
+
+                    SizedBox(height: 16.h),
+
+                    // Category Dropdown
+                    DropdownButtonFormField<String>(
+                      value: category,
+                      items: sortedCategories
+                          .map(
+                            (c) => DropdownMenuItem(value: c, child: Text(c)),
+                          )
+                          .toList(),
+                      onChanged: (v) => setModalState(() => category = v!),
+                      decoration: const InputDecoration(labelText: "Category"),
                     ),
 
                     SizedBox(height: 16.h),

@@ -415,7 +415,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                                   ),
                                                 ),
                                                 Text(
-                                                  '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(2)}',
+                                                  '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}',
                                                   style: TextStyle(
                                                     color: amountColor,
                                                     fontWeight: FontWeight.bold,

@@ -117,16 +117,35 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
         final catVal = tx['category'];
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
 
-        String type = (tx['type'] as String?)?.toLowerCase() ?? '';
-        if (type.isEmpty) {
+        // Normalize type
+        String rawType = (tx['type'] as String?)?.toLowerCase() ?? '';
+
+        // Define known types
+        const incomeTypes = ['income', 'credit', 'receive', 'deposit'];
+        const expenseTypes = [
+          'expense',
+          'debit',
+          'send',
+          'payment',
+          'withdrawal',
+        ];
+
+        bool isIncome = incomeTypes.contains(rawType);
+        bool isExpense = expenseTypes.contains(rawType);
+
+        // Fallback inference if type is unknown or empty
+        if (!isIncome && !isExpense) {
           final recipientId = tx['recipientId'] as String? ?? '';
           final userId = user.uid;
-          type = (recipientId == userId) ? 'income' : 'expense';
+          if (recipientId == userId) {
+            isIncome = true;
+          } else {
+            isExpense = true;
+          }
         }
 
         // Only count expense transactions as negative and income as positive
-        if ((selectedTab == 0 && type == 'income') ||
-            (selectedTab == 1 && type == 'expense')) {
+        if ((selectedTab == 0 && isIncome) || (selectedTab == 1 && isExpense)) {
           if (catVal != null) {
             categoryTotalMap[catVal.toString()] =
                 (categoryTotalMap[catVal.toString()] ?? 0.0) + amount.abs();
