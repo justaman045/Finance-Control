@@ -1,6 +1,7 @@
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'dart:developer';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:money_control/Repositories/category_rules_repository.dart';
 
 class SmsTransaction {
   final String sender;
@@ -24,130 +25,158 @@ class SmsTransaction {
 
 class SmsService {
   final SmsQuery _query = SmsQuery();
+  final CategoryRulesRepository _rulesRepository = CategoryRulesRepository();
+
+  Map<String, List<String>> _currentRules = {};
+  bool _rulesLoaded = false;
+
+  // Fallback rules
+  final Map<String, List<String>> _defaultRules = {
+    'Food': [
+      'zomato',
+      'swiggy',
+      'kfc',
+      'mcdonald',
+      'pizza',
+      'burger',
+      'restaurant',
+      'cafe',
+      'dining',
+      'starbucks',
+      'domino',
+      'biryani',
+      'food',
+    ],
+    'Travel': [
+      'uber',
+      'ola',
+      'rapido',
+      'irctc',
+      'railway',
+      'flight',
+      'indigo',
+      'airasia',
+      'petrol',
+      'fuel',
+      'shell',
+      'hpcl',
+      'bpcl',
+      'toll',
+      'fastag',
+      'metro',
+    ],
+    'Shopping': [
+      'amazon',
+      'flipkart',
+      'myntra',
+      'jiomart',
+      'retail',
+      'store',
+      'mall',
+      'mart',
+      'fashion',
+      'clothing',
+      'ajio',
+      'trends',
+      'zudio',
+      'decathlon',
+    ],
+    'Groceries': [
+      'bigbasket',
+      'blinkit',
+      'instamart',
+      'zepto',
+      'dmart',
+      'reliance fresh',
+      'vegetable',
+      'fruit',
+      'grocery',
+      'milk',
+      'dairy',
+    ],
+    'Entertainment': [
+      'netflix',
+      'spotify',
+      'prime',
+      'cinema',
+      'movie',
+      'pvr',
+      'inox',
+      'hotstar',
+      'youtube',
+      'subscription',
+      'game',
+      'steam',
+    ],
+    'Health': [
+      'pharmacy',
+      'hospital',
+      'clinic',
+      'medical',
+      'dr ',
+      'health',
+      'medplus',
+      'apollo',
+      '1mg',
+      'pharmeasy',
+      'medicine',
+    ],
+    'Utilities': [
+      'bill',
+      'electricity',
+      'water',
+      'gas',
+      'broadband',
+      'wifi',
+      'airtel',
+      'jio',
+      'vi',
+      'bsnl',
+      'recharge',
+      'dth',
+      'mobile',
+    ],
+    'Investment': [
+      'zerodha',
+      'groww',
+      'upstox',
+      'sip',
+      'mutual fund',
+      'stock',
+      'invest',
+    ],
+  };
+
+  SmsService() {
+    _currentRules = Map.from(_defaultRules);
+  }
+
+  Future<void> initRules() async {
+    if (_rulesLoaded) return;
+    try {
+      final fetched = await _rulesRepository.fetchRules();
+      if (fetched.isNotEmpty) {
+        // Merge or replace?
+        // Let's replace keys that exist, keep others, or just use fetched if comprehensive.
+        // For now, let's merge: overwrite defaults with fetched, keep defaults if not present.
+        fetched.forEach((key, value) {
+          _currentRules[key] = value;
+        });
+      }
+      _rulesLoaded = true;
+    } catch (e) {
+      log("Error initializing rules: $e");
+    }
+  }
 
   String _getCategory(String merchant, String body) {
     final lowerBody = body.toLowerCase();
     final lowerMerchant = merchant.toLowerCase();
 
-    final Map<String, List<String>> categories = {
-      'Food': [
-        'zomato',
-        'swiggy',
-        'kfc',
-        'mcdonald',
-        'pizza',
-        'burger',
-        'restaurant',
-        'cafe',
-        'dining',
-        'starbucks',
-        'domino',
-        'biryani',
-        'food',
-      ],
-      'Travel': [
-        'uber',
-        'ola',
-        'rapido',
-        'irctc',
-        'railway',
-        'flight',
-        'indigo',
-        'airasia',
-        'petrol',
-        'fuel',
-        'shell',
-        'hpcl',
-        'bpcl',
-        'toll',
-        'fastag',
-        'metro',
-      ],
-      'Shopping': [
-        'amazon',
-        'flipkart',
-        'myntra',
-        'jiomart',
-        'retail',
-        'store',
-        'mall',
-        'mart',
-        'fashion',
-        'clothing',
-        'ajio',
-        'trends',
-        'zudio',
-        'decathlon',
-      ],
-      'Groceries': [
-        'bigbasket',
-        'blinkit',
-        'instamart',
-        'zepto',
-        'dmart',
-        'reliance fresh',
-        'vegetable',
-        'fruit',
-        'grocery',
-        'milk',
-        'dairy',
-      ],
-      'Entertainment': [
-        'netflix',
-        'spotify',
-        'prime',
-        'cinema',
-        'movie',
-        'pvr',
-        'inox',
-        'hotstar',
-        'youtube',
-        'subscription',
-        'game',
-        'steam',
-      ],
-      'Health': [
-        'pharmacy',
-        'hospital',
-        'clinic',
-        'medical',
-        'dr ',
-        'health',
-        'medplus',
-        'apollo',
-        '1mg',
-        'pharmeasy',
-        'medicine',
-      ],
-      'Utilities': [
-        'bill',
-        'electricity',
-        'water',
-        'gas',
-        'broadband',
-        'wifi',
-        'airtel',
-        'jio',
-        'vi',
-        'bsnl',
-        'recharge',
-        'dth',
-        'mobile',
-      ],
-      'Investment': [
-        'zerodha',
-        'groww',
-        'upstox',
-        'sip',
-        'mutual fund',
-        'stock',
-        'invest',
-      ],
-    };
-
-    for (var entry in categories.entries) {
+    for (var entry in _currentRules.entries) {
       for (var keyword in entry.value) {
-        if (lowerMerchant.contains(keyword) || lowerBody.contains(keyword)) {
+        if (lowerMerchant.contains(keyword.toLowerCase()) ||
+            lowerBody.contains(keyword.toLowerCase())) {
           return entry.key;
         }
       }
@@ -157,6 +186,9 @@ class SmsService {
 
   /// Request permissions and fetch SMS. Returns parsed transactions.
   Future<List<SmsTransaction>> scanMessages({int limit = 50}) async {
+    // Ensure rules are loaded
+    await initRules();
+
     var status = await Permission.sms.status;
     if (!status.isGranted) {
       status = await Permission.sms.request();

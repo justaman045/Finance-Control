@@ -154,7 +154,7 @@ class GeneralSettingsScreen extends StatelessWidget {
                   ),
                   onTap: () {
                     CurrencyController.to.setCurrency(c['code']!, c['symbol']!);
-                    Get.back();
+                    Navigator.of(context).pop();
                     // Force rebuild ?? Controller is reactive, title should update next build or if Obx
                     // The screen title above uses .value so it might not update instantly without Obx.
                     // Let's rely on GetX to handle state or rebuild.

@@ -42,7 +42,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           StreamBuilder<DocumentSnapshot>(
@@ -661,7 +661,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
 
     if (confirm == true) {
       await _service.deletePayment(payment.id);
-      Get.back(); // Close screen
+      Navigator.of(context).pop(); // Close screen
       Get.snackbar(
         "Deleted",
         "Subscription removed successfully",

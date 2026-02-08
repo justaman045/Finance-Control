@@ -156,8 +156,7 @@ class RecurringService {
     // 2. Create Transaction if requested
     if (createTransaction) {
       final txId = const Uuid().v4();
-      final userDoc = await _db.collection('users').doc(user.email).get();
-      final uid = userDoc.data()?['uid'] ?? '';
+      final uid = user.uid;
 
       final newTx = {
         'id': txId,

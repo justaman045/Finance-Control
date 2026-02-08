@@ -284,7 +284,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               ],
             ),
             child: ElevatedButton(
-              onPressed: () => Get.back(),
+              onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,

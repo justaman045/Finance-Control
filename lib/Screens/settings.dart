@@ -14,6 +14,10 @@ import 'package:money_control/Screens/Settings/data_support_settings.dart';
 import 'package:money_control/Screens/edit_profile.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Screens/sms_import_screen.dart';
+import 'package:money_control/Screens/subscription_screen.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Screens/admin_dashboard.dart';
+import 'package:money_control/Screens/Admin/admin_menu.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -87,7 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 rendering.ScrollDirection.forward) {
               if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
             }
-            return true;
+            return false;
           },
           child: SafeArea(
             bottom: false,
@@ -101,6 +105,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // -- CATEGORIZED MENU --
                   _SectionHeader("Menu"),
 
+                  // Subscription Card (NEW)
+                  if (FirebaseAuth.instance.currentUser?.email !=
+                      "developerlife69@gmail.com")
+                    Obx(() {
+                      final isPro = Get.find<SubscriptionController>().isPro;
+                      return _SettingsCategoryCard(
+                        title: isPro
+                            ? "Managing Subscription"
+                            : "Upgrade to Pro",
+                        subtitle: isPro
+                            ? "You are a Pro Member"
+                            : "Unlock limits & features",
+                        icon: isPro
+                            ? Icons.verified_user_rounded
+                            : Icons.diamond_outlined,
+                        color: isPro ? Colors.greenAccent : Colors.cyanAccent,
+                        onTap: () => Get.to(() => const SubscriptionScreen()),
+                      );
+                    }),
+                  SizedBox(height: 16.h),
                   _SettingsCategoryCard(
                     title: "General",
                     subtitle: "Currency, Categories, Budget, Notifications",
@@ -142,9 +166,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   SizedBox(height: 40.h),
 
-                  _buildSignOutButton(),
+                  // Admin Dashboard (Restricted)
+                  if (FirebaseAuth.instance.currentUser?.email ==
+                      "developerlife69@gmail.com") ...[
+                    _SettingsCategoryCard(
+                      key: const ValueKey("admin_utils_card"),
+                      title: "Admin Utils",
+                      subtitle: "Manage Data & Approvals",
+                      icon: Icons.admin_panel_settings_rounded,
+                      color: Colors.redAccent,
+                      onTap: () {
+                        Get.to(() => const AdminMenu());
+                      },
+                    ),
+                    SizedBox(height: 40.h),
+                  ],
 
-                  SizedBox(height: 20.h),
+                  _buildSignOutButton(),
+                  SizedBox(height: 24.h),
                   Text(
                     "Version $_version",
                     style: TextStyle(
@@ -154,7 +193,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 12.sp,
                     ),
                   ),
-                  SizedBox(height: 100.h), // Bottom padding for navbar
+                  SizedBox(
+                    height: 150.h,
+                  ), // Increased padding to prevent cut-off
                 ],
               ),
             ),
@@ -315,6 +356,7 @@ class _SettingsCategoryCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _SettingsCategoryCard({
+    super.key,
     required this.title,
     required this.subtitle,
     required this.icon,

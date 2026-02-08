@@ -8,6 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Components/pro_lock_widget.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
 
 class ExportImportPage extends StatefulWidget {
   const ExportImportPage({super.key});
@@ -248,7 +250,10 @@ class _ExportImportPageState extends State<ExportImportPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final gradientColors = isDark
-        ? [const Color(0xFF1A1A2E), const Color(0xFF16213E).withValues(alpha: 0.95)]
+        ? [
+            const Color(0xFF1A1A2E),
+            const Color(0xFF16213E).withValues(alpha: 0.95),
+          ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
@@ -277,51 +282,62 @@ class _ExportImportPageState extends State<ExportImportPage> {
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         bottomNavigationBar: const BottomNavBar(currentIndex: 3),
-        body: Padding(
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Export or Import your financial data securely.",
-                style: TextStyle(
-                  color: textColor.withValues(alpha: 0.7),
-                  fontSize: 14.sp,
-                  height: 1.5,
+        body: Obx(() {
+          final SubscriptionController subscriptionController = Get.find();
+          if (!subscriptionController.isPro) {
+            return const ProLockWidget(
+              title: "Data Export",
+              description:
+                  "Export your transaction history and budgets with Pro.",
+            );
+          }
+
+          return Padding(
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Export or Import your financial data securely.",
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.7),
+                    fontSize: 14.sp,
+                    height: 1.5,
+                  ),
                 ),
-              ),
-              SizedBox(height: 30.h),
+                SizedBox(height: 30.h),
 
-              // Export Card
-              _buildActionCard(
-                isDark,
-                "Export Data",
-                "Save transactions & budgets as CSV files.",
-                Icons.cloud_download_outlined,
-                Colors.blueAccent,
-                loadingExport,
-                _exportCSV,
-              ),
+                // Export Card
+                _buildActionCard(
+                  isDark,
+                  "Export Data",
+                  "Save transactions & budgets as CSV files.",
+                  Icons.cloud_download_outlined,
+                  Colors.blueAccent,
+                  loadingExport,
+                  _exportCSV,
+                ),
 
-              SizedBox(height: 20.h),
+                SizedBox(height: 20.h),
 
-              // Import Card
-              _buildActionCard(
-                isDark,
-                "Import Data",
-                "Restore from CSV backup files.",
-                Icons.cloud_upload_outlined,
-                Colors.purpleAccent,
-                loadingImport,
-                _importCSV,
-              ),
-            ],
-          ),
-        ),
+                // Import Card
+                _buildActionCard(
+                  isDark,
+                  "Import Data",
+                  "Restore from CSV backup files.",
+                  Icons.cloud_upload_outlined,
+                  Colors.purpleAccent,
+                  loadingImport,
+                  _importCSV,
+                ),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }

@@ -266,7 +266,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         );
       }
-      Get.back();
+      Navigator.of(context).pop();
     }
   }
 
@@ -353,7 +353,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Icons.arrow_back_ios_new,
           color: theme.colorScheme.onSurface,
         ),
-        onPressed: () => Get.back(),
+        onPressed: () => Navigator.of(context).pop(),
       ),
       actions: [
         if (widget.type == PaymentType.send)

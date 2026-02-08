@@ -21,7 +21,6 @@ class RecurringPaymentsScreen extends StatefulWidget {
 
 class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
   final RecurringService _service = RecurringService();
-  final _formKey = GlobalKey<FormState>();
   final TransactionController _txController = Get.find<TransactionController>();
 
   @override
@@ -69,7 +68,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               color: textColor,
               size: 20,
             ),
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         floatingActionButton: Container(
@@ -470,6 +469,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     bool isDark, {
     RecurringPayment? payment,
   }) {
+    final _formKey = GlobalKey<FormState>();
     final titleCtrl = TextEditingController(text: payment?.title);
     final amountCtrl = TextEditingController(text: payment?.amount.toString());
     RecurringFrequency freq = payment?.frequency ?? RecurringFrequency.monthly;

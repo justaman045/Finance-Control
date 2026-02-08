@@ -75,8 +75,11 @@ dependencies:
     sdk: flutter
   confetti: ^0.8.0
   firebase_storage: ^13.0.6
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
 

@@ -4,6 +4,7 @@ import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class TutorialController {
+  static bool isTestMode = false;
   static const _keyHomeSeen = 'tutorial_home_seen';
   static const _keyAnalyticsSeen = 'tutorial_analytics_seen';
 
@@ -13,6 +14,7 @@ class TutorialController {
     required GlobalKey keyTransactionList,
     required GlobalKey keyNavBar,
   }) async {
+    if (isTestMode) return;
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_keyHomeSeen) == true) return;
 
@@ -76,6 +78,7 @@ class TutorialController {
     BuildContext context, {
     required GlobalKey keyChart,
   }) async {
+    if (isTestMode) return;
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_keyAnalyticsSeen) == true) return;
 
@@ -116,6 +119,7 @@ class TutorialController {
     GlobalKey? keyReceipt,
     required GlobalKey keyCategory,
   }) async {
+    if (isTestMode) return;
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_keyAddTransactionSeen) == true) return;
 

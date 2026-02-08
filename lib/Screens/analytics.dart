@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Components/pro_lock_widget.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/analytics_trends.dart';
@@ -13,6 +14,8 @@ import 'package:money_control/Services/export_service.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:get/get.dart';
 
 import 'package:flutter/rendering.dart' as rendering;
 
@@ -291,16 +294,47 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // ---------------- EXPORT --------------------------
 
-  Future<void> _exportCsv() async =>
-      ExportService.exportTransactionsCSV(_filtered);
+  Future<void> _exportCsv() async {
+    final SubscriptionController subscriptionController = Get.find();
+    if (!subscriptionController.isPro) {
+      _showProLockModal(
+        "Data Export",
+        "Export your transaction history as CSV.",
+      );
+      return;
+    }
+    await ExportService.exportTransactionsCSV(_filtered);
+  }
 
-  Future<void> _exportPdf() async => ExportService.exportAnalyticsPDF(
-    filtered: _filtered,
-    totalIncome: totalIncome,
-    totalExpense: totalExpense,
-    netBalance: netBalance,
-    periodLabel: _period,
-  );
+  Future<void> _exportPdf() async {
+    final SubscriptionController subscriptionController = Get.find();
+    if (!subscriptionController.isPro) {
+      _showProLockModal(
+        "Data Export",
+        "Generate detailed PDF reports for analysis.",
+      );
+      return;
+    }
+    await ExportService.exportAnalyticsPDF(
+      filtered: _filtered,
+      totalIncome: totalIncome,
+      totalExpense: totalExpense,
+      netBalance: netBalance,
+      periodLabel: _period,
+    );
+  }
+
+  void _showProLockModal(String title, String description) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A2E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (context) =>
+          ProLockWidget(title: title, description: description),
+    );
+  }
 
   // ================================================================
   // UI
@@ -451,7 +485,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           label: "Period",
                           value: _period,
                           items: _periodOptions,
-                          onChanged: (v) => setState(() => _period = v),
+                          onChanged: (v) {
+                            final SubscriptionController subCtrl = Get.find();
+                            if (!subCtrl.isPro && v != "This Month") {
+                              _showProLockModal(
+                                "Advanced Analytics",
+                                "Unlock full history and custom date ranges.",
+                              );
+                              return;
+                            }
+                            setState(() => _period = v);
+                          },
                         ),
                       ),
                       SizedBox(width: 16.w),

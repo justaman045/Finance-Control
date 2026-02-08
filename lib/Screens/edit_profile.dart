@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
+import 'package:money_control/Controllers/tutorial_controller.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -71,7 +72,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true)); // keep existing fields
 
-      if (mounted) {
+      if (mounted && !TutorialController.isTestMode) {
         Get.snackbar(
           "Success",
           "Profile updated successfully",
@@ -102,8 +103,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ],
         );
-        setState(() => _isLoading = false);
       }
+      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       debugPrint("Error saving user data: $e");
       setState(() => _isLoading = false);

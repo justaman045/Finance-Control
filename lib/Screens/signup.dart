@@ -353,7 +353,7 @@ class _AuthScreenState extends State<AuthScreen> {
             SizedBox(height: 24.h),
 
             GestureDetector(
-              onTap: () => Get.back(),
+              onTap: () => Navigator.of(context).pop(),
               child: RichText(
                 text: TextSpan(
                   text: "Already have an account? ",

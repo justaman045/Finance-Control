@@ -71,14 +71,24 @@ class BudgetService {
         final body =
             "You've spent $symbol${totalSpent.toStringAsFixed(0)} of your $symbol${budgetLimit.toStringAsFixed(0)} $category budget.";
 
-        await NotificationService.showBudgetAlert(title, body);
+        await NotificationService.showNotification(
+          title: title,
+          body: body,
+          channelId: 'budget_alerts',
+          channelName: 'Budget Alerts',
+        );
         await _saveNotification(userId, title, body, "budget_alert");
       } else if (totalSpent >= (budgetLimit * 0.9)) {
         const title = "⚠️ Approaching Limit";
         final body =
             "You've used ${(totalSpent / budgetLimit * 100).toStringAsFixed(0)}% of your $category budget.";
 
-        await NotificationService.showBudgetAlert(title, body);
+        await NotificationService.showNotification(
+          title: title,
+          body: body,
+          channelId: 'budget_alerts',
+          channelName: 'Budget Alerts',
+        );
         await _saveNotification(userId, title, body, "budget_alert");
       }
     } catch (e) {

@@ -25,6 +25,8 @@ import 'package:money_control/Services/biometric_service.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/tutorial_controller.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ---- THEME CONTROLLER ----
@@ -91,28 +93,39 @@ class ThemeController extends GetxController {
 }
 
 final ThemeController themeController = Get.put(ThemeController());
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 // ---- MAIN ----
-Future<void> main() async {
+// ---- MAIN ----
+void main() {
+  mainCommon();
+}
+
+Future<void> mainCommon({bool isTest = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
+  TutorialController.isTestMode = isTest;
+  Get.testMode = isTest;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Pass all uncaught "fatal" errors from the framework to Crashlytics
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  if (!isTest) {
+    // Pass all uncaught "fatal" errors from the framework to Crashlytics
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    // Print error locally so we can see it even if Crashlytics fails
-    debugPrint("🔴 Async Error: $error");
-    debugPrint(stack.toString());
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      // Print error locally so we can see it even if Crashlytics fails
+      debugPrint("🔴 Async Error: $error");
+      debugPrint(stack.toString());
 
-    try {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    } catch (e) {
-      debugPrint("⚠️ Failed to report to Crashlytics: $e");
-    }
-    return true;
-  };
+      try {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      } catch (e) {
+        debugPrint("⚠️ Failed to report to Crashlytics: $e");
+      }
+      return true;
+    };
+  }
 
   // Firestore offline persistence
   FirebaseFirestore.instance.settings = const Settings(
@@ -122,16 +135,19 @@ Future<void> main() async {
   // Initialize Controllers
   Get.put(PrivacyController());
   Get.put(CurrencyController());
+  Get.put(SubscriptionController());
   final bioService = Get.put(BiometricService());
 
   // await _loadThemeFromFirebase(); // Handled by ThemeController listener
   await BackgroundWorker.init();
 
-  await FlutterLocalNotificationsPlugin()
-      .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-      >()
-      ?.requestNotificationsPermission();
+  if (!isTest) {
+    await FlutterLocalNotificationsPlugin()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+  }
 
   FirebaseFirestore.instance.enableNetwork().then((_) {
     syncPendingTransactions();
@@ -149,14 +165,15 @@ Future<void> main() async {
     },
   );
 
-  runApp(const RootApp());
+  runApp(RootApp(isTest: isTest));
 }
 
 // Load theme BEFORE app builds
 
 // ---- ROOT APP ----
 class RootApp extends StatefulWidget {
-  const RootApp({super.key});
+  final bool isTest;
+  const RootApp({super.key, this.isTest = false});
 
   @override
   State<RootApp> createState() => _RootAppState();
@@ -190,6 +207,8 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
           !_bioService.isAuthenticated.value) {
         _bioService.authenticate();
       }
+      // Check subscription on resume
+      SubscriptionController.to.checkSubscriptionStatus();
     }
   }
 
@@ -199,6 +218,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
       designSize: const Size(390, 844),
       builder: (_, __) {
         return GetMaterialApp(
+          scaffoldMessengerKey: rootScaffoldMessengerKey,
           // navigatorKey is properly handled by GetX internally
           debugShowCheckedModeBanner: false,
           title: "Finance Control",
@@ -231,7 +251,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
                 ),
               );
             }
-            return const AuthChecker();
+            return AuthChecker(isTest: widget.isTest);
           }),
         );
       },
@@ -241,7 +261,8 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
 
 // ---- AUTH CHECK ----
 class AuthChecker extends StatefulWidget {
-  const AuthChecker({super.key});
+  final bool isTest;
+  const AuthChecker({super.key, this.isTest = false});
 
   @override
   State<AuthChecker> createState() => _AuthCheckerState();
@@ -253,7 +274,9 @@ class _AuthCheckerState extends State<AuthChecker> {
   @override
   void initState() {
     super.initState();
-    UpdateChecker.checkForUpdate(context);
+    if (!widget.isTest) {
+      UpdateChecker.checkForUpdate(context);
+    }
   }
 
   @override

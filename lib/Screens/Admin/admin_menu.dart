@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Screens/admin_dashboard.dart';
+import 'package:money_control/Screens/Admin/admin_user_list.dart';
+
+class AdminMenu extends StatelessWidget {
+  const AdminMenu({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF0F2027), // Deep Space
+            Color(0xFF203A43), // Tealish
+            Color(0xFF2C5364), // Slate
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text(
+            "Admin Utils",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Padding(
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            children: [
+              _buildMenuCard(
+                context,
+                title: "Pending Approvals",
+                subtitle: "Review upgrade requests",
+                icon: Icons.checklist_rtl_rounded,
+                color: Colors.orangeAccent,
+                onTap: () => Get.to(() => const AdminDashboard()),
+              ),
+              SizedBox(height: 16.h),
+              _buildMenuCard(
+                context,
+                title: "Manage Users",
+                subtitle: "View all users & set expiry",
+                icon: Icons.people_alt_rounded,
+                color: Colors.cyanAccent,
+                onTap: () => Get.to(() => const AdminUserListScreen()),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassContainer(
+        padding: EdgeInsets.all(20.w),
+        borderRadius: BorderRadius.circular(20.r),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 32.sp),
+            ),
+            SizedBox(width: 20.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16.sp),
+          ],
+        ),
+      ),
+    );
+  }
+}

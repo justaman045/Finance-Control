@@ -4,6 +4,9 @@ import 'package:get/get.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Services/category_service.dart';
 import 'package:money_control/Utils/icon_helper.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Components/pro_lock_widget.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -23,6 +26,29 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         category: category,
         onSave: (model) async {
           if (category == null) {
+            // Check Limit
+            final subCtrl = Get.find<SubscriptionController>();
+            final txCtrl = Get.find<TransactionController>();
+
+            if (!subCtrl.isPro && txCtrl.categories.length >= 10) {
+              Navigator.pop(context); // Close dialog
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: const Color(0xFF1A1A2E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(24.r),
+                  ),
+                ),
+                builder: (context) => const ProLockWidget(
+                  title: "Category Limit Reached",
+                  description:
+                      "Free users can create up to 10 categories. Upgrade to Pro for unlimited categories.",
+                ),
+              );
+              return;
+            }
+
             await _categoryService.addCategory(model);
           } else {
             await _categoryService.updateCategory(model);
@@ -42,7 +68,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       buttonColor: Colors.red,
       onConfirm: () async {
         await _categoryService.deleteCategory(category.id);
-        Get.back();
+        Navigator.of(context).pop();
       },
     );
   }
@@ -65,7 +91,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Container(

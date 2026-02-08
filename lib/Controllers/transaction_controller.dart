@@ -9,10 +9,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Screens/subscription_screen.dart';
 
 class TransactionController extends GetxController {
   final TransactionRepository _repository = TransactionRepository();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final SubscriptionController _subscriptionController = Get.find();
 
   // State
   var transactions = <TransactionModel>[].obs;
@@ -27,23 +30,26 @@ class TransactionController extends GetxController {
   void onInit() {
     super.onInit();
     bindTransactions();
-    loadCategories();
-    fetchSortedCategories();
+    bindCategories();
+    // fetchSortedCategories(); // This might need to be reactive or called on change
+
+    // Listen to changes in categories/transactions to update sorted list
+    ever(categories, (_) => fetchSortedCategories());
+    ever(transactions, (_) => fetchSortedCategories());
   }
 
   void bindTransactions() {
     transactions.bindStream(_repository.getTransactionsStream());
   }
 
-  Future<void> loadCategories() async {
-    try {
-      categories.value = await _repository.fetchCategories();
-    } catch (e) {
-      print("Error loading categories: $e");
-    }
+  void bindCategories() {
+    categories.bindStream(_repository.getCategoriesStream());
   }
 
   Future<void> fetchSortedCategories() async {
+    // This now relies on the repository fetching fresh data internally
+    // OR we can optimize it to use the local lists.
+    // For now, let's keep using the repository method but note it does a fetch.
     sortedCategoryNames.value = await _repository
         .fetchCategoriesSortedByUsage();
   }
@@ -53,6 +59,12 @@ class TransactionController extends GetxController {
   // ——————————————————————————————————————
 
   Future<bool> addCategory(String name) async {
+    // 1. Check PRO Limit (Categories)
+    if (!_subscriptionController.isPro && categories.length >= 10) {
+      Get.to(() => const SubscriptionScreen());
+      return false;
+    }
+
     if (name.isEmpty) {
       ErrorHandler.showError("Category name cannot be empty");
       return false;
@@ -66,9 +78,10 @@ class TransactionController extends GetxController {
     try {
       final doc = await _repository.addCategory(name);
       categories.add(CategoryModel(id: doc.id, name: name));
+      sortedCategoryNames.add(name); // Ensure it appears in QuickSend
       return true;
     } catch (e) {
-      ErrorHandler.showSomethingWentWrong();
+      _handleFirestoreError(e, "Failed to add category");
       return false;
     }
   }
@@ -84,7 +97,7 @@ class TransactionController extends GetxController {
       categories.removeWhere((c) => c.id == category.id);
       return true;
     } catch (e) {
-      ErrorHandler.showSomethingWentWrong();
+      _handleFirestoreError(e, "Failed to delete category");
       return false;
     }
   }
@@ -100,6 +113,21 @@ class TransactionController extends GetxController {
   }) async {
     if (isSaving.value) return false;
     isSaving.value = true;
+
+    // 2. Check PRO Limit (Transactions)
+    if (!_subscriptionController.isPro) {
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final txCount = transactions
+          .where((t) => t.date.isAfter(startOfMonth))
+          .length;
+
+      if (txCount >= 150) {
+        Get.to(() => const SubscriptionScreen());
+        isSaving.value = false;
+        return false;
+      }
+    }
 
     final user = _auth.currentUser;
     if (user == null) {
@@ -148,7 +176,7 @@ class TransactionController extends GetxController {
         title: "Offline",
       );
     } catch (e) {
-      ErrorHandler.showSomethingWentWrong();
+      _handleFirestoreError(e, "Failed to save transaction");
       isSaving.value = false;
       return false;
     }
@@ -204,8 +232,31 @@ class TransactionController extends GetxController {
       ErrorHandler.showSuccess("Delete queued (Offline)", title: "Offline");
       return true;
     } catch (e) {
-      ErrorHandler.showSomethingWentWrong();
+      _handleFirestoreError(e, "Failed to delete transaction");
       return false;
+    }
+  }
+
+  void _handleFirestoreError(dynamic e, String defaultMessage) {
+    if (e is FirebaseException) {
+      switch (e.code) {
+        case 'permission-denied':
+          ErrorHandler.showError(
+            "You don't have permission to perform this action.",
+          );
+          break;
+        case 'unavailable':
+          ErrorHandler.showNetworkError();
+          break;
+        case 'not-found':
+          ErrorHandler.showError("The requested item was not found.");
+          break;
+        default:
+          ErrorHandler.showError("$defaultMessage: ${e.message}");
+      }
+    } else {
+      ErrorHandler.showError("$defaultMessage. Please try again.");
+      print("Error: $e");
     }
   }
 }

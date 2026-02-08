@@ -31,6 +31,8 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Screens/subscription_screen.dart';
 
 class BankingHomeScreen extends StatefulWidget {
   const BankingHomeScreen({super.key});
@@ -193,6 +195,22 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             ),
           ),
           actions: [
+            // 💎 PRO STATUS
+            if (FirebaseAuth.instance.currentUser?.email !=
+                "developerlife69@gmail.com")
+              Obx(() {
+                final isPro = Get.find<SubscriptionController>().isPro;
+                return _buildActionButton(
+                  icon: isPro
+                      ? Icons.verified_user_rounded
+                      : Icons.diamond_outlined,
+                  onTap: () => gotoPage(const SubscriptionScreen()),
+                  theme: theme,
+                  color: isPro ? Colors.cyanAccent : null, // Highlight if Pro
+                );
+              }),
+            SizedBox(width: 8.w),
+
             // 🔍 NEW SEARCH BUTTON
             _buildActionButton(
               icon: Icons.search,
@@ -318,10 +336,11 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     required VoidCallback onTap,
     required ThemeData theme,
     String? heroTag,
+    Color? color,
   }) {
     Widget content = Icon(
       icon,
-      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+      color: color ?? theme.colorScheme.onSurface.withValues(alpha: 0.8),
       size: 22.sp,
     );
 

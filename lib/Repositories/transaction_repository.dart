@@ -73,6 +73,17 @@ class TransactionRepository {
     return await _userCategoriesRef.add({"name": name});
   }
 
+  Stream<List<CategoryModel>> getCategoriesStream() {
+    return _userCategoriesRef.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return CategoryModel.fromMap(
+          doc.id,
+          doc.data() as Map<String, dynamic>,
+        );
+      }).toList();
+    });
+  }
+
   Future<void> deleteCategory(String id) async {
     await _userCategoriesRef.doc(id).delete();
   }
@@ -83,6 +94,11 @@ class TransactionRepository {
 
   Future<List<String>> fetchCategoriesSortedByUsage() async {
     try {
+      // 1. Fetch all available categories
+      final allCategories = await fetchCategories();
+      final allCategoryNames = allCategories.map((c) => c.name).toSet();
+
+      // 2. Fetch transactions for usage stats
       final snapshot = await _userTransactionsRef.get();
       Map<String, int> categoryCounts = {};
 
@@ -94,11 +110,21 @@ class TransactionRepository {
         }
       }
 
-      final sortedCategories = categoryCounts.entries.toList()
+      // 3. Sort used categories
+      final sortedUsedCategories = categoryCounts.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
 
-      return sortedCategories.map((e) => e.key).toList();
+      final usedCategoryNames = sortedUsedCategories.map((e) => e.key).toList();
+
+      // 4. Append unused categories
+      // Filter allCategoryNames that are NOT in usedCategoryNames
+      final unusedCategoryNames = allCategoryNames
+          .where((name) => !usedCategoryNames.contains(name))
+          .toList();
+
+      return [...usedCategoryNames, ...unusedCategoryNames];
     } catch (e) {
+      print("Error fetching sorted categories: $e");
       return [];
     }
   }

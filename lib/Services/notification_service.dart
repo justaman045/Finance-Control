@@ -20,24 +20,29 @@ class NotificationService {
     );
   }
 
-  static Future<void> showBudgetAlert(String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+  static Future<void> showNotification({
+    required String title,
+    required String body,
+    String channelId = 'general_notifications',
+    String channelName = 'General Notifications',
+  }) async {
+    AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-          'budget_alerts', // id
-          'Budget Alerts', // title
-          channelDescription: 'Notifications for budget limits',
+          channelId,
+          channelName,
+          channelDescription: 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
           ticker: 'ticker',
           styleInformation: BigTextStyleInformation(''),
         );
 
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+    NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
     );
 
     await _notificationsPlugin.show(
-      0, // id (could be random/unique if we want multiple)
+      DateTime.now().millisecond, // unique id
       title,
       body,
       platformChannelSpecifics,
