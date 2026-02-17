@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart'; // Haptic Feedback
 import 'package:flutter_animate/flutter_animate.dart'; // Animations
@@ -125,332 +124,314 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             SizedBox(width: 8.w),
           ],
         ),
-        body: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.email)
-              .collection('transactions')
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-                child: const TransactionListShimmer(),
-              );
-            }
+        body: Obx(() {
+          final TransactionController controller = Get.find();
 
-            final docs = snapshot.data!.docs;
-            final txs = docs
-                .map(
-                  (doc) => TransactionModel.fromMap(
-                    doc.id,
-                    doc.data() as Map<String, dynamic>,
-                  ),
-                )
-                .where(
-                  (tx) => tx.senderId == user.uid || tx.recipientId == user.uid,
-                )
-                .toList();
+          if (controller.isLoading.value && controller.transactions.isEmpty) {
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+              child: const TransactionListShimmer(),
+            );
+          }
 
-            final filteredTxs = (selectedTab == 0)
-                ? txs
-                : (selectedTab == 1)
-                ? txs.where((tx) => tx.recipientId == user.uid).toList()
-                : txs.where((tx) => tx.senderId == user.uid).toList();
+          final txs = controller.transactions
+              .where(
+                (tx) => tx.senderId == user.uid || tx.recipientId == user.uid,
+              )
+              .toList();
 
-            final grouped = <DateTime, List<TransactionModel>>{};
+          // Explicit sorting if needed, but controller is already sorted by date
+          // txs.sort((a, b) => b.date.compareTo(a.date));
 
-            for (var tx in filteredTxs) {
-              final day = DateTime(tx.date.year, tx.date.month, tx.date.day);
-              grouped.putIfAbsent(day, () => []).add(tx);
-            }
+          final filteredTxs = (selectedTab == 0)
+              ? txs
+              : (selectedTab == 1)
+              ? txs.where((tx) => tx.recipientId == user.uid).toList()
+              : txs.where((tx) => tx.senderId == user.uid).toList();
 
-            final sections = grouped.keys.toList()
-              ..sort((a, b) => b.compareTo(a));
+          final grouped = <DateTime, List<TransactionModel>>{};
 
-            return RefreshIndicator(
-              color: AppColors.secondary,
-              backgroundColor: theme.scaffoldBackgroundColor,
-              onRefresh: () async {
-                HapticFeedback.mediumImpact();
-                await Future.delayed(const Duration(milliseconds: 800));
-                if (context.mounted) setState(() {});
-              },
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                children: [
-                  SizedBox(height: 10.h),
-                  // Tab selector
-                  Center(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: GlassContainer(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 4.w,
-                          vertical: 4.h,
-                        ),
-                        borderRadius: BorderRadius.circular(30.r),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(tabs.length, (i) {
-                            final isSelected = i == selectedTab;
-                            return GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                setState(() => selectedTab = i);
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 24.w,
-                                  vertical: 10.h,
-                                ),
-                                decoration: BoxDecoration(
+          for (var tx in filteredTxs) {
+            final day = DateTime(tx.date.year, tx.date.month, tx.date.day);
+            grouped.putIfAbsent(day, () => []).add(tx);
+          }
+
+          final sections = grouped.keys.toList()
+            ..sort((a, b) => b.compareTo(a));
+
+          return RefreshIndicator(
+            color: AppColors.secondary,
+            backgroundColor: theme.scaffoldBackgroundColor,
+            onRefresh: () async {
+              HapticFeedback.mediumImpact();
+              await controller.refreshData();
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              children: [
+                SizedBox(height: 10.h),
+                // Tab selector
+                Center(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: GlassContainer(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 4.w,
+                        vertical: 4.h,
+                      ),
+                      borderRadius: BorderRadius.circular(30.r),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(tabs.length, (i) {
+                          final isSelected = i == selectedTab;
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => selectedTab = i);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 10.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(30.r),
+                              ),
+                              child: Text(
+                                tabs[i],
+                                style: TextStyle(
                                   color: isSelected
-                                      ? AppColors.primary
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(30.r),
-                                ),
-                                child: Text(
-                                  tabs[i],
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : theme.textTheme.bodyMedium?.color,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14.sp,
-                                  ),
+                                      ? Colors.white
+                                      : theme.textTheme.bodyMedium?.color,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14.sp,
                                 ),
                               ),
-                            );
-                          }),
-                        ),
+                            ),
+                          );
+                        }),
                       ),
                     ),
                   ),
-                  SizedBox(height: 20.h),
+                ),
+                SizedBox(height: 20.h),
 
-                  if (filteredTxs.isEmpty)
-                    Container(
-                      height: 0.6.sh,
-                      alignment: Alignment.center,
-                      child: EmptyStateWidget(
-                        title: l10n.noTransactions,
-                        subtitle: l10n.noTransactionsSubtitle,
-                        icon: Icons.receipt_long_outlined,
-                        color: theme.disabledColor,
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20.w),
-                      child: Column(
-                        children: [
-                          ...sections.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final sectionDate = entry.value;
-                            final txns = grouped[sectionDate]!;
-                            final label = formatDateLabel(sectionDate, l10n);
+                if (filteredTxs.isEmpty)
+                  Container(
+                    height: 0.6.sh,
+                    alignment: Alignment.center,
+                    child: EmptyStateWidget(
+                      title: l10n.noTransactions,
+                      subtitle: l10n.noTransactionsSubtitle,
+                      icon: Icons.receipt_long_outlined,
+                      color: theme.disabledColor,
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
+                      children: [
+                        ...sections.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final sectionDate = entry.value;
+                          final txns = grouped[sectionDate]!;
+                          final label = formatDateLabel(sectionDate, l10n);
 
-                            return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        bottom: 12.h,
-                                        top: 10.h,
-                                        left: 4.w,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            label,
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16.sp,
-                                                ),
-                                          ),
-                                          Text(
-                                            "${sectionDate.day.toString().padLeft(2, '0')} "
-                                            "${_monthAbbr(sectionDate.month)}, "
-                                            "${sectionDate.year}",
-                                            style: theme.textTheme.bodyMedium,
-                                          ),
-                                        ],
-                                      ),
+                          return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: 12.h,
+                                      top: 10.h,
+                                      left: 4.w,
                                     ),
-                                    ...txns.map((tx) {
-                                      final received =
-                                          tx.recipientId == user.uid;
-                                      final amountColor = received
-                                          ? colorIncome
-                                          : colorOutcome;
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          label,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16.sp,
+                                              ),
+                                        ),
+                                        Text(
+                                          "${sectionDate.day.toString().padLeft(2, '0')} "
+                                          "${_monthAbbr(sectionDate.month)}, "
+                                          "${sectionDate.year}",
+                                          style: theme.textTheme.bodyMedium,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  ...txns.map((tx) {
+                                    final received = tx.recipientId == user.uid;
+                                    final amountColor = received
+                                        ? colorIncome
+                                        : colorOutcome;
 
-                                      return Padding(
-                                        padding: EdgeInsets.only(bottom: 12.h),
-                                        child: Slidable(
-                                          key: ValueKey(tx.id),
-                                          startActionPane: ActionPane(
-                                            motion: const ScrollMotion(),
-                                            extentRatio: 0.25,
-                                            children: [
-                                              SlidableAction(
-                                                onPressed: (context) {
-                                                  Get.to(
-                                                    () => TransactionEditScreen(
-                                                      transaction: tx,
-                                                    ),
-                                                  );
-                                                },
-                                                backgroundColor: const Color(
-                                                  0xFF21B7CA,
-                                                ),
-                                                foregroundColor: Colors.white,
-                                                icon: Icons.edit,
-                                                label: 'Edit',
-                                                borderRadius:
-                                                    BorderRadius.horizontal(
-                                                      left: Radius.circular(
-                                                        20.r,
-                                                      ),
-                                                    ),
+                                    return Padding(
+                                      padding: EdgeInsets.only(bottom: 12.h),
+                                      child: Slidable(
+                                        key: ValueKey(tx.id),
+                                        startActionPane: ActionPane(
+                                          motion: const ScrollMotion(),
+                                          extentRatio: 0.25,
+                                          children: [
+                                            SlidableAction(
+                                              onPressed: (context) {
+                                                Get.to(
+                                                  () => TransactionEditScreen(
+                                                    transaction: tx,
+                                                  ),
+                                                );
+                                              },
+                                              backgroundColor: const Color(
+                                                0xFF21B7CA,
                                               ),
-                                            ],
-                                          ),
-                                          endActionPane: ActionPane(
-                                            motion: const ScrollMotion(),
-                                            extentRatio: 0.25,
-                                            children: [
-                                              SlidableAction(
-                                                onPressed: (context) =>
-                                                    _confirmDelete(context, tx),
-                                                backgroundColor: const Color(
-                                                  0xFFFE4A49,
-                                                ),
-                                                foregroundColor: Colors.white,
-                                                icon: Icons.delete,
-                                                label: 'Delete',
-                                                borderRadius:
-                                                    BorderRadius.horizontal(
-                                                      right: Radius.circular(
-                                                        20.r,
-                                                      ),
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                          child: GlassContainer(
-                                            onTap: () {
-                                              Get.to(
-                                                () => TransactionResultScreen(
-                                                  type:
-                                                      getTransactionTypeFromStatus(
-                                                        tx.status,
-                                                      ),
-                                                  transaction: tx,
-                                                ),
-                                                curve: curve,
-                                                transition: transition,
-                                                duration: duration,
-                                              );
-                                            },
-                                            padding: EdgeInsets.all(16.w),
-                                            child: Row(
-                                              children: [
-                                                Container(
-                                                  padding: EdgeInsets.all(10.w),
-                                                  decoration: BoxDecoration(
-                                                    color: amountColor
-                                                        .withValues(alpha: 0.1),
-                                                    shape: BoxShape.circle,
+                                              foregroundColor: Colors.white,
+                                              icon: Icons.edit,
+                                              label: 'Edit',
+                                              borderRadius:
+                                                  BorderRadius.horizontal(
+                                                    left: Radius.circular(20.r),
                                                   ),
-                                                  child: Icon(
-                                                    received
-                                                        ? Icons
-                                                              .arrow_downward_rounded
-                                                        : Icons
-                                                              .arrow_upward_rounded,
-                                                    color: amountColor,
-                                                    size: 20.sp,
-                                                  ),
-                                                ),
-                                                SizedBox(width: 16.w),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        tx.recipientName.isEmpty
-                                                            ? l10n.unknownRecipient
-                                                            : tx.recipientName,
-                                                        style: theme
-                                                            .textTheme
-                                                            .bodyLarge
-                                                            ?.copyWith(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 16.sp,
-                                                            ),
-                                                      ),
-                                                      SizedBox(height: 4.h),
-                                                      Text(
-                                                        tx.category ??
-                                                            l10n.uncategorized,
-                                                        style: theme
-                                                            .textTheme
-                                                            .bodyMedium
-                                                            ?.copyWith(
-                                                              fontSize: 13.sp,
-                                                            ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Text(
-                                                  '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}',
-                                                  style: TextStyle(
-                                                    color: amountColor,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 17.sp,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                              ],
                                             ),
+                                          ],
+                                        ),
+                                        endActionPane: ActionPane(
+                                          motion: const ScrollMotion(),
+                                          extentRatio: 0.25,
+                                          children: [
+                                            SlidableAction(
+                                              onPressed: (context) =>
+                                                  _confirmDelete(context, tx),
+                                              backgroundColor: const Color(
+                                                0xFFFE4A49,
+                                              ),
+                                              foregroundColor: Colors.white,
+                                              icon: Icons.delete,
+                                              label: 'Delete',
+                                              borderRadius:
+                                                  BorderRadius.horizontal(
+                                                    right: Radius.circular(
+                                                      20.r,
+                                                    ),
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                        child: GlassContainer(
+                                          onTap: () {
+                                            Get.to(
+                                              () => TransactionResultScreen(
+                                                type:
+                                                    getTransactionTypeFromStatus(
+                                                      tx.status,
+                                                    ),
+                                                transaction: tx,
+                                              ),
+                                              curve: curve,
+                                              transition: transition,
+                                              duration: duration,
+                                            );
+                                          },
+                                          padding: EdgeInsets.all(16.w),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                padding: EdgeInsets.all(10.w),
+                                                decoration: BoxDecoration(
+                                                  color: amountColor.withValues(
+                                                    alpha: 0.1,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  received
+                                                      ? Icons
+                                                            .arrow_downward_rounded
+                                                      : Icons
+                                                            .arrow_upward_rounded,
+                                                  color: amountColor,
+                                                  size: 20.sp,
+                                                ),
+                                              ),
+                                              SizedBox(width: 16.w),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      tx.recipientName.isEmpty
+                                                          ? l10n.unknownRecipient
+                                                          : tx.recipientName,
+                                                      style: theme
+                                                          .textTheme
+                                                          .bodyLarge
+                                                          ?.copyWith(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 16.sp,
+                                                          ),
+                                                    ),
+                                                    SizedBox(height: 4.h),
+                                                    Text(
+                                                      tx.category ??
+                                                          l10n.uncategorized,
+                                                      style: theme
+                                                          .textTheme
+                                                          .bodyMedium
+                                                          ?.copyWith(
+                                                            fontSize: 13.sp,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Text(
+                                                '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}',
+                                                style: TextStyle(
+                                                  color: amountColor,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 17.sp,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      );
-                                    }),
-                                  ],
-                                )
-                                .animate()
-                                .fadeIn(
-                                  duration: 400.ms,
-                                  delay: (index * 50).ms,
-                                )
-                                .slideY(
-                                  begin: 0.1,
-                                  end: 0,
-                                  curve: Curves.easeOut,
-                                );
-                          }),
-                          SizedBox(height: 20.h),
-                        ],
-                      ),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              )
+                              .animate()
+                              .fadeIn(duration: 400.ms, delay: (index * 50).ms)
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOut,
+                              );
+                        }),
+                        SizedBox(height: 20.h),
+                      ],
                     ),
-                ],
-              ),
-            );
-          },
-        ),
+                  ),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }

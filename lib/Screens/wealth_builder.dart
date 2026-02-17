@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -13,6 +11,10 @@ import 'package:money_control/Components/skeleton_loader.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter/rendering.dart' as rendering;
+
+import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/profile_controller.dart';
+import 'package:get/get.dart';
 
 class WealthBuilderScreen extends StatefulWidget {
   const WealthBuilderScreen({super.key});
@@ -43,21 +45,26 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Future<void> _loadData() async {
-    final p = await WealthService.getPortfolio();
-    final balance = await WealthService.calculateBankBalance();
-    final insights = await WealthService.generateSmartInsights(p);
-    final targets = await WealthService.calculateAssetTargets(p);
+    final TransactionController txController = Get.find();
+    final ProfileController profileController = Get.find();
 
-    // Fetch user age for display
-    int? age;
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null && user.email != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .get();
-      age = doc.data()?['age'];
-    }
+    // Ensure we have latest portfolio (still need this one read as it's specific to this screen)
+    final p = await WealthService.getPortfolio();
+
+    // Use cached data
+    final transactions = txController.transactions;
+    final userProfile = profileController.userProfile.value;
+
+    final balance = WealthService.calculateBankBalance(transactions);
+    final insights = WealthService.generateSmartInsights(p, transactions);
+    final targets = await WealthService.calculateAssetTargets(
+      p,
+      transactions,
+      userProfile,
+    );
+
+    // Get age from profile
+    final age = userProfile?.calculatedAge;
 
     if (mounted) {
       setState(() {

@@ -87,45 +87,4 @@ class TransactionRepository {
   Future<void> deleteCategory(String id) async {
     await _userCategoriesRef.doc(id).delete();
   }
-
-  // ——————————————————————————————————————
-  // Stats & Helpers
-  // ——————————————————————————————————————
-
-  Future<List<String>> fetchCategoriesSortedByUsage() async {
-    try {
-      // 1. Fetch all available categories
-      final allCategories = await fetchCategories();
-      final allCategoryNames = allCategories.map((c) => c.name).toSet();
-
-      // 2. Fetch transactions for usage stats
-      final snapshot = await _userTransactionsRef.get();
-      Map<String, int> categoryCounts = {};
-
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final category = data['category'] as String?;
-        if (category != null && category.isNotEmpty) {
-          categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
-        }
-      }
-
-      // 3. Sort used categories
-      final sortedUsedCategories = categoryCounts.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-
-      final usedCategoryNames = sortedUsedCategories.map((e) => e.key).toList();
-
-      // 4. Append unused categories
-      // Filter allCategoryNames that are NOT in usedCategoryNames
-      final unusedCategoryNames = allCategoryNames
-          .where((name) => !usedCategoryNames.contains(name))
-          .toList();
-
-      return [...usedCategoryNames, ...unusedCategoryNames];
-    } catch (e) {
-      print("Error fetching sorted categories: $e");
-      return [];
-    }
-  }
 }

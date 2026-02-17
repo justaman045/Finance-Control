@@ -38,6 +38,38 @@ class TransactionController extends GetxController {
     ever(transactions, (_) => fetchSortedCategories());
   }
 
+  // Derived State
+  double get totalBalance {
+    double balance = 0.0;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return 0.0;
+
+    for (var tx in transactions) {
+      if (tx.senderId == uid) {
+        balance -= tx.amount.abs();
+        balance -= tx.tax;
+      } else if (tx.recipientId == uid) {
+        balance += tx.amount.abs();
+      }
+    }
+    return balance;
+  }
+
+  Future<void> refreshData() async {
+    isLoading.value = true;
+    try {
+      // 1. Simulate network fetch delay for UX (shimmer visibility)
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      // 2. Re-fetch sorted categories (or any other non-stream data)
+      fetchSortedCategories();
+
+      // Note: Transactions/Categories are streams, so they update automatically.
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   void bindTransactions() {
     transactions.bindStream(_repository.getTransactionsStream());
   }
@@ -46,12 +78,37 @@ class TransactionController extends GetxController {
     categories.bindStream(_repository.getCategoriesStream());
   }
 
-  Future<void> fetchSortedCategories() async {
-    // This now relies on the repository fetching fresh data internally
-    // OR we can optimize it to use the local lists.
-    // For now, let's keep using the repository method but note it does a fetch.
-    sortedCategoryNames.value = await _repository
-        .fetchCategoriesSortedByUsage();
+  void fetchSortedCategories() {
+    // Optimization: Calculate in-memory from existing streams
+    if (categories.isEmpty) {
+      sortedCategoryNames.clear();
+      return;
+    }
+
+    final categoryUsage = <String, int>{};
+
+    // 1. Count usage from cached transactions
+    for (var tx in transactions) {
+      if (tx.category != null && tx.category!.isNotEmpty) {
+        categoryUsage[tx.category!] = (categoryUsage[tx.category!] ?? 0) + 1;
+      }
+    }
+
+    // 2. Sort available categories by usage
+    // Create a list of all known category names
+    final allNames = categories.map((c) => c.name).toList();
+
+    // Sort: High usage first, then alphabetical for ties/unused
+    allNames.sort((a, b) {
+      final usageA = categoryUsage[a] ?? 0;
+      final usageB = categoryUsage[b] ?? 0;
+      if (usageA != usageB) {
+        return usageB.compareTo(usageA); // Descending usage
+      }
+      return a.compareTo(b); // Alphabetical tie-breaker
+    });
+
+    sortedCategoryNames.assignAll(allNames);
   }
 
   // ——————————————————————————————————————

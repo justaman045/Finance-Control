@@ -4,13 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:get/get.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
 
 import 'package:money_control/Screens/cateogary_history.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/empty_state.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/budget_controller.dart';
 
 class CategoriesHistoryScreen extends StatefulWidget {
   const CategoriesHistoryScreen({super.key});
@@ -21,10 +23,6 @@ class CategoriesHistoryScreen extends StatefulWidget {
 }
 
 class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
-  bool loading = true;
-  String? error;
-  List<_CategoryItem> categoryItems = [];
-  Map<String, double> budgetMap = {};
   int selectedTab = 0;
 
   DateTime get _startOfMonth {
@@ -44,131 +42,10 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchData();
-  }
-
-  Future<void> _fetchData() async {
-    setState(() {
-      loading = true;
-      error = null;
-      categoryItems = [];
-    });
-
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      setState(() {
-        error = "User not logged in.";
-        loading = false;
-      });
-      return;
-    }
-
-    try {
-      // Fetch categories
-      final catSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('categories')
-          .get();
-
-      // Merge categories by name to remove duplicates
-      final Map<String, _CategoryItem> categoryMap = {};
-      for (var doc in catSnap.docs) {
-        final data = doc.data();
-        final name = data['name'] ?? doc.id;
-        if (!categoryMap.containsKey(name)) {
-          categoryMap[name] = _CategoryItem(
-            id: doc.id,
-            name: name,
-            iconUrl: data['iconUrl'] as String?,
-            total: 0,
-          );
-        }
-      }
-      final categories = categoryMap.values.toList();
-
-      // Fetch budgets
-      final budgetsSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('budgets')
-          .get();
-
-      Map<String, double> fetchedBudgets = {};
-      for (var doc in budgetsSnap.docs) {
-        fetchedBudgets[doc.id] =
-            (doc.data()['amount'] as num?)?.toDouble() ?? 0;
-      }
-
-      // Fetch transactions
-      final txSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('transactions')
-          .where('date', isGreaterThanOrEqualTo: _startOfMonth)
-          .where('date', isLessThanOrEqualTo: _endOfMonth)
-          .get();
-
-      Map<String, double> categoryTotalMap = {};
-
-      for (var doc in txSnap.docs) {
-        final tx = doc.data();
-        final catVal = tx['category'];
-        final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-
-        // Normalize type
-        String rawType = (tx['type'] as String?)?.toLowerCase() ?? '';
-
-        // Define known types
-        const incomeTypes = ['income', 'credit', 'receive', 'deposit'];
-        const expenseTypes = [
-          'expense',
-          'debit',
-          'send',
-          'payment',
-          'withdrawal',
-        ];
-
-        bool isIncome = incomeTypes.contains(rawType);
-        bool isExpense = expenseTypes.contains(rawType);
-
-        // Fallback inference if type is unknown or empty
-        if (!isIncome && !isExpense) {
-          final recipientId = tx['recipientId'] as String? ?? '';
-          final userId = user.uid;
-          if (recipientId == userId) {
-            isIncome = true;
-          } else {
-            isExpense = true;
-          }
-        }
-
-        // Only count expense transactions as negative and income as positive
-        if ((selectedTab == 0 && isIncome) || (selectedTab == 1 && isExpense)) {
-          if (catVal != null) {
-            categoryTotalMap[catVal.toString()] =
-                (categoryTotalMap[catVal.toString()] ?? 0.0) + amount.abs();
-          }
-        }
-      }
-
-      for (final cat in categories) {
-        cat.total = (categoryTotalMap[cat.name] ?? 0.0);
-      }
-
-      categories.sort((a, b) => b.total.compareTo(a.total));
-
-      setState(() {
-        categoryItems = categories;
-        budgetMap = fetchedBudgets;
-        loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        error = "Failed to load categories: $e";
-        loading = false;
-      });
+    // Ensure BudgetController is in memory and fetch data if needed
+    final BudgetController budgetController = Get.put(BudgetController());
+    if (budgetController.categoryBudgets.isEmpty) {
+      budgetController.fetchBudgetsAndSpends();
     }
   }
 
@@ -178,7 +55,6 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
       setState(() {
         selectedTab = index;
       });
-      _fetchData();
     }
   }
 
@@ -246,46 +122,124 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
 
             // LIST
             Expanded(
-              child: loading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF00E5FF),
-                      ),
-                    )
-                  : error != null
-                  ? Center(
-                      child: Text(
-                        error!,
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    )
-                  : categoryItems.isEmpty
-                  ? Center(
-                      child: EmptyStateWidget(
-                        title: "No Categories",
-                        subtitle: "No transactions found for this category.",
-                        icon: Icons.category_outlined,
-                        color: Colors.white38,
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 30.h),
-                      itemCount: categoryItems.length,
-                      itemBuilder: (context, index) {
-                        final category = categoryItems[index];
-                        final budget = budgetMap[category.name] ?? 0;
-                        return _buildCategoryCard(category, budget)
-                            .animate(delay: (index * 50).ms)
-                            .fadeIn(duration: 400.ms)
-                            .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
-                      },
+              child: Obx(() {
+                final TransactionController txController = Get.find();
+                final BudgetController budgetController =
+                    Get.find(); // Now guaranteed to exist
+
+                if ((txController.isLoading.value &&
+                        txController.transactions.isEmpty) ||
+                    (budgetController.isLoading.value &&
+                        budgetController.categoryBudgets.isEmpty)) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                  );
+                }
+
+                // 1. Filter Transactions for this month
+                final startOfMonth = _startOfMonth;
+                final endOfMonth = _endOfMonth;
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) return const SizedBox();
+
+                final monthlyTx = txController.transactions.where((tx) {
+                  return tx.date.isAfter(startOfMonth) &&
+                      tx.date.isBefore(endOfMonth);
+                }).toList();
+
+                // 2. Aggregate totals by category
+                final Map<String, double> categoryTotalMap = {};
+                for (var tx in monthlyTx) {
+                  // Logic to determine Income/Expense based on sender/recipient
+                  bool isIncome = false;
+                  bool isExpense = false;
+
+                  if (tx.recipientId == user.uid) isIncome = true;
+                  if (tx.senderId == user.uid) isExpense = true;
+
+                  // Only count expense transactions as negative and income as positive
+                  if ((selectedTab == 0 && isIncome) ||
+                      (selectedTab == 1 && isExpense)) {
+                    final catVal = tx.category ?? 'Uncategorized';
+                    categoryTotalMap[catVal] =
+                        (categoryTotalMap[catVal] ?? 0.0) + tx.amount.abs();
+                  }
+                }
+
+                // 3. Build List Items combining with Budgets
+                final List<_CategoryItem> items = [];
+                // Use categories from controller, defaulting to existing map keys if not found
+                final knownCategories = txController.categories;
+
+                // We want to show all categories that have transactions OR are known
+                final allCategoryNames = {
+                  ...categoryTotalMap.keys,
+                  ...knownCategories.map((c) => c.name),
+                };
+
+                for (var name in allCategoryNames) {
+                  final total = categoryTotalMap[name] ?? 0.0;
+                  // Find icon from known categories
+                  final catModel = knownCategories.firstWhereOrNull(
+                    (c) => c.name == name,
+                  );
+
+                  // Find budget from BudgetController
+                  // BudgetController items accessible? It has categoryBudgets list.
+                  final budgetItem = budgetController.categoryBudgets
+                      .firstWhereOrNull((b) => b.categoryName == name);
+                  final budgetAmount = budgetItem?.budget ?? 0.0;
+
+                  // Only add if there is a total OR a budget (optional: or just total > 0)
+                  // Original code showed all categories. Let's show all.
+                  items.add(
+                    _CategoryItem(
+                      id: catModel?.id ?? name,
+                      name: name,
+                      iconUrl: catModel?.icon,
+                      total: total,
+                      budget: budgetAmount,
                     ),
+                  );
+                }
+
+                if (items.isEmpty) {
+                  return Center(
+                    child: EmptyStateWidget(
+                      title: "No Categories",
+                      subtitle: "No transactions found for this period.",
+                      icon: Icons.category_outlined,
+                      color: Colors.white38,
+                    ),
+                  );
+                }
+
+                // Sort by total descending
+                items.sort((a, b) => b.total.compareTo(a.total));
+
+                return ListView.builder(
+                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 30.h),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final category = items[index];
+                    return _buildCategoryCard(category, category.budget)
+                        .animate(delay: (index * 50).ms)
+                        .fadeIn(duration: 400.ms)
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
+                  },
+                );
+              }),
             ),
           ],
         ),
       ),
     );
   }
+
+  // Helper moved to class level or kept here
+  // We need to update _CategoryItem definition to include budget if we want cleaner code,
+  // or pass it separately. I added `budget` to `_CategoryItem` instantiation above,
+  // so let's update `_CategoryItem` class too.
 
   Widget _tabButton(String text, int index) {
     final isSelected = selectedTab == index;
@@ -446,11 +400,13 @@ class _CategoryItem {
   final String name;
   final String? iconUrl;
   double total;
+  final double budget; // Added budget field
 
   _CategoryItem({
     required this.id,
     required this.name,
     this.iconUrl,
     required this.total,
+    required this.budget,
   });
 }

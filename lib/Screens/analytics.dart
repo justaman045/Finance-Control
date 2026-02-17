@@ -1,5 +1,4 @@
 // --- imports ---
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +14,7 @@ import 'package:money_control/Controllers/tutorial_controller.dart';
 
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:get/get.dart';
 
 import 'package:flutter/rendering.dart' as rendering;
@@ -29,11 +29,12 @@ class AnalyticsScreen extends StatefulWidget {
 // -------------------------------
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  final TransactionController _transactionController = Get.find();
+
   late final String uid;
   late final String? email;
 
-  bool _loading = true;
-  List<TransactionModel> _all = [];
+  // Restored State Variables
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
   int _touchedIndex = -1;
   final GlobalKey _keyChart = GlobalKey();
@@ -60,8 +61,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     uid = user?.uid ?? "";
     email = user?.email;
 
-    _loadTx();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       TutorialController.showAnalyticsTutorial(context, keyChart: _keyChart);
     });
@@ -73,30 +72,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     super.dispose();
   }
 
-  // ---------------- FIRESTORE LOAD ------------------
-
-  Future<void> _loadTx() async {
-    if (email == null) return;
-
-    setState(() => _loading = true);
-
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(email)
-          .collection('transactions')
-          .orderBy('date', descending: false)
-          .get();
-
-      _all = snap.docs
-          .map((e) => TransactionModel.fromMap(e.id, e.data()))
-          .toList();
-    } catch (_) {
-      _all = [];
-    }
-
-    setState(() => _loading = false);
-  }
+  List<TransactionModel> get _all => _transactionController.transactions;
+  bool get _loading => _transactionController.isLoading.value;
 
   // ---------------- DATE RANGES ---------------------
 

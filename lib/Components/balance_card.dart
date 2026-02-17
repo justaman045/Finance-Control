@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:money_control/Models/transaction.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 
@@ -12,6 +10,7 @@ import 'package:money_control/Components/methods.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 
 class BalanceCard extends StatefulWidget {
   const BalanceCard({super.key});
@@ -22,37 +21,8 @@ class BalanceCard extends StatefulWidget {
 
 class _BalanceCardState extends State<BalanceCard> {
   final PrivacyController _privacyController = Get.find<PrivacyController>();
-  Future<double> _calculateBalance(String uid) async {
-    double balance = 0;
-
-    final sentSnaps = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser?.email)
-        .collection('transactions')
-        .where('senderId', isEqualTo: uid)
-        .get();
-
-    for (final doc in sentSnaps.docs) {
-      final txn = TransactionModel.fromMap(doc.id, doc.data());
-      // Explicitly subtract absolute amount for sent transactions
-      balance -= txn.amount.abs();
-      balance -= txn.tax;
-    }
-
-    final receivedSnaps = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser?.email)
-        .collection('transactions')
-        .where('recipientId', isEqualTo: uid)
-        .get();
-
-    for (final doc in receivedSnaps.docs) {
-      final txn = TransactionModel.fromMap(doc.id, doc.data());
-      // Explicitly add absolute amount for received transactions
-      balance += txn.amount.abs();
-    }
-    return balance;
-  }
+  final TransactionController _transactionController =
+      Get.find<TransactionController>();
 
   @override
   Widget build(BuildContext context) {
@@ -138,108 +108,92 @@ class _BalanceCardState extends State<BalanceCard> {
                     ),
                     SizedBox(height: 12.h),
                     if (user != null)
-                      FutureBuilder<double>(
-                        future: _calculateBalance(user.uid),
-                        builder: (context, balanceSnapshot) {
-                          if (balanceSnapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return _balanceShimmer(
-                              Theme.of(context).colorScheme,
-                            );
-                          }
-                          if (balanceSnapshot.hasError ||
-                              !balanceSnapshot.hasData) {
-                            return _balanceLabel(
-                              '--',
-                              Theme.of(context).colorScheme,
-                            );
-                          }
-                          return GestureDetector(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              _privacyController.togglePrivacy();
-                            },
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                ShaderMask(
-                                  shaderCallback: (bounds) =>
-                                      const LinearGradient(
-                                        colors: [
-                                          Colors.white,
-                                          Color(0xFFE0E0E0),
+                      Obx(() {
+                        if (_transactionController.isLoading.value) {
+                          return _balanceShimmer(Theme.of(context).colorScheme);
+                        }
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _privacyController.togglePrivacy();
+                          },
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              ShaderMask(
+                                shaderCallback: (bounds) =>
+                                    const LinearGradient(
+                                      colors: [Colors.white, Color(0xFFE0E0E0)],
+                                    ).createShader(bounds),
+                                child: Obx(() {
+                                  if (_privacyController.isPrivacyMode.value) {
+                                    return Text(
+                                      "••••",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 36.sp,
+                                        color: Colors.white,
+                                        letterSpacing: -1.0,
+                                        shadows: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
                                         ],
-                                      ).createShader(bounds),
-                                  child: Obx(() {
-                                    if (_privacyController
-                                        .isPrivacyMode
-                                        .value) {
-                                      return Text(
-                                        "••••",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 36.sp,
-                                          color: Colors.white,
-                                          letterSpacing: -1.0,
-                                          shadows: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    } else {
-                                      return TweenAnimationBuilder<double>(
-                                        tween: Tween<double>(
-                                          begin: 0,
-                                          end: balanceSnapshot.data!,
-                                        ),
-                                        duration: const Duration(
-                                          milliseconds: 1500,
-                                        ),
-                                        curve: Curves.easeOutExpo,
-                                        builder: (context, value, child) {
-                                          return Text(
-                                            '${CurrencyController.to.currencySymbol.value} ${value.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 36.sp,
-                                              color: Colors.white,
-                                              letterSpacing: -1.0,
-                                              shadows: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.1),
-                                                  blurRadius: 10,
-                                                  offset: const Offset(0, 4),
+                                      ),
+                                    );
+                                  } else {
+                                    return TweenAnimationBuilder<double>(
+                                      tween: Tween<double>(
+                                        begin: 0,
+                                        end:
+                                            _transactionController.totalBalance,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 1500,
+                                      ),
+                                      curve: Curves.easeOutExpo,
+                                      builder: (context, value, child) {
+                                        return Text(
+                                          '${CurrencyController.to.currencySymbol.value} ${value.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 36.sp,
+                                            color: Colors.white,
+                                            letterSpacing: -1.0,
+                                            shadows: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.1,
                                                 ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    }
-                                  }),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  }
+                                }),
+                              ),
+                              SizedBox(width: 12.w),
+                              Obx(
+                                () => Icon(
+                                  _privacyController.isPrivacyMode.value
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  size: 20.sp,
                                 ),
-                                SizedBox(width: 12.w),
-                                Obx(
-                                  () => Icon(
-                                    _privacyController.isPrivacyMode.value
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                    size: 20.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      )
+                              ),
+                            ],
+                          ),
+                        );
+                      })
                     else
                       _balanceLabel('--', Theme.of(context).colorScheme),
                     SizedBox(height: 24.h),

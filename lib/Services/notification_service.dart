@@ -1,4 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -26,6 +29,7 @@ class NotificationService {
     String channelId = 'general_notifications',
     String channelName = 'General Notifications',
   }) async {
+    // 1. Show Local Notification
     AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
           channelId,
@@ -47,5 +51,26 @@ class NotificationService {
       body,
       platformChannelSpecifics,
     );
+
+    // 2. Persist to Firestore
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && user.email != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .collection('notifications')
+            .add({
+              'title': title,
+              'body': body,
+              'timestamp': FieldValue.serverTimestamp(),
+              'read': false,
+              'type': channelId,
+            });
+      }
+    } catch (e) {
+      // Fail silently for persistence so we don't crash app flow
+      debugPrint("Error saving notification: $e");
+    }
   }
 }

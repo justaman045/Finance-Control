@@ -1,14 +1,12 @@
-<div align="center">
-
 # Money Control
-### Experience the Future of Personal Finance 🚀
+### Your Complete Wealth & Expense Manager 🚀
 
 [![Release](https://img.shields.io/github/v/release/justaman045/Finance-Control?color=blue&style=flat-square)](https://github.com/justaman045/Finance-Control/releases)
 [![License](https://img.shields.io/github/license/justaman045/Finance-Control?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android-green?style=flat-square)](https://github.com/justaman045/Finance-Control/releases)
 
-**Private. Powerful. Intelligent.**
-*Take control of your financial life with an app that works as hard as you do.*
+**Track. Analyze. Grow.**
+*Privacy-first financial tracking with AI-powered SMS automation and comprehensive wealth management.*
 
 [Features](#-features) • [Download](#-download) • [Pro Plan](#-pro-features)
 
@@ -18,13 +16,16 @@
 
 ## 🌟 Why Money Control?
 
-Most finance apps are cluttered, invasive, or just plain ugly. **Money Control** is different. We built a modern, privacy-first financial companion that combines beautiful design with powerful automation.
+Most finance apps are cluttered, invasive, or just plain ugly. **Money Control** is different. We built a modern, privacy-first financial companion that combines beautiful design with powerful automation and wealth tracking.
 
 ### 🔒 Privacy First
 Your financial data belongs to you. Money Control works **offline-first**, storing your data securely on your device. We don't sell your data to advertisers.
 
 ### 🤖 Intelligent Automation (Pro)
 Stop manually entering every coffee you buy. Our **Pro** tier uses advanced on-device machine learning to read your bank SMS and automatically categorize your transactions. It's magic.
+
+### 📈 Wealth Management
+Go beyond expenses. Track your entire net worth—including Stocks, Real Estate, Gold, and Crypto—in one beautiful dashboard with smart allocation insights.
 
 ### 🎨 Beautiful by Design
 Enjoy a stunning, glassmorphic interface that makes managing money a delight, not a chore. With smooth animations and full support for Dark Mode, it looks good at any time of day.
@@ -35,6 +36,7 @@ Enjoy a stunning, glassmorphic interface that makes managing money a delight, no
 
 ### Core Experience (Free Forever)
 *   **Smart Dashboard:** See your monthly balance and spending trends at a glance.
+*   **Wealth Builder:** Track net worth across Stocks, Real Estate, Crypto, and Gold.
 *   **Intuitive Tracking:** Add income and expenses in seconds with our streamlined UI.
 *   **Visual Analytics:** Understand where your money goes with clear, interactive charts.
 *   **Custom Categories:** Organize your spending your way.

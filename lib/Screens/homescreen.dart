@@ -17,8 +17,6 @@ import 'package:money_control/Screens/cateogaries_history.dart';
 import 'package:money_control/Screens/edit_profile.dart';
 import 'package:money_control/Screens/forecast_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Screens/transaction_history.dart';
 import 'package:money_control/Screens/transaction_search.dart';
 import 'package:money_control/Screens/recurring_payments_screen.dart';
@@ -89,8 +87,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
   Future<void> _onRefresh() async {
     HapticFeedback.mediumImpact();
     await _updateLastOpenedLocal();
-    setState(() {}); // Simple rebuild
-    await Future.delayed(const Duration(milliseconds: 400));
+    await _transactionController.refreshData();
   }
 
   @override
@@ -98,8 +95,6 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-
-    final user = FirebaseAuth.instance.currentUser;
 
     return Container(
       decoration: BoxDecoration(
@@ -158,39 +153,30 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   AppLocalizations.of(context)!.welcomeBack,
                   style: theme.textTheme.bodyMedium,
                 ),
-                StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                  stream: user == null
-                      ? null
-                      : FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(user.email)
-                            .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return shimmerText(theme);
-                    }
-                    if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return blankText(theme);
-                    }
-                    final userModel = UserModel.fromMap(
-                      user!.uid,
-                      snapshot.data!.data(),
-                    );
-                    return Text(
-                      userModel.firstName != null &&
-                              userModel.firstName!.isNotEmpty
-                          ? userModel.firstName!
-                          : (user.displayName != null &&
-                                    user.displayName!.isNotEmpty
-                                ? user.displayName!
-                                : 'User'),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.sp,
-                      ),
-                    );
-                  },
-                ),
+                Obx(() {
+                  final userModel = _profileController.userProfile.value;
+                  if (userModel == null) {
+                    return shimmerText(theme);
+                  }
+                  return Text(
+                    userModel.firstName != null &&
+                            userModel.firstName!.isNotEmpty
+                        ? userModel.firstName!
+                        : (FirebaseAuth.instance.currentUser?.displayName !=
+                                      null &&
+                                  FirebaseAuth
+                                      .instance
+                                      .currentUser!
+                                      .displayName!
+                                      .isNotEmpty
+                              ? FirebaseAuth.instance.currentUser!.displayName!
+                              : 'User'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  );
+                }),
               ],
             ),
           ),

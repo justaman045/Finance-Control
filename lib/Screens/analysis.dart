@@ -2,7 +2,6 @@
 
 import 'dart:math';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,8 +10,9 @@ import 'package:flutter/rendering.dart' as rendering;
 import 'package:money_control/Components/skeleton_loader.dart';
 
 import 'package:money_control/Components/bottom_nav_bar.dart';
-import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:get/get.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 
 class AIInsightsScreen extends StatefulWidget {
   const AIInsightsScreen({super.key});
@@ -97,21 +97,20 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         return;
       }
 
-      final email = user.email!;
+      final TransactionController txController = Get.find();
+
       final now = DateTime.now();
       final currentKey = now.year * 100 + now.month;
       final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
       final daysPassed = now.day;
 
-      // 🔹 FETCH ALL TRANSACTIONS
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(email)
-          .collection("transactions")
-          .get();
+      // Wait for data if needed
+      if (txController.isLoading.value) {
+        // Should ideally listen, but for now simple check or wait
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
 
-      final allTx = snap.docs
-          .map((d) => TransactionModel.fromMap(d.id, d.data()))
+      final allTx = txController.transactions
           .where((tx) => tx.senderId == user.uid)
           .toList();
 

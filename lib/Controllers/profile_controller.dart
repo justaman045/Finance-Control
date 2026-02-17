@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Models/user_model.dart';
 
 class ProfileController extends GetxController {
   static ProfileController get to => Get.find();
@@ -16,6 +17,7 @@ class ProfileController extends GetxController {
   final _picker = ImagePicker();
 
   Rxn<User> currentUser = Rxn<User>();
+  Rxn<UserModel> userProfile = Rxn<UserModel>(); // Added userProfile
   RxString photoURL = ''.obs;
   RxBool isLoading = false.obs;
 
@@ -24,6 +26,32 @@ class ProfileController extends GetxController {
     super.onInit();
     currentUser.bindStream(_auth.userChanges());
     ever(currentUser, _updateUser);
+
+    // Bind user profile stream
+    if (_auth.currentUser != null) {
+      _bindUserProfile(_auth.currentUser!.email);
+    }
+
+    // Re-bind if user changes (e.g. login/logout)
+    ever(currentUser, (user) {
+      if (user != null) {
+        _bindUserProfile(user.email);
+      } else {
+        userProfile.value = null;
+      }
+    });
+  }
+
+  void _bindUserProfile(String? email) {
+    if (email == null) return;
+    userProfile.bindStream(
+      _firestore.collection('users').doc(email).snapshots().map((snapshot) {
+        if (snapshot.exists) {
+          return UserModel.fromMap(snapshot.id, snapshot.data());
+        }
+        return null;
+      }),
+    );
   }
 
   void _updateUser(User? user) {

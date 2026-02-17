@@ -65,10 +65,11 @@ class NotificationsScreen extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(20.w, 100.h, 20.w, 0),
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
-                .collection('notifications')
+                .collection('users')
                 .doc(user.email)
-                .collection('user_notifications')
+                .collection('notifications')
                 .orderBy('timestamp', descending: true)
+                .limit(50)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -118,7 +119,9 @@ class NotificationsScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.15),
@@ -133,7 +136,9 @@ class NotificationsScreen extends StatelessWidget {
                         Container(
                           padding: EdgeInsets.all(10.w),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF6C63FF,
+                            ).withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(

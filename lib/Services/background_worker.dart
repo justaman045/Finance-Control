@@ -34,12 +34,14 @@ class BackgroundWorker {
   }
 
   /// Show notification helper
+  /// Show notification helper
   static Future<void> showNotification(
     String title,
     String body,
     String channelId,
-    String channelName,
-  ) async {
+    String channelName, {
+    String? userEmail,
+  }) async {
     final plugin = FlutterLocalNotificationsPlugin();
 
     final AndroidNotificationDetails androidDetails =
@@ -60,6 +62,25 @@ class BackgroundWorker {
     final id = DateTime.now().millisecondsSinceEpoch % 100000;
 
     await plugin.show(id, title, body, details, payload: "home");
+
+    // Persist to Firestore
+    if (userEmail != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userEmail)
+            .collection('notifications')
+            .add({
+              'title': title,
+              'body': body,
+              'timestamp': FieldValue.serverTimestamp(),
+              'read': false,
+              'type': channelId,
+            });
+      } catch (e) {
+        log("Error saving background notification: $e");
+      }
+    }
   }
 }
 
@@ -118,11 +139,13 @@ Future<void> _checkInactivity(SharedPreferences prefs) async {
 
     // Throttle: don't remind if reminded in last 6 hours
     if (now - lastReminded > sixHoursMs) {
+      final userEmail = prefs.getString('user_email');
       await BackgroundWorker.showNotification(
         "Money reminder 💸",
         "You haven’t added your expenses in a while — track them now!",
         'reminder_channel',
         'Reminders',
+        userEmail: userEmail,
       );
       await prefs.setInt('last_inactivity_reminded', now);
     }
@@ -160,6 +183,7 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
             "Today: Spent $symbol${spent.toStringAsFixed(0)}, Received $symbol${received.toStringAsFixed(0)}",
             'insight_channel',
             'Daily Insights',
+            userEmail: userEmail,
           );
 
           // Mark as run for today
@@ -262,11 +286,16 @@ Future<void> _checkUpdate(SharedPreferences prefs) async {
 
       // 3. Compare
       if (_isNewer(remoteVersion, localVersion)) {
+        // Try to get email if possible, though prefs might not be passed purely here
+        // We need prefs to get email
+        final userEmail = prefs.getString('user_email');
+
         await BackgroundWorker.showNotification(
           "Update Available 🚀",
           "Version $remoteVersion is out! Tap to update.",
           'update_channel',
           'Updates',
+          userEmail: userEmail,
         );
       }
 

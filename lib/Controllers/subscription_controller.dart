@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/main.dart'; // For rootScaffoldMessengerKey
 import 'package:money_control/Services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum SubscriptionStatus { free, pending, pro }
 
@@ -26,22 +27,21 @@ class SubscriptionController extends GetxController {
     checkSubscriptionStatus();
   }
 
-  bool _isFirstLoad = true;
-
   /// Check subscription status from Firestore
   void checkSubscriptionStatus() {
     final user = _auth.currentUser;
     if (user != null) {
       _firestore.collection('users').doc(user.email).snapshots().listen((
         snapshot,
-      ) {
+      ) async {
         if (snapshot.exists) {
           final data = snapshot.data();
           if (data != null) {
             SubscriptionStatus newStatus = SubscriptionStatus.free;
 
             // Admin Override
-            if (user.email == "developerlife69@gmail.com") {
+            bool isAdmin = user.email == "developerlife69@gmail.com";
+            if (isAdmin) {
               newStatus = SubscriptionStatus.pro;
             }
             // Check for 'status' string first
@@ -54,8 +54,9 @@ class SubscriptionController extends GetxController {
               newStatus = SubscriptionStatus.pro;
             }
 
-            // check expiry
-            if (newStatus == SubscriptionStatus.pro &&
+            // check expiry (Skip for admin to prevent loop)
+            if (!isAdmin &&
+                newStatus == SubscriptionStatus.pro &&
                 data.containsKey('expiryDate')) {
               final expiry = (data['expiryDate'] as Timestamp).toDate();
               if (DateTime.now().isAfter(expiry)) {
@@ -65,26 +66,45 @@ class SubscriptionController extends GetxController {
               }
             }
 
-            // Handle Status Change Notification
-            if (!_isFirstLoad && subscriptionStatus.value != newStatus) {
-              _handleStatusChange(subscriptionStatus.value, newStatus);
+            // --- NOTIFICATION LOGIC ---
+            // We use SharedPreferences to check if the status changed while the app was closed.
+            final prefs = await SharedPreferences.getInstance();
+            final lastStatusStr = prefs.getString('last_sub_status');
+            final lastStatus = lastStatusStr != null
+                ? _parseStatus(lastStatusStr)
+                : SubscriptionStatus.free;
+
+            // If this is the very first check (lastStatusStr is null) and we are pro,
+            // we might not want to notify (restoring session), OR maybe we do?
+            // Let's notify only if there is a detected change from what we last knew.
+
+            // Allow notification if we have a stored status OR if it's a runtime update (not first load)
+            // But actually, just comparing stored vs new is the robust way.
+            if (newStatus != lastStatus) {
+              // Special case: If installing for first time (lastStatusStr == null) and Free, don't notify.
+              // If first time and Pro, maybe notify "Welcome Back".
+              // For now, let's treat "no record" as "free".
+
+              if (lastStatusStr != null ||
+                  newStatus != SubscriptionStatus.free) {
+                _handleStatusChange(lastStatus, newStatus);
+              }
+
+              // Update storage
+              await prefs.setString('last_sub_status', newStatus.name);
             }
 
             subscriptionStatus.value = newStatus;
-            _isFirstLoad = false;
           }
         } else {
           subscriptionStatus.value = SubscriptionStatus.free;
-          _isFirstLoad = false;
         }
       });
     } else {
       subscriptionStatus.value = SubscriptionStatus.free;
-      _isFirstLoad = false;
       // Listen for auth changes to re-check
       _auth.authStateChanges().listen((user) {
         if (user != null) {
-          _isFirstLoad = true; // Reset for new user
           checkSubscriptionStatus();
         } else {
           subscriptionStatus.value = SubscriptionStatus.free;

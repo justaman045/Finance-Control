@@ -1,9 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 
 class AnalyticsController extends GetxController {
   final RxBool isLoading = true.obs;
@@ -27,6 +26,15 @@ class AnalyticsController extends GetxController {
     }
 
     try {
+      final TransactionController txController = Get.find();
+
+      // Wait for transactions to be loaded if they aren't yet
+      if (txController.isLoading.value) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        // Simple retry/wait mechanism or we could listen.
+        // But usually Home loads first.
+      }
+
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
       final endOfMonth = DateTime(
@@ -34,26 +42,26 @@ class AnalyticsController extends GetxController {
         now.month + 1,
         1,
       ).subtract(const Duration(seconds: 1));
-      final daysInMonth = endOfMonth.day;
+      final daysInMonth = DateTime(
+        now.year,
+        now.month + 1,
+        0,
+      ).day; // Correct last day
 
-      // FETCH month transactions
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('transactions')
-          .where(
-            'date',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
-          )
-          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
-          .get();
+      final allTx = txController.transactions;
+
+      // Filter Current Month
+      final monthlyTx = allTx.where((tx) {
+        return tx.date.isAfter(
+              startOfMonth.subtract(const Duration(seconds: 1)),
+            ) &&
+            tx.date.isBefore(endOfMonth.add(const Duration(seconds: 1)));
+      });
 
       Map<String, double> dailyIncome = {};
       Map<String, double> dailyExpense = {};
 
-      for (var doc in snapshot.docs) {
-        final tx = TransactionModel.fromMap(doc.id, doc.data());
-
+      for (var tx in monthlyTx) {
         final txDateStr = DateFormat('yyyy-MM-dd').format(tx.date);
 
         if (tx.recipientId == user.uid) {
@@ -72,22 +80,17 @@ class AnalyticsController extends GetxController {
       // --- HISTORY FETCH (Last 3 Months) ---
       final startOfHistory = DateTime(now.year, now.month - 3, 1);
 
-      final historySnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('transactions')
-          .where(
-            'date',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfHistory),
-          )
-          .where('date', isLessThan: Timestamp.fromDate(startOfMonth))
-          .get();
+      final historyTx = allTx.where((tx) {
+        return tx.date.isAfter(
+              startOfHistory.subtract(const Duration(seconds: 1)),
+            ) &&
+            tx.date.isBefore(startOfMonth);
+      });
 
       double historicalIncomeSum = 0;
       double historicalExpenseSum = 0;
 
-      for (var doc in historySnap.docs) {
-        final tx = TransactionModel.fromMap(doc.id, doc.data());
+      for (var tx in historyTx) {
         if (tx.recipientId == user.uid) {
           historicalIncomeSum += tx.amount.abs();
         } else if (tx.senderId == user.uid) {
@@ -116,7 +119,7 @@ class AnalyticsController extends GetxController {
       double projectedDailyIncome;
       double projectedDailyExpense;
 
-      if (historySnap.docs.isNotEmpty) {
+      if (historyTx.isNotEmpty) {
         // We have history. Blend 50/50.
         projectedDailyIncome = (historicalDailyIncome + currentDailyIncome) / 2;
         projectedDailyExpense =

@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/transaction.dart';
 
 class AnalyticsTrendsScreen extends StatefulWidget {
@@ -13,12 +14,12 @@ class AnalyticsTrendsScreen extends StatefulWidget {
 }
 
 class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
-  bool _loading = true;
-  List<TransactionModel> _all = [];
+  final TransactionController _controller = Get.find();
 
   // Filter State
-  String? _selectedCategory;
-  List<String> _categories = [];
+  String? _selectedCategory = "All Categories";
+  // ignore: unused_field
+  final String _defaultCategory = "All Categories";
 
   String _selectedRange = "6 Months";
   final List<String> _rangeOptions = [
@@ -28,57 +29,35 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
     "All Time",
   ];
 
-  // Chart Data
-  List<FlSpot> _spots = [];
-  double _maxY = 100;
+  String get uid => FirebaseAuth.instance.currentUser?.uid ?? "";
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
+  // Helpers to get data
+  List<TransactionModel> get _expenses {
+    return _controller.transactions.where((tx) => tx.senderId == uid).toList();
   }
 
-  Future<void> _loadData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  List<String> get _categories {
+    final cats = _expenses.map((e) => e.category ?? "Other").toSet().toList()
+      ..sort();
+    return ["All Categories", ...cats];
+  }
 
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('transactions')
-          .orderBy('date', descending: false) // Oldest first for chart
-          .get();
+  // Chart Data Calculation
+  (List<FlSpot>, double) _calculateChartData() {
+    final expenses = _expenses;
+    if (expenses.isEmpty) return ([], 100.0);
 
-      setState(() {
-        _all = snap.docs
-            .map((e) => TransactionModel.fromMap(e.id, e.data()))
-            .where((tx) => tx.senderId == user.uid) // Only expenses
-            .toList();
-
-        // Extract unique categories
-        final cats = _all.map((e) => e.category ?? "Other").toSet().toList()
-          ..sort();
-        _categories = ["All Categories", ...cats];
-
-        _selectedCategory = "All Categories";
-        _prepareChartData();
-        _loading = false;
-      });
-    } catch (e) {
-      debugPrint("Error loading trends: $e");
-      setState(() => _loading = false);
+    // Ensure selected category is valid
+    final currentCats = _categories;
+    String cat = _selectedCategory ?? "All Categories";
+    if (!currentCats.contains(cat)) {
+      cat = "All Categories";
     }
-  }
-
-  void _prepareChartData() {
-    if (_selectedCategory == null) return;
 
     final Map<int, double> monthlySum = {};
 
-    for (var tx in _all) {
-      if (_selectedCategory == "All Categories" ||
-          tx.category == _selectedCategory) {
+    for (var tx in expenses) {
+      if (cat == "All Categories" || tx.category == cat) {
         final key = tx.date.year * 100 + tx.date.month;
         monthlySum[key] = (monthlySum[key] ?? 0) + tx.amount.abs();
       }
@@ -100,7 +79,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
         break;
       default:
         count = 9999;
-        break; // All Time
+        break;
     }
 
     final displayKeys = sortedKeys.length > count
@@ -117,20 +96,20 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
       if (val > maxVal) maxVal = val;
     }
 
-    setState(() {
-      _spots = spots;
-      _maxY = maxVal > 0 ? maxVal * 1.2 : 100;
-    });
+    return (spots, maxVal > 0 ? maxVal * 1.2 : 100.0);
   }
 
+  // Helper for bottom titles (X axis)
   String _getMonthLabel(int index) {
-    if (_spots.isEmpty) return "";
-    if (_selectedCategory == null) return "";
+    final expenses = _expenses;
+    if (expenses.isEmpty) return "";
+
+    String cat = _selectedCategory ?? "All Categories";
+    // Check validity inside the getter logic if needed, but for display it's ok.
 
     final Map<int, double> monthlySum = {};
-    for (var tx in _all) {
-      if (_selectedCategory == "All Categories" ||
-          tx.category == _selectedCategory) {
+    for (var tx in expenses) {
+      if (cat == "All Categories" || tx.category == cat) {
         final key = tx.date.year * 100 + tx.date.month;
         monthlySum[key] = (monthlySum[key] ?? 0) + tx.amount;
       }
@@ -208,16 +187,25 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        body: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
-              )
-            : _buildContent(),
+        body: Obx(() {
+          if (_controller.isLoading.value) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+            );
+          }
+          final (spots, maxY) = _calculateChartData();
+          return _buildContent(spots, maxY);
+        }),
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(List<FlSpot> spots, double maxY) {
+    // Ensure selected category matches available categories
+    final cats = _categories;
+    if (_selectedCategory == null || !cats.contains(_selectedCategory)) {
+      _selectedCategory = "All Categories";
+    }
     return Padding(
       padding: EdgeInsets.all(16.w),
       child: Column(
@@ -262,7 +250,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                             if (v != null) {
                               setState(() {
                                 _selectedCategory = v;
-                                _prepareChartData();
+                                // _prepareChartData(); // Removed, handled by reactivity
                               });
                             }
                           },
@@ -299,7 +287,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                             if (v != null) {
                               setState(() {
                                 _selectedRange = v;
-                                _prepareChartData();
+                                // _prepareChartData(); // Removed
                               });
                             }
                           },
@@ -353,7 +341,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                   ),
                   SizedBox(height: 32.h),
                   Expanded(
-                    child: _spots.isEmpty
+                    child: spots.isEmpty
                         ? Center(
                             child: Text(
                               "Not enough data",
@@ -368,7 +356,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                               gridData: FlGridData(
                                 show: true,
                                 drawVerticalLine: false,
-                                horizontalInterval: _maxY / 5,
+                                horizontalInterval: maxY / 5,
                                 getDrawingHorizontalLine: (value) => FlLine(
                                   color: Colors.white.withValues(alpha: 0.05),
                                   strokeWidth: 1,
@@ -411,7 +399,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    interval: _maxY / 5,
+                                    interval: maxY / 5,
                                     getTitlesWidget: (val, meta) {
                                       return Text(
                                         "${(val / 1000).toStringAsFixed(1)}k",
@@ -428,14 +416,14 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                               ),
                               borderData: FlBorderData(show: false),
                               minX: 0,
-                              maxX: _spots.length > 1
-                                  ? (_spots.length - 1).toDouble()
+                              maxX: spots.length > 1
+                                  ? (spots.length - 1).toDouble()
                                   : 1,
                               minY: 0,
-                              maxY: _maxY,
+                              maxY: maxY,
                               lineBarsData: [
                                 LineChartBarData(
-                                  spots: _spots,
+                                  spots: spots,
                                   isCurved: true,
                                   color: const Color(0xFF00E5FF),
                                   barWidth: 3,
