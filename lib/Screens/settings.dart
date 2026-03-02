@@ -168,8 +168,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   // LENT MONEY (NEW FEATURE)
                   _SettingsCategoryCard(
-                    title: "Lent Money Tracker",
-                    subtitle: "Track money owed to you",
+                    title: "Future Money Tracker",
+                    subtitle: "Track money you lent and borrowed",
                     icon: Icons.handshake_rounded,
                     color: Colors.orangeAccent,
                     onTap: () => Get.to(() => const LentMoneyScreen()),
