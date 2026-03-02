@@ -59,6 +59,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   }
 
   void _deleteCategory(CategoryModel category) {
+    final navigator = Navigator.of(context);
     Get.defaultDialog(
       title: "Delete Category",
       middleText: "Are you sure you want to delete '${category.name}'?",
@@ -68,8 +69,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       buttonColor: Colors.red,
       onConfirm: () async {
         await _categoryService.deleteCategory(category.id);
-        if (!context.mounted) return;
-        Navigator.of(context).pop();
+        navigator.pop();
       },
     );
   }

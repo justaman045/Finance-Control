@@ -12,6 +12,7 @@ import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
+import 'package:money_control/Controllers/recurring_payment_controller.dart';
 
 class BalanceCard extends StatefulWidget {
   const BalanceCard({super.key});
@@ -27,7 +28,11 @@ class _BalanceCardState extends State<BalanceCard> {
   final LentMoneyController _lentMoneyController = Get.put(
     LentMoneyController(),
   );
+  final RecurringPaymentController _recurringPaymentController = Get.put(
+    RecurringPaymentController(),
+  );
   final RxBool _includeLentMoney = false.obs;
+  final RxBool _subtractSubscriptions = false.obs;
 
   @override
   Widget build(BuildContext context) {
@@ -114,45 +119,91 @@ class _BalanceCardState extends State<BalanceCard> {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        Obx(
-                          () => GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              if (_privacyController.isPrivacyMode.value) {
-                                return; // Prevent toggle if hidden
-                              }
-                              _includeLentMoney.value =
-                                  !_includeLentMoney.value;
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 4.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _includeLentMoney.value
-                                    ? Colors.white.withValues(alpha: 0.2)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
-                                  color: _includeLentMoney.value
-                                      ? Colors.white.withValues(alpha: 0.4)
-                                      : Colors.white.withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: Text(
-                                _includeLentMoney.value
-                                    ? "Lent Included"
-                                    : "+ Add Lent",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w600,
+                        Wrap(
+                          spacing: 8.w,
+                          children: [
+                            Obx(
+                              () => GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  if (_privacyController.isPrivacyMode.value) {
+                                    return; // Prevent toggle if hidden
+                                  }
+                                  _includeLentMoney.value =
+                                      !_includeLentMoney.value;
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 4.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _includeLentMoney.value
+                                        ? Colors.white.withValues(alpha: 0.2)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: _includeLentMoney.value
+                                          ? Colors.white.withValues(alpha: 0.4)
+                                          : Colors.white.withValues(alpha: 0.1),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _includeLentMoney.value
+                                        ? "Lent Included"
+                                        : "+ Add Lent",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                            // New Subscription Toggle Button
+                            Obx(
+                              () => GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  if (_privacyController.isPrivacyMode.value) {
+                                    return;
+                                  }
+                                  _subtractSubscriptions.value =
+                                      !_subtractSubscriptions.value;
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 4.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _subtractSubscriptions.value
+                                        ? Colors.white.withValues(alpha: 0.2)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: _subtractSubscriptions.value
+                                          ? Colors.white.withValues(alpha: 0.4)
+                                          : Colors.white.withValues(alpha: 0.1),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _subtractSubscriptions.value
+                                        ? "- ${CurrencyController.to.currencySymbol.value}${_recurringPaymentController.pendingSubscriptions.value.toStringAsFixed(0)} (Subs)"
+                                        : "- Subs",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -199,13 +250,20 @@ class _BalanceCardState extends State<BalanceCard> {
                                     return TweenAnimationBuilder<double>(
                                       tween: Tween<double>(
                                         begin: 0,
-                                        end: _includeLentMoney.value
-                                            ? _transactionController
-                                                      .totalBalance +
-                                                  _lentMoneyController
-                                                      .netBalance
-                                            : _transactionController
-                                                  .totalBalance,
+                                        end: () {
+                                          double total = _transactionController
+                                              .totalBalance;
+                                          if (_includeLentMoney.value) {
+                                            total +=
+                                                _lentMoneyController.netBalance;
+                                          }
+                                          if (_subtractSubscriptions.value) {
+                                            total -= _recurringPaymentController
+                                                .pendingSubscriptions
+                                                .value;
+                                          }
+                                          return total;
+                                        }(),
                                       ),
                                       duration: const Duration(
                                         milliseconds: 1500,
