@@ -43,7 +43,6 @@ class ThemeSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isLight = scheme.brightness == Brightness.light;
     final isDark = scheme.brightness == Brightness.dark;
     final surface = scheme.surface;
     final border = isDark

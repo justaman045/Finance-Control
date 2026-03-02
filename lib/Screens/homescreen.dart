@@ -20,6 +20,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Screens/transaction_history.dart';
 import 'package:money_control/Screens/transaction_search.dart';
 import 'package:money_control/Screens/recurring_payments_screen.dart';
+import 'package:money_control/Screens/lent_money_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 🔥 import background worker
@@ -211,6 +212,15 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               icon: Icons.event_repeat,
               onTap: () => gotoPage(const RecurringPaymentsScreen()),
               theme: theme,
+            ),
+            SizedBox(width: 8.w),
+
+            // 🤝 LENT MONEY TRACKER BUTTON
+            _buildActionButton(
+              icon: Icons.handshake_outlined,
+              onTap: () => gotoPage(const LentMoneyScreen()),
+              theme: theme,
+              color: Colors.greenAccent,
             ),
             SizedBox(width: 8.w),
 

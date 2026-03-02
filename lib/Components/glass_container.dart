@@ -7,6 +7,7 @@ class GlassContainer extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final BorderRadius? borderRadius;
+  final BoxBorder? border; // NEW
   final double? width;
   final double? height;
   final VoidCallback? onTap;
@@ -17,6 +18,7 @@ class GlassContainer extends StatelessWidget {
     this.padding,
     this.margin,
     this.borderRadius,
+    this.border, // NEW
     this.width,
     this.height,
     this.onTap,
@@ -41,12 +43,16 @@ class GlassContainer extends StatelessWidget {
                 ? Colors.black.withValues(alpha: 0.2)
                 : Colors.white.withValues(alpha: 0.3),
             borderRadius: rBorderRadius,
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1) // Increased opacity
-                  : Colors.white.withValues(alpha: 0.5), // Increased opacity
-              width: 1.5,
-            ),
+            border:
+                border ??
+                Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1) // Increased opacity
+                      : Colors.white.withValues(
+                          alpha: 0.5,
+                        ), // Increased opacity
+                  width: 1.5,
+                ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),

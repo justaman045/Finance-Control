@@ -16,8 +16,8 @@ import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Screens/sms_import_screen.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
-import 'package:money_control/Screens/admin_dashboard.dart';
 import 'package:money_control/Screens/Admin/admin_menu.dart';
+import 'package:money_control/Screens/lent_money_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -162,6 +162,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.auto_mode_rounded,
                     color: Colors.greenAccent,
                     onTap: () => Get.to(() => const SmsImportScreen()),
+                  ),
+
+                  SizedBox(height: 16.h),
+
+                  // LENT MONEY (NEW FEATURE)
+                  _SettingsCategoryCard(
+                    title: "Lent Money Tracker",
+                    subtitle: "Track money owed to you",
+                    icon: Icons.handshake_rounded,
+                    color: Colors.orangeAccent,
+                    onTap: () => Get.to(() => const LentMoneyScreen()),
                   ),
 
                   SizedBox(height: 40.h),

@@ -265,8 +265,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             backgroundColor: AppColors.success,
           ),
         );
+        Navigator.of(context).pop();
       }
-      Navigator.of(context).pop();
     }
   }
 

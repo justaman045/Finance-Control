@@ -8,7 +8,6 @@ class TransactionRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? get _userEmail => _auth.currentUser?.email;
-  String? get _userId => _auth.currentUser?.uid;
 
   // Collection References
   CollectionReference get _userTransactionsRef {

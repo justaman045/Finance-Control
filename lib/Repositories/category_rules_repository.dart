@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class CategoryRulesRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -31,7 +32,7 @@ class CategoryRulesRepository {
         return rules;
       }
     } catch (e) {
-      print("Error fetching rules from Firestore: $e");
+      debugPrint("Error fetching rules from Firestore: $e");
     }
 
     // 3. Fallback to cache
@@ -58,7 +59,7 @@ class CategoryRulesRepository {
         });
         return rules;
       } catch (e) {
-        print("Error decoding cache: $e");
+        debugPrint("Error decoding cache: $e");
       }
     }
     return {}; // Return empty if no cache

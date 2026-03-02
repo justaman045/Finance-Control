@@ -661,6 +661,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
 
     if (confirm == true) {
       await _service.deletePayment(payment.id);
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close screen
       Get.snackbar(
         "Deleted",

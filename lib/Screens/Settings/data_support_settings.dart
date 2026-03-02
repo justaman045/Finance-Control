@@ -23,6 +23,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
 
       await LocalBackupService.backupUserTransactions(user!.email!);
 
+      if (!context.mounted) return;
       Navigator.of(context).pop(); // close loading
       Get.snackbar(
         "Backup Success",
@@ -32,6 +33,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
         colorText: Colors.white,
       );
     } catch (e) {
+      if (!context.mounted) return;
       Navigator.of(context).pop();
       Get.snackbar("Error", "Backup failed: $e");
     }

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Screens/homescreen.dart';
 
 import 'package:money_control/Services/error_handler.dart';
@@ -23,7 +24,7 @@ class AuthController extends GetxController {
       // Initialize Google Sign In (using dynamic to avoid strict type checks if version mismatch)
       (_googleSignIn as dynamic).initialize();
     } catch (e) {
-      print("Google Sign In Init Error: $e");
+      debugPrint("Google Sign In Init Error: $e");
     }
   }
 
@@ -101,7 +102,7 @@ class AuthController extends GetxController {
       errorMessage.value = _getFriendlyErrorMessage(e);
       ErrorHandler.showError(errorMessage.value);
     } catch (e) {
-      print("Google Sign In Error: $e");
+      debugPrint("Google Sign In Error: $e");
       errorMessage.value = 'Google Sign-In failed. Please try again.';
       ErrorHandler.showError(errorMessage.value);
     } finally {

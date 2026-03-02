@@ -469,7 +469,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     bool isDark, {
     RecurringPayment? payment,
   }) {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
     final titleCtrl = TextEditingController(text: payment?.title);
     final amountCtrl = TextEditingController(text: payment?.amount.toString());
     RecurringFrequency freq = payment?.frequency ?? RecurringFrequency.monthly;
@@ -511,7 +511,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                 MediaQuery.of(context).viewInsets.bottom + 24.h,
               ),
               child: Form(
-                key: _formKey,
+                key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,7 +561,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
 
                     // Category Dropdown
                     DropdownButtonFormField<String>(
-                      value: category,
+                      initialValue: category,
                       items: sortedCategories
                           .map(
                             (c) => DropdownMenuItem(value: c, child: Text(c)),
@@ -619,7 +619,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                       height: 50.h,
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
+                          if (formKey.currentState!.validate()) {
                             final userId =
                                 FirebaseAuth.instance.currentUser?.uid ?? '';
                             final newPayment = RecurringPayment(

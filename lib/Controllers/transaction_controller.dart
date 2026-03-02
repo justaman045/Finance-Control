@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Models/transaction.dart';
@@ -225,7 +226,7 @@ class TransactionController extends GetxController {
       // 1. Attempt Firestore write with timeout
       await _repository.addTransaction(tx).timeout(const Duration(seconds: 5));
     } on TimeoutException catch (e) {
-      print("Firebase error: $e");
+      debugPrint("Firebase error: $e");
       // 2. Offline Queue Fallback
       await OfflineQueueService.savePending(tx.toMap());
       ErrorHandler.showSuccess(
@@ -313,7 +314,7 @@ class TransactionController extends GetxController {
       }
     } else {
       ErrorHandler.showError("$defaultMessage. Please try again.");
-      print("Error: $e");
+      debugPrint("Error: $e");
     }
   }
 }

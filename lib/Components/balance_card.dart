@@ -11,6 +11,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/lent_money_controller.dart';
 
 class BalanceCard extends StatefulWidget {
   const BalanceCard({super.key});
@@ -23,6 +24,10 @@ class _BalanceCardState extends State<BalanceCard> {
   final PrivacyController _privacyController = Get.find<PrivacyController>();
   final TransactionController _transactionController =
       Get.find<TransactionController>();
+  final LentMoneyController _lentMoneyController = Get.put(
+    LentMoneyController(),
+  );
+  final RxBool _includeLentMoney = false.obs;
 
   @override
   Widget build(BuildContext context) {
@@ -97,14 +102,59 @@ class _BalanceCardState extends State<BalanceCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Total Balance',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total Balance',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Obx(
+                          () => GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              if (_privacyController.isPrivacyMode.value) {
+                                return; // Prevent toggle if hidden
+                              }
+                              _includeLentMoney.value =
+                                  !_includeLentMoney.value;
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _includeLentMoney.value
+                                    ? Colors.white.withValues(alpha: 0.2)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(
+                                  color: _includeLentMoney.value
+                                      ? Colors.white.withValues(alpha: 0.4)
+                                      : Colors.white.withValues(alpha: 0.1),
+                                ),
+                              ),
+                              child: Text(
+                                _includeLentMoney.value
+                                    ? "Lent Included"
+                                    : "+ Add Lent",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 12.h),
                     if (user != null)
@@ -149,8 +199,13 @@ class _BalanceCardState extends State<BalanceCard> {
                                     return TweenAnimationBuilder<double>(
                                       tween: Tween<double>(
                                         begin: 0,
-                                        end:
-                                            _transactionController.totalBalance,
+                                        end: _includeLentMoney.value
+                                            ? _transactionController
+                                                      .totalBalance +
+                                                  _lentMoneyController
+                                                      .netBalance
+                                            : _transactionController
+                                                  .totalBalance,
                                       ),
                                       duration: const Duration(
                                         milliseconds: 1500,

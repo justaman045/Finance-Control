@@ -83,6 +83,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       Get.offAll(() => const BankingHomeScreen());
     } catch (e) {
+      if (!mounted) return;
       Get.snackbar(
         AppLocalizations.of(context)!.error,
         "Setup failed: $e",

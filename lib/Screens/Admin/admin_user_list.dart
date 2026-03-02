@@ -3,8 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/glass_container.dart';
-import 'package:money_control/Controllers/subscription_controller.dart';
-import 'package:get/get.dart';
 
 class AdminUserListScreen extends StatefulWidget {
   const AdminUserListScreen({super.key});
@@ -212,7 +210,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                     const Spacer(),
                     Switch(
                       value: isPro,
-                      activeColor: Colors.greenAccent,
+                      activeThumbColor: Colors.greenAccent,
                       onChanged: (val) {
                         setState(() => isPro = val);
                       },

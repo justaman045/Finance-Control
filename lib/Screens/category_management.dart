@@ -68,6 +68,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       buttonColor: Colors.red,
       onConfirm: () async {
         await _categoryService.deleteCategory(category.id);
+        if (!context.mounted) return;
         Navigator.of(context).pop();
       },
     );
