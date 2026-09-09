@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -16,7 +17,9 @@ void main() {
     await tapUntilMarker(
       tester,
       find.byIcon(Icons.handshake_outlined),
-      isPro ? find.text('Lent Money Tracker') : find.text('Monthly'),
+      isPro
+          ? find.text(AppStrings.lentMoneyTracker)
+          : find.text(AppStrings.monthly),
     );
 
     if (!isPro) {
@@ -24,12 +27,16 @@ void main() {
       return;
     }
 
-    await waitFor(tester, find.text('Lent Money Tracker'));
+    await waitFor(tester, find.text(AppStrings.lentMoneyTracker));
     expect(find.text('Owed to You'), findsWidgets);
 
     // ── 1. Add a lent entry ─────────────────────────────────────────────────
     final friendA = uniqueName('Amit');
-    await tapUntilMarker(tester, find.text('Add'), find.text('Lent to Friend'));
+    await tapUntilMarker(
+      tester,
+      find.text(AppStrings.add),
+      find.text(AppStrings.lentToFriend),
+    );
 
     await tester.enterText(find.widgetWithText(TextField, '0.00'), '2000');
     await pumpReal(tester);

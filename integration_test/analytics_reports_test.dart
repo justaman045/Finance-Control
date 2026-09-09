@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -48,18 +49,19 @@ void main() {
     final trendTitle = find.byWidgetPredicate(
       (w) =>
           w is Text &&
-          (w.data == 'Monthly Trend' || w.data == 'Current Period'),
+          (w.data == AppStrings.monthlyTrend ||
+              w.data == AppStrings.currentPeriod),
     );
     await waitFor(tester, trendTitle);
     expect(trendTitle, findsWidgets);
     await scrollUntilVisible(tester, trendTitle);
 
-    await waitFor(tester, find.text('Expense Breakdown'));
-    expect(find.text('Expense Breakdown'), findsWidgets);
-    await scrollUntilVisible(tester, find.text('Expense Breakdown'));
+    await waitFor(tester, find.text(AppStrings.expenseBreakdown));
+    expect(find.text(AppStrings.expenseBreakdown), findsWidgets);
+    await scrollUntilVisible(tester, find.text(AppStrings.expenseBreakdown));
 
     // ── 2. Back to the home tab ─────────────────────────────────────────────
-    await tapNavTab(tester, Icons.grid_view_rounded, 'Total Balance');
-    expect(find.text('Total Balance'), findsWidgets);
+    await tapNavTab(tester, Icons.grid_view_rounded, AppStrings.totalBalance);
+    expect(find.text(AppStrings.totalBalance), findsWidgets);
   });
 }

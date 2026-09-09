@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/responsive.dart';
@@ -202,7 +203,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFB71C1C), Color(0xFFD32F2F)],
+          colors: [AppColors.error, Color(0xFFD32F2F)],
         ),
         borderRadius: BorderRadius.circular(20.r),
       ),
@@ -551,7 +552,7 @@ class _AddSheetState extends State<_AddSheet> {
                 ),
                 child: _saving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save",
+                    : const Text(AppStrings.save,
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),
               ),

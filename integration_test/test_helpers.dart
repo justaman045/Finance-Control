@@ -14,6 +14,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/firebase_options.dart';
 import 'package:money_control/main.dart' as app;
 import 'package:money_control/Services/performance_controller.dart';
@@ -208,21 +209,21 @@ Future<void> pumpReal(
 Future<void> handleSplashAndOnboarding(WidgetTester tester) async {
   await pumpAndSettleSafe(tester);
   for (var i = 0; i < 30; i++) {
-    if (find.text('Total Balance').evaluate().isNotEmpty) return;
-    if (find.text('Sign In').evaluate().isNotEmpty) return;
-    if (find.text('Get Started').evaluate().isNotEmpty) break;
+    if (find.text(AppStrings.totalBalance).evaluate().isNotEmpty) return;
+    if (find.text(AppStrings.signIn).evaluate().isNotEmpty) return;
+    if (find.text(AppStrings.getStarted).evaluate().isNotEmpty) break;
     await pumpReal(tester);
   }
-  if (find.text('Get Started').evaluate().isNotEmpty) {
-    await tester.tap(find.text('Get Started'));
+  if (find.text(AppStrings.getStarted).evaluate().isNotEmpty) {
+    await tester.tap(find.text(AppStrings.getStarted));
     await pumpAndSettleSafe(tester);
   }
-  if (find.text('Continue').evaluate().isNotEmpty) {
-    await tester.tap(find.text('Continue'));
+  if (find.text(AppStrings.continueLabel).evaluate().isNotEmpty) {
+    await tester.tap(find.text(AppStrings.continueLabel));
     await pumpAndSettleSafe(tester);
   }
-  if (find.text("Let's Start").evaluate().isNotEmpty) {
-    await tester.tap(find.text("Let's Start"));
+  if (find.text(AppStrings.letsStart).evaluate().isNotEmpty) {
+    await tester.tap(find.text(AppStrings.letsStart));
     await pumpAndSettleSafe(tester);
   }
 }
@@ -396,9 +397,9 @@ Future<void> tapWhenVisible(
 Future<bool> waitForHome(WidgetTester tester, {int seconds = 120}) async {
   for (var i = 0; i < seconds; i++) {
     await pumpReal(tester);
-    if (find.text('Total Balance').evaluate().isNotEmpty) return true;
+    if (find.text(AppStrings.totalBalance).evaluate().isNotEmpty) return true;
   }
-  return find.text('Total Balance').evaluate().isNotEmpty;
+  return find.text(AppStrings.totalBalance).evaluate().isNotEmpty;
 }
 
 /// Which CI test account a file runs against. Free files exercise the paywall/
@@ -417,15 +418,15 @@ Future<bool> loginIfNeeded(
 }) async {
   final email = account == TestAccount.pro ? kProTestEmail : kTestEmail;
   final password = account == TestAccount.pro ? kProTestPassword : kTestPassword;
-  if (find.text('Total Balance').evaluate().isNotEmpty) return true;
+  if (find.text(AppStrings.totalBalance).evaluate().isNotEmpty) return true;
 
   // The login screen can lag the splash walkthrough on slow boots — poll for
   // it rather than giving up on the first frame.
   for (var i = 0; i < 30; i++) {
-    if (find.text('Sign In').evaluate().isNotEmpty) break;
+    if (find.text(AppStrings.signIn).evaluate().isNotEmpty) break;
     await pumpReal(tester);
   }
-  if (find.text('Sign In').evaluate().isEmpty) return false;
+  if (find.text(AppStrings.signIn).evaluate().isEmpty) return false;
 
   final emailField = find.byWidgetPredicate(
     (w) =>
@@ -441,7 +442,7 @@ Future<bool> loginIfNeeded(
     return false;
   }
 
-  final loginButton = find.text('Sign In');
+  final loginButton = find.text(AppStrings.signIn);
   for (var attempt = 0; attempt < 3; attempt++) {
     await tester.enterText(emailField, email);
     await pumpReal(tester);
@@ -671,7 +672,7 @@ Future<void> ensureCategoryExists(
   await pumpAndSettleSafe(tester);
   if (find.text(categoryName).evaluate().isNotEmpty) return;
 
-  await tester.tap(find.text('Add'));
+  await tester.tap(find.text(AppStrings.add));
   await pumpAndSettleSafe(tester);
 
   final newCatField = find.byType(TextField).last;
@@ -680,7 +681,7 @@ Future<void> ensureCategoryExists(
 
   final dialogAddButton = find.descendant(
     of: find.byType(Dialog),
-    matching: find.text('Add'),
+    matching: find.text(AppStrings.add),
   );
   await tester.tap(dialogAddButton);
   await pumpAndSettleSafe(tester);
@@ -701,10 +702,10 @@ Future<void> createTransaction(
   required String amount,
   String category = 'Food',
 }) async {
-  final submitFinder = find.text(receive ? 'RECEIVE' : 'SEND');
+  final submitFinder = find.text(receive ? AppStrings.receiveCta : AppStrings.sendCta);
 
   // Tap the Send/Receive quick action on the home balance card.
-  final toggle = find.text(receive ? 'Receive' : 'Send').last;
+  final toggle = find.text(receive ? AppStrings.receive : AppStrings.send).last;
   for (var i = 0; i < 30; i++) {
     await pumpReal(tester);
     if (toggle.evaluate().isNotEmpty) break;
@@ -720,7 +721,7 @@ Future<void> createTransaction(
     if (submitFinder.evaluate().isNotEmpty) break;
   }
   if (submitFinder.evaluate().isEmpty) {
-    fail('Payment screen did not open for ${receive ? 'Receive' : 'Send'}');
+    fail('Payment screen did not open for ${receive ? AppStrings.receive : AppStrings.send}');
   }
 
   await ensureCategoryExists(tester, category);
@@ -782,7 +783,7 @@ String uniqueName(String prefix) =>
     '${prefix}_${DateTime.now().millisecondsSinceEpoch % 100000}';
 
 bool _isHomeVisible(WidgetTester tester) =>
-    find.text('Total Balance').evaluate().isNotEmpty &&
+    find.text(AppStrings.totalBalance).evaluate().isNotEmpty &&
     find.byIcon(Icons.search).evaluate().isNotEmpty;
 
 /// Determines Pro status from the home AppBar badge (cyan verified badge =
@@ -803,9 +804,9 @@ Future<bool> probePro(WidgetTester tester, {int seconds = 40}) async {
 /// Asserts the SubscriptionScreen upgrade gate is showing (plan cards visible)
 /// and closes it back to the home screen.
 Future<void> assertUpgradeScreen(WidgetTester tester) async {
-  await waitFor(tester, find.text('Monthly'));
-  expect(find.text('Monthly'), findsWidgets);
-  expect(find.text('Yearly'), findsWidgets);
+  await waitFor(tester, find.text(AppStrings.monthly));
+  expect(find.text(AppStrings.monthly), findsWidgets);
+  expect(find.text(AppStrings.yearly), findsWidgets);
   await tapWhenVisible(tester, find.byIcon(Icons.close));
   await pumpAndSettleSafe(tester);
   await waitForHome(tester);
@@ -853,8 +854,8 @@ bool _markerOnPage(WidgetTester tester, Finder finder) {
 /// top-left barrier tap.
 Future<void> dismissDialogs(WidgetTester tester, {int seconds = 8}) async {
   for (var i = 0; i < seconds * 4; i++) {
-    if (find.text('Show All Cards').evaluate().isNotEmpty) {
-      await tester.tap(find.text('Show All Cards'), warnIfMissed: false);
+    if (find.text(AppStrings.showAllCards).evaluate().isNotEmpty) {
+      await tester.tap(find.text(AppStrings.showAllCards), warnIfMissed: false);
       await pumpAndSettleSafe(tester);
       await pumpReal(tester);
       continue;
@@ -1080,7 +1081,7 @@ Future<void> createAssetEntry(
   }
   FocusManager.instance.primaryFocus?.unfocus();
   await pumpReal(tester);
-  await tapWhenVisible(tester, find.text('Save'));
+  await tapWhenVisible(tester, find.text(AppStrings.save));
   await pumpAndSettleSafe(tester);
   await pumpReal(tester, const Duration(seconds: 3));
 }

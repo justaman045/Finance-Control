@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
@@ -525,7 +526,7 @@ class _SheetState extends State<_Sheet> {
                 ),
                 child: _saving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save",
+                    : const Text(AppStrings.save,
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),
               ),

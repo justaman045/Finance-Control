@@ -11,11 +11,9 @@ Curve curve = Curves.easeOutCubic;
 Transition transition = Transition.cupertino;
 Duration duration = const Duration(milliseconds: 250);
 
-Future<void> gotoScreen(int index, int currentIndex) async {
-  if (index == currentIndex) return;
-
+Future<void> gotoScreen(String name) async {
   Get.offAll(
-    () => MainShell(initialIndex: index),
+    () => MainShell(initialName: name),
     curve: curve,
     transition: transition,
     duration: duration,

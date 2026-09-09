@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:money_control/Components/colors.dart';
 
 class NavItem extends StatelessWidget {
   final bool active;
@@ -21,8 +22,8 @@ class NavItem extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final activeColor = isDark
-        ? const Color(0xFF00E5FF) // Neon Cyan
-        : const Color(0xFF6C63FF); // Blurple
+        ? AppColors.primary // Neon Cyan
+        : AppColors.primary; // Blurple
 
     final inactiveColor = isDark
         ? Colors.white.withValues(alpha: 0.5)

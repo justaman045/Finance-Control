@@ -3,7 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 import 'package:money_control/Screens/add_transaction.dart';
 import 'package:money_control/Components/methods.dart';
@@ -13,6 +15,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Controllers/recurring_payment_controller.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 
 class BalanceCard extends StatefulWidget {
   const BalanceCard({super.key});
@@ -29,6 +32,7 @@ class _BalanceCardState extends State<BalanceCard> {
   final RxBool _includeLentMoney = false.obs;
   final RxBool _subtractSubscriptions = false.obs;
   final ValueNotifier<double> _lastAnimatedValue = ValueNotifier<double>(0);
+  Worker? _flagResetWorker;
 
   @override
   void initState() {
@@ -41,6 +45,20 @@ class _BalanceCardState extends State<BalanceCard> {
     _lentMoneyController = Get.find<LentMoneyController>();
     if (!Get.isRegistered<RecurringPaymentController>()) Get.put(RecurringPaymentController());
     _recurringPaymentController = Get.find<RecurringPaymentController>();
+    _resetFlaggedToggles();
+    _flagResetWorker = ever(
+      FeatureFlagService.to.statusMap,
+      (_) => _resetFlaggedToggles(),
+    );
+  }
+
+  /// "As if never there": drop the lent/subs toggles from the running total the
+  /// moment an admin hides the feature, so the balance never silently keeps
+  /// counting a hidden feature's amount (mirrors the privacy-mode ever worker).
+  void _resetFlaggedToggles() {
+    final flags = FeatureFlagService.to;
+    if (flags.isHidden('lent_money')) _includeLentMoney.value = false;
+    if (flags.isHidden('recurring')) _subtractSubscriptions.value = false;
   }
 
   double _computeTotal() {
@@ -56,6 +74,7 @@ class _BalanceCardState extends State<BalanceCard> {
 
   @override
   void dispose() {
+    _flagResetWorker?.dispose();
     _includeLentMoney.close();
     _subtractSubscriptions.close();
     _lastAnimatedValue.dispose();
@@ -153,7 +172,7 @@ class _BalanceCardState extends State<BalanceCard> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total Balance',
+                          AppStrings.totalBalance,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 14.sp,
@@ -164,82 +183,88 @@ class _BalanceCardState extends State<BalanceCard> {
                         Wrap(
                           spacing: 8.w,
                           children: [
-                            Obx(
-                              () => GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  if (_privacyController.isPrivacyMode.value) {
-                                    return; // Prevent toggle if hidden
-                                  }
-                                  _includeLentMoney.value =
-                                      !_includeLentMoney.value;
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 4.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _includeLentMoney.value
-                                        ? Colors.white.withValues(alpha: 0.2)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12.r),
-                                    border: Border.all(
-                                      color: _includeLentMoney.value
-                                          ? Colors.white.withValues(alpha: 0.4)
-                                          : Colors.white.withValues(alpha: 0.1),
+                            FeatureVisible(
+                              flagKey: 'lent_money',
+                              child: Obx(
+                                () => GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    if (_privacyController.isPrivacyMode.value) {
+                                      return; // Prevent toggle if hidden
+                                    }
+                                    _includeLentMoney.value =
+                                        !_includeLentMoney.value;
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 10.w,
+                                      vertical: 4.h,
                                     ),
-                                  ),
-                                  child: Text(
-                                    _includeLentMoney.value
-                                        ? "Lent Included"
-                                        : "+ Add Lent",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w600,
+                                    decoration: BoxDecoration(
+                                      color: _includeLentMoney.value
+                                          ? Colors.white.withValues(alpha: 0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      border: Border.all(
+                                        color: _includeLentMoney.value
+                                            ? Colors.white.withValues(alpha: 0.4)
+                                            : Colors.white.withValues(alpha: 0.1),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _includeLentMoney.value
+                                          ? "Lent Included"
+                                          : "+ Add Lent",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
                             // New Subscription Toggle Button
-                            Obx(
-                              () => GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  if (_privacyController.isPrivacyMode.value) {
-                                    return;
-                                  }
-                                  _subtractSubscriptions.value =
-                                      !_subtractSubscriptions.value;
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 4.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _subtractSubscriptions.value
-                                        ? Colors.white.withValues(alpha: 0.2)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12.r),
-                                    border: Border.all(
-                                      color: _subtractSubscriptions.value
-                                          ? Colors.white.withValues(alpha: 0.4)
-                                          : Colors.white.withValues(alpha: 0.1),
+                            FeatureVisible(
+                              flagKey: 'recurring',
+                              child: Obx(
+                                () => GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    if (_privacyController.isPrivacyMode.value) {
+                                      return;
+                                    }
+                                    _subtractSubscriptions.value =
+                                        !_subtractSubscriptions.value;
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 10.w,
+                                      vertical: 4.h,
                                     ),
-                                  ),
-                                  child: Text(
-                                    _subtractSubscriptions.value
-                                        ? "- ${CurrencyController.to.currencySymbol.value}${_recurringPaymentController.pendingSubscriptions.value.toStringAsFixed(0)} (Subs)"
-                                        : "- Subs",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w600,
+                                    decoration: BoxDecoration(
+                                      color: _subtractSubscriptions.value
+                                          ? Colors.white.withValues(alpha: 0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      border: Border.all(
+                                        color: _subtractSubscriptions.value
+                                            ? Colors.white.withValues(alpha: 0.4)
+                                            : Colors.white.withValues(alpha: 0.1),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _subtractSubscriptions.value
+                                          ? "- ${CurrencyController.to.currencySymbol.value}${_recurringPaymentController.pendingSubscriptions.value.toStringAsFixed(0)} (Subs)"
+                                          : "- Subs",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -258,7 +283,7 @@ class _BalanceCardState extends State<BalanceCard> {
                         return GestureDetector(
                           onTap: () {
                             HapticFeedback.selectionClick();
-                            _privacyController.togglePrivacy();
+                            _privacyController.toggle();
                           },
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -371,8 +396,8 @@ class _BalanceCardState extends State<BalanceCard> {
                             Icon(
                               isUp ? Icons.trending_up : Icons.trending_down,
                               color: isUp
-                                  ? const Color(0xFF69F0AE)
-                                  : const Color(0xFFFF5252),
+                                  ? AppColors.success
+                                  : AppColors.error,
                               size: 14.sp,
                             ),
                             SizedBox(width: 4.w),
@@ -380,8 +405,8 @@ class _BalanceCardState extends State<BalanceCard> {
                               '${isUp ? '+' : ''}${pct.toStringAsFixed(1)}% vs last month',
                               style: TextStyle(
                                 color: isUp
-                                    ? const Color(0xFF69F0AE)
-                                    : const Color(0xFFFF5252),
+                                    ? AppColors.success
+                                    : AppColors.error,
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -410,34 +435,45 @@ class _BalanceCardState extends State<BalanceCard> {
                       );
                     }),
                     SizedBox(height: 24.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _glassActionButton(
-                            label: "Send",
-                            icon: Icons.north_east_rounded,
-                            color: Colors.white,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              gotoPage(PaymentScreen(type: PaymentType.send));
-                            },
+                    FeatureVisible(
+                      flagKey: 'transactions',
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _glassActionButton(
+                              label: AppStrings.send,
+                              icon: Icons.north_east_rounded,
+                              color: Colors.white,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                if (!ensureFeatureVisible(context, 'transactions')) {
+                                  return;
+                                }
+                                gotoPage(
+                                  PaymentScreen(type: PaymentType.send),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: _glassActionButton(
-                            label: "Receive",
-                            icon: Icons.south_west_rounded,
-                            color: Colors.white,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              gotoPage(
-                                PaymentScreen(type: PaymentType.receive),
-                              );
-                            },
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: _glassActionButton(
+                              label: AppStrings.receive,
+                              icon: Icons.south_west_rounded,
+                              color: Colors.white,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                if (!ensureFeatureVisible(context, 'transactions')) {
+                                  return;
+                                }
+                                gotoPage(
+                                  PaymentScreen(type: PaymentType.receive),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),

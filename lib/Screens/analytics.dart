@@ -12,10 +12,12 @@ import 'package:money_control/Components/staggered_slide_fade.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
 import 'package:money_control/Components/adaptive_scaffold.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/analytics_trends.dart';
 import 'package:money_control/Screens/transaction_history.dart';
 import 'package:money_control/Services/export_service.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 
 import 'package:money_control/Controllers/currency_controller.dart';
@@ -27,6 +29,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 import 'package:flutter/rendering.dart' as rendering;
 
@@ -511,136 +514,160 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     _cachedTheme = Theme.of(context);
     _cachedIsDark = _cachedTheme.brightness == Brightness.dark;
     final isDark = _cachedIsDark;
-    return AdaptiveScaffold(
-      currentIndex: 1,
-      isVisible: widget.showNavigation ? _isBottomBarVisible : null,
-      showNavigation: widget.showNavigation,
-      backgroundColor: Colors.transparent,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      appBar: AppBar(
-        title: Text(
-          "Analytics & Reports",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+    return FeatureGate(
+      flagKey: 'analytics',
+      child: AdaptiveScaffold(
+        currentTab: 'analytics',
+        isVisible: widget.showNavigation ? _isBottomBarVisible : null,
+        showNavigation: widget.showNavigation,
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: Icon(
-              Icons.more_vert,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
-            color: isDark
-                ? AppColors.darkBackground
-                : AppColors.lightBackground,
-            surfaceTintColor: isDark ? AppColors.darkSurface : Colors.white,
-            onSelected: (v) {
-              if (v == "csv") {
-                _exportCsv();
-              } else if (v == "pdf") {
-                _exportPdf();
-              } else if (v == "tax") {
-                _exportTaxSummary();
-              } else if (v == "share") {
-                _shareReport();
-              }
-            },
-            itemBuilder: (ctx) {
-              final c = isDark ? Colors.white : AppColors.lightTextPrimary;
-              return [
-                PopupMenuItem(
-                  value: "share",
-                  child: Row(
-                    children: [
-                      Icon(Icons.share_outlined, color: c, size: 18.sp),
-                      SizedBox(width: 10.w),
-                      Text("Share Report", style: TextStyle(color: c)),
-                    ],
-                  ),
-                ),
-                PopupMenuDivider(),
-                PopupMenuItem(
-                  value: "csv",
-                  child: Row(
-                    children: [
-                      Icon(Icons.table_chart_outlined, color: c, size: 18.sp),
-                      SizedBox(width: 10.w),
-                      Text("Export CSV", style: TextStyle(color: c)),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: "pdf",
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.picture_as_pdf_outlined,
-                        color: c,
-                        size: 18.sp,
-                      ),
-                      SizedBox(width: 10.w),
-                      Text("Export PDF", style: TextStyle(color: c)),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: "tax",
-                  child: Row(
-                    children: [
-                      Icon(Icons.receipt_long_outlined, color: c, size: 18.sp),
-                      SizedBox(width: 10.w),
-                      Text("Tax Summary PDF", style: TextStyle(color: c)),
-                    ],
-                  ),
-                ),
-              ];
-            },
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-        ],
-      ),
-      extendBody: true,
-      body: NotificationListener<UserScrollNotification>(
-        onNotification: (notification) {
-          if (notification.direction == rendering.ScrollDirection.reverse) {
-            if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
-          } else if (notification.direction ==
-              rendering.ScrollDirection.forward) {
-            if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
-          }
-          return true;
-        },
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
-              )
-            : Screenshot(
-                controller: _screenshotController,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? AppColors.darkGradient
-                          : AppColors.lightGradient,
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                  child: _buildBody(),
-                ),
+        ),
+        appBar: AppBar(
+          title: Text(
+            "Analytics & Reports",
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.lightTextPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: IconThemeData(
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+          ),
+          actions: [
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
               ),
+              color: isDark
+                  ? AppColors.darkBackground
+                  : AppColors.lightBackground,
+              surfaceTintColor: isDark ? AppColors.darkSurface : Colors.white,
+              onSelected: (v) {
+                if (v == "csv") {
+                  if (!ensureFeatureVisible(context, 'export_csv')) return;
+                  _exportCsv();
+                } else if (v == "pdf") {
+                  if (!ensureFeatureVisible(context, 'export_pdf')) return;
+                  _exportPdf();
+                } else if (v == "tax") {
+                  if (!ensureFeatureVisible(context, 'export_pdf')) return;
+                  _exportTaxSummary();
+                } else if (v == "share") {
+                  if (!ensureFeatureVisible(context, 'share_report')) return;
+                  _shareReport();
+                }
+              },
+              itemBuilder: (ctx) {
+                final c = isDark ? Colors.white : AppColors.lightTextPrimary;
+                final showShare = !FeatureFlagService.to.isHidden(
+                  'share_report',
+                );
+                final showCsv = !FeatureFlagService.to.isHidden('export_csv');
+                final showPdf = !FeatureFlagService.to.isHidden('export_pdf');
+                return [
+                  if (showShare)
+                    PopupMenuItem(
+                      value: "share",
+                      child: Row(
+                        children: [
+                          Icon(Icons.share_outlined, color: c, size: 18.sp),
+                          SizedBox(width: 10.w),
+                          Text("Share Report", style: TextStyle(color: c)),
+                        ],
+                      ),
+                    ),
+                  if (showShare || showCsv || showPdf) PopupMenuDivider(),
+                  if (showCsv)
+                    PopupMenuItem(
+                      value: "csv",
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.table_chart_outlined,
+                            color: c,
+                            size: 18.sp,
+                          ),
+                          SizedBox(width: 10.w),
+                          Text("Export CSV", style: TextStyle(color: c)),
+                        ],
+                      ),
+                    ),
+                  if (showPdf)
+                    PopupMenuItem(
+                      value: "pdf",
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.picture_as_pdf_outlined,
+                            color: c,
+                            size: 18.sp,
+                          ),
+                          SizedBox(width: 10.w),
+                          Text("Export PDF", style: TextStyle(color: c)),
+                        ],
+                      ),
+                    ),
+                  if (showPdf)
+                    PopupMenuItem(
+                      value: "tax",
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            color: c,
+                            size: 18.sp,
+                          ),
+                          SizedBox(width: 10.w),
+                          Text("Tax Summary PDF", style: TextStyle(color: c)),
+                        ],
+                      ),
+                    ),
+                ];
+              },
+            ),
+          ],
+        ),
+        extendBody: true,
+        body: NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            if (notification.direction == rendering.ScrollDirection.reverse) {
+              if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
+            } else if (notification.direction ==
+                rendering.ScrollDirection.forward) {
+              if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
+            }
+            return true;
+          },
+          child: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
+              : Screenshot(
+                  controller: _screenshotController,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? AppColors.darkGradient
+                            : AppColors.lightGradient,
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                    child: _buildBody(),
+                  ),
+                ),
+        ),
       ),
     );
   }
@@ -659,301 +686,374 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ------------ FILTER SECTION ------------------
-              StaggeredSlideFade(
-                delay: 0,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 20.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : AppColors.lightSurface,
-                    borderRadius: BorderRadius.circular(24.r),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : AppColors.lightBorder,
+              FeatureVisible(
+                flagKey: 'data_filters',
+                child: StaggeredSlideFade(
+                  delay: 0,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 20.h,
                     ),
-                    boxShadow: [
-                      BoxShadow(
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : AppColors.lightSurface,
+                      borderRadius: BorderRadius.circular(24.r),
+                      border: Border.all(
                         color: isDark
-                            ? Colors.black.withValues(alpha: 0.1)
-                            : Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 15.r,
-                        offset: Offset(0, 8.h),
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : AppColors.lightBorder,
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.1)
+                              : Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 15.r,
+                          offset: Offset(0, 8.h),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Data Filters",
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.lightTextPrimary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.all(8.w),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Icon(
+                                Icons.filter_list,
+                                size: 18.sp,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 20.h),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _dropdown<String>(
+                                label: "Period",
+                                value: _period,
+                                items: _periodOptions,
+                                onChanged: (v) async {
+                                  final SubscriptionController subCtrl =
+                                      Get.find();
+                                  if (!subCtrl.isPro && v != "This Month") {
+                                    _showProLockModal(
+                                      "Advanced Analytics",
+                                      "Unlock full history and custom date ranges.",
+                                    );
+                                    return;
+                                  }
+                                  if (v == "Custom Range") {
+                                    final picked = await showDateRangePicker(
+                                      context: context,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                      initialDateRange:
+                                          _customRange ??
+                                          DateTimeRange(
+                                            start: DateTime.now().subtract(
+                                              const Duration(days: 30),
+                                            ),
+                                            end: DateTime.now(),
+                                          ),
+                                    );
+                                    if (picked == null) return;
+                                    if (!mounted) return;
+                                    setState(() {
+                                      _customRange = picked;
+                                      _period = v;
+                                      _filteredCache = null;
+                                    });
+                                  } else {
+                                    setState(() {
+                                      _period = v;
+                                      _filteredCache = null;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            Expanded(
+                              child: _dropdown<String?>(
+                                label: "Category",
+                                value: _categoryFilter,
+                                items: [null, ...categories],
+                                format: (v) => v ?? "All Categories",
+                                onChanged: (v) => setState(() {
+                                  _categoryFilter = v;
+                                  _filteredCache = null;
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Data Filters",
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.lightTextPrimary,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.all(8.w),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF00E5FF,
-                              ).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                            child: Icon(
-                              Icons.filter_list,
-                              size: 18.sp,
-                              color: const Color(0xFF00E5FF),
-                            ),
-                          ),
-                        ],
+                ),
+              ),
+
+              // -------- Summary Cards (Icons + Gradients) ----------
+              FeatureVisible(
+                flagKey: 'financial_summary',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 30.h),
+                    StaggeredSlideFade(
+                      delay: 100,
+                      child: Text(
+                        "Financial Summary",
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.lightTextPrimary,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                      SizedBox(height: 20.h),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    SizedBox(height: 16.h),
+                    StaggeredSlideFade(
+                      delay: 150,
+                      child: Row(
                         children: [
                           Expanded(
-                            child: _dropdown<String>(
-                              label: "Period",
-                              value: _period,
-                              items: _periodOptions,
-                              onChanged: (v) async {
-                                final SubscriptionController subCtrl =
-                                    Get.find();
-                                if (!subCtrl.isPro && v != "This Month") {
-                                  _showProLockModal(
-                                    "Advanced Analytics",
-                                    "Unlock full history and custom date ranges.",
-                                  );
-                                  return;
-                                }
-                                if (v == "Custom Range") {
-                                  final picked = await showDateRangePicker(
-                                    context: context,
-                                    firstDate: DateTime(2020),
-                                    lastDate: DateTime.now(),
-                                    initialDateRange:
-                                        _customRange ??
-                                        DateTimeRange(
-                                          start: DateTime.now().subtract(
-                                            const Duration(days: 30),
-                                          ),
-                                          end: DateTime.now(),
-                                        ),
-                                  );
-                                  if (picked == null) return;
-                                  if (!mounted) return;
-                                  setState(() {
-                                    _customRange = picked;
-                                    _period = v;
-                                    _filteredCache = null;
-                                  });
-                                } else {
-                                  setState(() {
-                                    _period = v;
-                                    _filteredCache = null;
-                                  });
-                                }
-                              },
+                            child: _summary(
+                              "Income",
+                              totalIncome,
+                              AppColors.primary,
+                              Icons.arrow_upward_rounded,
+                              onTap: () => Get.to(
+                                () => TransactionHistoryScreen(
+                                  initialTab: 1,
+                                  filterMonth: DateTime.now(),
+                                ),
+                              ),
                             ),
                           ),
                           SizedBox(width: 16.w),
                           Expanded(
-                            child: _dropdown<String?>(
-                              label: "Category",
-                              value: _categoryFilter,
-                              items: [null, ...categories],
-                              format: (v) => v ?? "All Categories",
-                              onChanged: (v) => setState(() {
-                                _categoryFilter = v;
-                                _filteredCache = null;
-                              }),
+                            child: _summary(
+                              "Expenses",
+                              totalExpense,
+                              AppColors.error,
+                              Icons.arrow_downward_rounded,
+                              onTap: () => Get.to(
+                                () => TransactionHistoryScreen(
+                                  initialTab: 2,
+                                  filterMonth: DateTime.now(),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 30.h),
-
-              // -------- Summary Cards (Icons + Gradients) ----------
-              StaggeredSlideFade(
-                delay: 100,
-                child: Text(
-                  "Financial Summary",
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              SizedBox(height: 16.h),
-              StaggeredSlideFade(
-                delay: 150,
-                child: Row(
-                  children: [
-                    Expanded(
+                    ),
+                    SizedBox(height: 16.h),
+                    StaggeredSlideFade(
+                      delay: 200,
                       child: _summary(
-                        "Income",
-                        totalIncome,
-                        const Color(0xFF00E5FF),
-                        Icons.arrow_upward_rounded,
+                        "Net Balance",
+                        netBalance,
+                        netBalance >= 0 ? AppColors.primary : AppColors.error,
+                        Icons.account_balance_wallet_rounded,
+                        isWide: true,
                         onTap: () => Get.to(
                           () => TransactionHistoryScreen(
-                            initialTab: 1,
+                            initialTab: 0,
                             filterMonth: DateTime.now(),
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: _summary(
-                        "Expenses",
-                        totalExpense,
-                        const Color(0xFFFF2975),
-                        Icons.arrow_downward_rounded,
-                        onTap: () => Get.to(
-                          () => TransactionHistoryScreen(
-                            initialTab: 2,
-                            filterMonth: DateTime.now(),
+                    SizedBox(height: 24.h),
+                  ],
+                ),
+              ),
+
+              FeatureVisible(
+                flagKey: 'analytics_advanced',
+                child: StaggeredSlideFade(
+                  delay: 250,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (!ensureFeatureVisible(
+                          context,
+                          'analytics_advanced',
+                        )) {
+                          return;
+                        }
+                        Get.to(() => const AnalyticsTrendsScreen());
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24.w,
+                          vertical: 12.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(30.r),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.insights,
+                                color: AppColors.primary,
+                                size: 18.sp,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                "View Advanced Category Trends",
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.lightTextPrimary,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 14.sp,
+                                color: isDark
+                                    ? Colors.white54
+                                    : AppColors.lightTextSecondary,
+                              ),
+                            ],
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ------------ QUICK OVERVIEW (Progress Style) ------------------
+              FeatureVisible(
+                flagKey: 'quick_overview',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 32.h),
+                    StaggeredSlideFade(delay: 300, child: _quickOverviewCard()),
+                  ],
+                ),
+              ),
+
+              // ------------- TREND CHART -------------------
+              FeatureVisible(
+                flagKey: 'current_period',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 32.h),
+                    StaggeredSlideFade(delay: 400, child: _buildTrendChart()),
+                  ],
+                ),
+              ),
+
+              // ------------- PIE CHART -------------------
+              FeatureVisible(
+                flagKey: 'expense_breakdown',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 32.h),
+                    StaggeredSlideFade(delay: 500, child: _buildPieChart()),
+                  ],
+                ),
+              ),
+
+              // ------------- SPENDING HEATMAP -------------------
+              FeatureVisible(
+                flagKey: 'spending_heatmap',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 32.h),
+                    StaggeredSlideFade(delay: 600, child: _buildHeatmap()),
+                  ],
+                ),
+              ),
+
+              // ------------- MERCHANT INSIGHTS -------------------
+              FeatureVisible(
+                flagKey: 'top_merchants',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 32.h),
+                    StaggeredSlideFade(
+                      delay: 700,
+                      child: _buildMerchantInsights(),
                     ),
                   ],
                 ),
               ),
-              SizedBox(height: 16.h),
-              StaggeredSlideFade(
-                delay: 200,
-                child: _summary(
-                  "Net Balance",
-                  netBalance,
-                  netBalance >= 0
-                      ? const Color(0xFF00E5FF)
-                      : const Color(0xFFFF2975),
-                  Icons.account_balance_wallet_rounded,
-                  isWide: true,
-                  onTap: () => Get.to(
-                    () => TransactionHistoryScreen(
-                      initialTab: 0,
-                      filterMonth: DateTime.now(),
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 24.h),
-
-              StaggeredSlideFade(
-                delay: 250,
-                child: Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      Get.to(() => const AnalyticsTrendsScreen());
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.w,
-                        vertical: 12.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(30.r),
-                        border: Border.all(
-                          color: const Color(0xFF6C63FF).withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.insights,
-                              color: const Color(0xFF6C63FF),
-                              size: 18.sp,
-                            ),
-                            SizedBox(width: 8.w),
-                            Text(
-                              "View Advanced Category Trends",
-                              style: TextStyle(
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.lightTextPrimary,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 14.sp,
-                              color: isDark
-                                  ? Colors.white54
-                                  : AppColors.lightTextSecondary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 32.h),
-
-              // ------------ QUICK OVERVIEW (Progress Style) ------------------
-              StaggeredSlideFade(delay: 300, child: _quickOverviewCard()),
-
-              SizedBox(height: 32.h),
-
-              // ------------- TREND CHART -------------------
-              StaggeredSlideFade(delay: 400, child: _buildTrendChart()),
-
-              SizedBox(height: 32.h),
-
-              // ------------- PIE CHART -------------------
-              StaggeredSlideFade(delay: 500, child: _buildPieChart()),
-
-              SizedBox(height: 32.h),
-
-              // ------------- SPENDING HEATMAP -------------------
-              StaggeredSlideFade(delay: 600, child: _buildHeatmap()),
-
-              SizedBox(height: 32.h),
-
-              // ------------- MERCHANT INSIGHTS -------------------
-              StaggeredSlideFade(delay: 700, child: _buildMerchantInsights()),
-
-              SizedBox(height: 32.h),
 
               // ------------- SALARY DETECTION -------------------
-              StaggeredSlideFade(delay: 800, child: _buildSalaryDetection()),
-
-              SizedBox(height: 32.h),
+              FeatureVisible(
+                flagKey: 'salary_detected',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 32.h),
+                    StaggeredSlideFade(
+                      delay: 800,
+                      child: _buildSalaryDetection(),
+                    ),
+                  ],
+                ),
+              ),
 
               // ------------- SPENDING PERSONALITY -------------------
-              StaggeredSlideFade(
-                delay: 900,
-                child: _buildSpendingPersonality(),
+              FeatureVisible(
+                flagKey: 'spending_personality',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 32.h),
+                    StaggeredSlideFade(
+                      delay: 900,
+                      child: _buildSpendingPersonality(),
+                    ),
+                  ],
+                ),
               ),
 
               SizedBox(height: 50.h),
@@ -1075,7 +1175,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 "In",
                 style: TextStyle(
                   fontSize: 11.sp,
-                  color: const Color(0xFF00E5FF),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1095,7 +1195,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Container(
                       height: 6.h,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00E5FF),
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(10.r),
                         boxShadow: [
                           BoxShadow(
@@ -1133,7 +1233,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 "Out",
                 style: TextStyle(
                   fontSize: 11.sp,
-                  color: const Color(0xFFFF2975),
+                  color: AppColors.error,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1153,7 +1253,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Container(
                       height: 6.h,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF2975),
+                        color: AppColors.error,
                         borderRadius: BorderRadius.circular(10.r),
                         boxShadow: [
                           BoxShadow(
@@ -1391,7 +1491,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Monthly Trend",
+                AppStrings.monthlyTrend,
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w700,
@@ -1400,7 +1500,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               Row(
                 children: [
-                  _legendDot(const Color(0xFF00E5FF)),
+                  _legendDot(AppColors.primary),
                   Text(
                     " In ",
                     style: TextStyle(
@@ -1412,7 +1512,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  _legendDot(const Color(0xFFFF2975)),
+                  _legendDot(AppColors.error),
                   Text(
                     " Out",
                     style: TextStyle(
@@ -1489,7 +1589,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       for (int i = 0; i < data.length; i++)
                         FlSpot(i.toDouble(), data[i].income),
                     ],
-                    color: const Color(0xFF00E5FF),
+                    color: AppColors.primary,
                     isCurved: true,
                     curveSmoothness: 0.3,
                     barWidth: 3,
@@ -1499,16 +1599,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       getDotPainter: (spot, percent, barData, index) =>
                           FlDotCirclePainter(
                             radius: 4.r,
-                            color: const Color(0xFF00E5FF),
+                            color: AppColors.primary,
                             strokeWidth: 2.r,
                             strokeColor: isDark
-                                ? const Color(0xFF16213E)
+                                ? AppColors.darkSurface
                                 : AppColors.lightSurface,
                           ),
                     ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                     ),
                   ),
                   // Expense
@@ -1517,7 +1617,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       for (int i = 0; i < data.length; i++)
                         FlSpot(i.toDouble(), data[i].expense),
                     ],
-                    color: const Color(0xFFFF2975),
+                    color: AppColors.error,
                     isCurved: true,
                     curveSmoothness: 0.3,
                     barWidth: 3,
@@ -1527,16 +1627,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       getDotPainter: (spot, percent, barData, index) =>
                           FlDotCirclePainter(
                             radius: 4.r,
-                            color: const Color(0xFFFF2975),
+                            color: AppColors.error,
                             strokeWidth: 2.r,
                             strokeColor: isDark
-                                ? const Color(0xFF16213E)
+                                ? AppColors.darkSurface
                                 : AppColors.lightSurface,
                           ),
                     ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: const Color(0xFFFF2975).withValues(alpha: 0.1),
+                      color: AppColors.error.withValues(alpha: 0.1),
                     ),
                   ),
                 ],
@@ -1544,7 +1644,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (_) =>
                         (isDark
-                                ? const Color(0xFF16213E)
+                                ? AppColors.darkSurface
                                 : AppColors.lightSurface)
                             .withValues(alpha: 0.9),
                     tooltipPadding: const EdgeInsets.all(8),
@@ -1614,7 +1714,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Current Period",
+                    AppStrings.currentPeriod,
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w700,
@@ -1681,7 +1781,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     barRods: [
                       BarChartRodData(
                         toY: point.income,
-                        color: const Color(0xFF00E5FF),
+                        color: AppColors.primary,
                         width: 28.w,
                         borderRadius: BorderRadius.circular(4.r),
                       ),
@@ -1692,7 +1792,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     barRods: [
                       BarChartRodData(
                         toY: point.expense,
-                        color: const Color(0xFFFF2975),
+                        color: AppColors.error,
                         width: 28.w,
                         borderRadius: BorderRadius.circular(4.r),
                       ),
@@ -1750,11 +1850,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     int i = 0;
     final List<Color> colors = [
-      const Color(0xFF00E5FF),
+      AppColors.primary,
       const Color(0xFF2979FF),
       const Color(0xFF651FFF),
-      const Color(0xFFFF4081),
-      const Color(0xFFFF9100),
+      AppColors.error,
+      AppColors.warning,
       Colors.grey,
     ];
 
@@ -1789,7 +1889,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Column(
         children: [
           Text(
-            "Expense Breakdown",
+            AppStrings.expenseBreakdown,
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
@@ -2061,9 +2161,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       color: bgColor,
                       borderRadius: BorderRadius.circular(4.r),
                       border: Border.all(
-                        color: isToday
-                            ? const Color(0xFF00E5FF)
-                            : Colors.transparent,
+                        color: isToday ? AppColors.primary : Colors.transparent,
                         width: 1.5,
                       ),
                     ),
@@ -2211,7 +2309,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     width: 36.w,
                     height: 36.w,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -2219,7 +2317,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         e.key.isNotEmpty ? e.key[0].toUpperCase() : '?',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF00E5FF),
+                          color: AppColors.primary,
                           fontSize: 14.sp,
                         ),
                       ),
@@ -2248,7 +2346,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15.sp,
-                      color: const Color(0xFFFF5252),
+                      color: AppColors.error,
                     ),
                   ),
                 ],
@@ -2299,19 +2397,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF69F0AE).withValues(alpha: 0.08)
-            : const Color(0xFF69F0AE).withValues(alpha: 0.12),
+            ? AppColors.success.withValues(alpha: 0.08)
+            : AppColors.success.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(
-          color: const Color(0xFF69F0AE).withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: const BoxDecoration(
-              color: Color(0xFF69F0AE),
+              color: AppColors.success,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -2329,7 +2425,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   'Salary Detected',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF69F0AE),
+                    color: AppColors.success,
                   ),
                 ),
                 Text(
@@ -2359,7 +2455,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         emoji: '💰',
         description:
             'You save over 40% of your income — great financial discipline!',
-        color: const Color(0xFF69F0AE),
+        color: AppColors.success,
       );
     }
 
@@ -2443,7 +2539,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           emoji: '💸',
           description:
               'Your average transaction is over ${CurrencyController.to.currencySymbol.value}5,000 — you go big.',
-          color: const Color(0xFFFF5252),
+          color: AppColors.error,
         );
       }
       // Frequent spender: >20 transactions in last 30 days

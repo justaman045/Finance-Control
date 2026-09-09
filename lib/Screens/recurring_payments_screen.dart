@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Services/connectivity_controller.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:uuid/uuid.dart';
@@ -64,15 +65,15 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     // Premium Gradient Background
     final gradientColors = isDark
         ? [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
+            AppColors.darkBackground, // Midnight Void
+            AppColors.darkSurface.withValues(alpha: 0.95),
           ]
         : [
-            const Color(0xFFF5F7FA), // Premium Light
-            const Color(0xFFC3CFE2),
+            AppColors.lightBackground, // Premium Light
+            AppColors.lightBorder,
           ];
 
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
 
     return Container(
       decoration: BoxDecoration(
@@ -86,7 +87,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            "Subscriptions",
+            AppStrings.subscriptions,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20.sp,
@@ -109,11 +110,11 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
             gradient: const LinearGradient(
-              colors: [Color(0xFF00E5FF), Color(0xFF00B8D4)], // Cyan Gradient
+              colors: [AppColors.primary, AppColors.primary], // Cyan Gradient
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                color: AppColors.primary.withValues(alpha: 0.4),
                 blurRadius: 15.w,
                 offset: Offset(0.w, 5.w),
               ),
@@ -136,8 +137,8 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
         body: AdaptivePanel(
           master: RefreshIndicator(
             onRefresh: () => _txController.refreshData(),
-            color: const Color(0xFF00E5FF),
-            backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+            color: AppColors.primary,
+            backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
@@ -357,7 +358,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
           borderRadius: BorderRadius.circular(24.r),
           border: Border.all(
             color: isPaid
-                ? const Color(0xFF00E676).withValues(
+                ? AppColors.success.withValues(
                     alpha: 0.3,
                   ) // Green glow for paid
                 : (isPending
@@ -380,7 +381,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
           boxShadow: [
             BoxShadow(
               color: isPaid
-                  ? const Color(0xFF00E676).withValues(alpha: 0.1)
+                  ? AppColors.success.withValues(alpha: 0.1)
                   : (isPending
                         ? Colors.orange.withValues(alpha: 0.12)
                         : Colors.black.withValues(alpha: isDark ? 0.2 : 0.05)),
@@ -401,12 +402,12 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                             ? [Colors.orange, Colors.deepOrange]
                             : (isPaid
                                   ? [
-                                      const Color(0xFF00E676),
-                                      const Color(0xFF00C853),
+                                      AppColors.success,
+                                      AppColors.success,
                                     ]
                                   : [
-                                      const Color(0xFF6C63FF),
-                                      const Color(0xFF4834D4),
+                                      AppColors.primary,
+                                      AppColors.primaryPress,
                                     ])),
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -420,8 +421,8 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                 : (isPending
                                       ? Colors.orange
                                       : (isPaid
-                                            ? const Color(0xFF00E676)
-                                            : const Color(0xFF6C63FF))))
+                                            ? AppColors.success
+                                            : AppColors.primary)))
                             .withValues(alpha: 0.3),
                     blurRadius: 10.w,
                     offset: Offset(0.w, 4.w),
@@ -485,7 +486,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                             style: TextStyle(
                               fontSize: 9.sp,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF00B8D4),
+                              color: AppColors.primary,
                               letterSpacing: 0.6,
                             ),
                           ),
@@ -543,7 +544,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                             : (isPending
                                   ? Colors.orange
                                   : (isPaid
-                                        ? const Color(0xFF00E676)
+                                        ? AppColors.success
                                         : textColor.withValues(alpha: 0.6))),
                         fontWeight: FontWeight.bold,
                       ),
@@ -617,7 +618,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
 
   Widget _buildDetailPlaceholder() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -648,7 +649,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
       constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
@@ -776,7 +777,7 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         24.w,
@@ -873,13 +874,13 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
               // Auto-pay toggle
               Material(
                 color: _autoPay
-                    ? const Color(0xFF00E5FF).withValues(alpha: 0.08)
+                    ? AppColors.primary.withValues(alpha: 0.08)
                     : textColor.withValues(alpha: 0.04),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),
                   side: BorderSide(
                     color: _autoPay
-                        ? const Color(0xFF00E5FF).withValues(alpha: 0.3)
+                        ? AppColors.primary.withValues(alpha: 0.3)
                         : textColor.withValues(alpha: 0.1),
                   ),
                 ),
@@ -914,11 +915,11 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                       _autoPay
                           ? Icons.auto_awesome_rounded
                           : Icons.notifications_active_outlined,
-                      color: _autoPay ? const Color(0xFF00B8D4) : Colors.orange,
+                      color: _autoPay ? AppColors.primary : Colors.orange,
                       size: 22.sp,
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
-                    activeColor: const Color(0xFF00B8D4),
+                    activeColor: AppColors.primary,
                     checkColor: Colors.black,
                   ),
                 ),
@@ -931,7 +932,7 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                 height: 50.h,
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
-                  child: const Text("Save"),
+                  child: const Text(AppStrings.save),
                 ),
               ),
             ],
@@ -976,7 +977,7 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
           padding: EdgeInsets.all(24.w),
           decoration: BoxDecoration(
             color: widget.isDark
-                ? const Color(0xFF1E1E2C).withValues(alpha: 0.6)
+                ? AppColors.darkSurface.withValues(alpha: 0.6)
                 : Colors.white,
             borderRadius: BorderRadius.circular(24.r),
             border: Border.all(
@@ -986,7 +987,7 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.15),
+                color: AppColors.primary.withValues(alpha: 0.15),
                 blurRadius: 20.w,
                 offset: Offset(0.w, 10.w),
               ),

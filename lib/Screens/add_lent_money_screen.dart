@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
@@ -163,7 +164,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
           ButtonSegment(
             value: 'lent',
             icon: Icon(Icons.arrow_downward),
-            label: Text('Lent to Friend'),
+            label: Text(AppStrings.lentToFriend),
           ),
           ButtonSegment(
             value: 'borrowed',
@@ -306,7 +307,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
   Widget _buildInputRow({required IconData icon, required Widget child}) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF6C63FF), size: 24.sp),
+        Icon(icon, color: AppColors.primary, size: 24.sp),
         SizedBox(width: 16.w),
         Expanded(child: child),
       ],
@@ -476,7 +477,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
         () => ElevatedButton(
           onPressed: _controller.isSaving.value ? null : _submit,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C63FF),
+            backgroundColor: AppColors.primary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16.r),
             ),

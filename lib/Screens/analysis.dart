@@ -13,6 +13,7 @@ import 'package:money_control/Components/staggered_slide_fade.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 import 'package:money_control/Components/adaptive_scaffold.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
@@ -431,8 +432,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return AdaptiveScaffold(
-      currentIndex: 2,
+    return FeatureGate(
+      flagKey: 'ai_insights',
+      child: AdaptiveScaffold(
+      currentTab: 'insights',
       isVisible: widget.showNavigation ? _isBottomBarVisible : null,
       showNavigation: widget.showNavigation,
       backgroundColor: scheme.surface,
@@ -472,6 +475,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
               : _buildContent(scheme),
         ),
       ),
+      ),
     );
   }
 
@@ -487,70 +491,119 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isWide)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Forecast + Daily Limit share a wide Row / narrow column. The
+              // whole block (and its trailing spacing) collapses when BOTH are
+              // hidden; each card hides independently on its own flag via
+              // FeatureVisible, so the surviving card fills the width.
+              FeatureSection(
+                flagKeys: ['ai_monthly_forecast', 'ai_daily_limit'],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: StaggeredSlideFade(
-                        delay: 0,
-                        child: _buildForecastCard(scheme),
+                    if (isWide)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: FeatureVisible(
+                              flagKey: 'ai_monthly_forecast',
+                              child: StaggeredSlideFade(
+                                delay: 0,
+                                child: _buildForecastCard(scheme),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: FeatureVisible(
+                              flagKey: 'ai_daily_limit',
+                              child: StaggeredSlideFade(
+                                delay: 100,
+                                child: _buildDailyLimitCard(scheme),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else ...[
+                      FeatureVisible(
+                        flagKey: 'ai_monthly_forecast',
+                        child: StaggeredSlideFade(
+                          delay: 0,
+                          child: _buildForecastCard(scheme),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: StaggeredSlideFade(
-                        delay: 100,
-                        child: _buildDailyLimitCard(scheme),
+                      FeatureVisible(
+                        flagKey: 'ai_daily_limit',
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 20.h),
+                          child: StaggeredSlideFade(
+                            delay: 100,
+                            child: _buildDailyLimitCard(scheme),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
+                    const SizedBox(height: 20),
                   ],
-                )
-              else ...[
-                StaggeredSlideFade(delay: 0, child: _buildForecastCard(scheme)),
-                SizedBox(height: 20.h),
-                StaggeredSlideFade(
-                  delay: 100,
-                  child: _buildDailyLimitCard(scheme),
-                ),
-              ],
-              SizedBox(height: 20.h),
-              StaggeredSlideFade(delay: 200, child: _buildHeatmapCard(scheme)),
-              SizedBox(height: 24.h),
-              StaggeredSlideFade(
-                delay: 300,
-                child: Text(
-                  "🔮 Category Insights (This Month)",
-                  style: TextStyle(
-                    fontSize: 17.sp,
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onSurface,
-                    letterSpacing: 0.5,
-                  ),
                 ),
               ),
-              SizedBox(height: 12.h),
-              if (isWide)
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                  childAspectRatio: 1.8,
-                  children: insights
-                      .map((c) => _buildInsightCard(c, scheme))
-                      .toList(),
-                )
-              else
-                ...insights.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final c = entry.value;
-                  return StaggeredSlideFade(
-                    delay: 350 + (index * 100),
-                    child: _buildInsightCard(c, scheme),
-                  );
-                }),
+              FeatureVisible(
+                flagKey: 'monthly_heatmap',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StaggeredSlideFade(
+                      delay: 200,
+                      child: _buildHeatmapCard(scheme),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+              FeatureVisible(
+                flagKey: 'category_insights',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    StaggeredSlideFade(
+                      delay: 300,
+                      child: Text(
+                        "🔮 Category Insights (This Month)",
+                        style: TextStyle(
+                          fontSize: 17.sp,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.onSurface,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (isWide)
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 12.w,
+                        mainAxisSpacing: 12.h,
+                        childAspectRatio: 1.8,
+                        children: insights
+                            .map((c) => _buildInsightCard(c, scheme))
+                            .toList(),
+                      )
+                    else
+                      ...insights.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final c = entry.value;
+                        return StaggeredSlideFade(
+                          delay: 350 + (index * 100),
+                          child: _buildInsightCard(c, scheme),
+                        );
+                      }),
+                  ],
+                ),
+              ),
               SizedBox(
                 height:
                     (Responsive.isTablet(context) &&
@@ -599,15 +652,15 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         // Vibrant "Mesh-like" Gradient — the 3-color per-pixel interpolation is
         // the single heaviest draw on this screen; the software-GL emulator
         // segfaults while rasterizing it, so lite mode paints a flat color.
-        color: lite ? const Color(0xFF6C63FF) : null,
+        color: lite ? AppColors.primary : null,
         gradient: lite
             ? null
             : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF6C63FF), // Blurple
-                  const Color(0xFF4834D4), // Deep Purple
+                  AppColors.primary, // Blurple
+                  AppColors.primaryPress, // Deep Purple
                   Colors.deepPurple.shade900,
                 ],
               ),
@@ -620,7 +673,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             : [
                 // "Glow" Effect
                 BoxShadow(
-                  color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                  color: AppColors.primary.withValues(alpha: 0.4),
                   blurRadius: 20.w,
                   offset: Offset(0, 10.w),
                 ),

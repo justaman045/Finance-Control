@@ -5,14 +5,21 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Components/nav_item.dart';
+import 'package:money_control/Config/tab_destinations.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class BottomNavBar extends StatelessWidget {
-  final int currentIndex;
-  final ValueChanged<int>? onTap;
-  const BottomNavBar({super.key, required this.currentIndex, this.onTap});
+  final String currentTab;
+  final List<TabDestination> destinations;
+  final ValueChanged<String>? onTab;
+  const BottomNavBar({
+    super.key,
+    required this.currentTab,
+    required this.destinations,
+    this.onTab,
+  });
 
   /// Height of the floating nav bar from the screen bottom (bottom margin +
   /// vertical padding + item height). Embedded screens lift their FABs by
@@ -28,6 +35,9 @@ class BottomNavBar extends StatelessWidget {
   Widget _build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isTablet = Responsive.isTablet(context);
+    final lite = PerformanceController.to.liteMode.value;
+
+    if (destinations.isEmpty) return const SizedBox.shrink();
 
     final containerColor = isDark
         ? const Color(0xFF161622).withValues(alpha: 0.8)
@@ -41,32 +51,19 @@ class BottomNavBar extends StatelessWidget {
         ? Colors.black.withValues(alpha: 0.4)
         : Colors.black.withValues(alpha: 0.12);
 
-    final glowColor = isDark ? const Color(0xFF00E5FF) : AppColors.primary;
-
-    final lite = PerformanceController.to.liteMode.value;
+    final glowColor = isDark ? AppColors.primary : AppColors.primary;
 
     final navRow = Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      // spaceEvenly (NOT spaceBetween) so the remaining tabs are distributed
+      // evenly whenever an admin hides one: spaceBetween crams the items to
+      // the two edges and leaves a single wide gap where the tab used to be.
+      // Each item keeps its natural width (the active label pill can be ~120px
+      // wide, so forcing equal Flex slices overflows at 5 tabs on a phone).
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _navItem(index: 0, icon: Icons.grid_view_rounded, label: 'Home'),
-          _navItem(
-            index: 1,
-            icon: Icons.pie_chart_outline_rounded,
-            label: 'Analytics',
-          ),
-          _navItem(
-            index: 2,
-            icon: Icons.auto_awesome_outlined,
-            label: 'Insights',
-          ),
-          _navItem(
-            index: 3,
-            icon: Icons.monetization_on_outlined,
-            label: 'Wealth',
-          ),
-          _navItem(index: 4, icon: Icons.tune_rounded, label: 'Settings'),
+          for (final d in destinations) _navItem(d),
         ],
       ),
     );
@@ -104,21 +101,17 @@ class BottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _navItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
+  Widget _navItem(TabDestination d) {
     return NavItem(
-      active: currentIndex == index,
-      icon: icon,
-      label: label,
+      active: currentTab == d.name,
+      icon: d.icon,
+      label: d.label,
       onTap: () {
         HapticFeedback.lightImpact();
-        if (onTap != null) {
-          onTap!(index);
+        if (onTab != null) {
+          onTab!(d.name);
         } else {
-          gotoScreen(index, currentIndex);
+          gotoScreen(d.name);
         }
       },
     );

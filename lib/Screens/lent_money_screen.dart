@@ -7,6 +7,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:money_control/Utils/animation.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Models/lent_money_model.dart';
@@ -53,7 +54,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Lent Money Tracker"),
+          title: const Text(AppStrings.lentMoneyTracker),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -67,10 +68,10 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => Get.to(() => const AddLentMoneyScreen()),
-          backgroundColor: const Color(0xFF6C63FF),
+          backgroundColor: AppColors.primary,
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text(
-            "Add",
+            AppStrings.add,
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -288,7 +289,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
 
       return RefreshIndicator(
         onRefresh: () => _controller.fetchEntries(),
-        color: const Color(0xFF6C63FF),
+        color: AppColors.primary,
         backgroundColor: theme.colorScheme.surface,
         child: ListView.builder(
           padding: EdgeInsets.symmetric(
@@ -533,7 +534,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
 
   Widget _buildDetailPlaceholder() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

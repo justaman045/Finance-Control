@@ -68,12 +68,14 @@ class GlassContainer extends StatelessWidget {
   }
 
   Widget _build(BuildContext context) {
+    // Read the reactive value FIRST. GetX must see an Rx read as the first
+    // dependency inside this Obx; reading inherited widgets (Theme/MediaQuery)
+    // or ScreenUtil before it leaves the observer unregistered and trips
+    // GetX's "improper use of a GetX" guard (when later rebuilt under test).
+    final useBlur =
+        !PerformanceController.to.liteMode.value && !Responsive.isTablet(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rBorderRadius = borderRadius ?? BorderRadius.circular(20.r);
-    final isTablet = Responsive.isTablet(context);
-    // Skip the blur on lite mode / tablets — solid surface is much cheaper to
-    // paint and looks identical at a glance.
-    final useBlur = !isTablet && !PerformanceController.to.liteMode.value;
 
     final solid = Container(
       width: width,

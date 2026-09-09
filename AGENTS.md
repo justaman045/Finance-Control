@@ -62,31 +62,20 @@ flutter build apk --release
 flutter build appbundle --release
 flutter build web --release --base-href /WealthSync/   # GitHub Pages deploy
 flutter gen-l10n                    # after editing ARB files in lib/l10n/ (l10n.yaml + generate: true)
+tool/check_ui_strings.sh            # UI-revamp audit: report only
+tool/check_ui_strings.sh --strict   # fail if mechanical debts exceed caps
 ```
 
 **Integration tests never run under plain `flutter test`** — they only run when explicitly invoked. Manual local run (emulator-5554, live Firebase account):
 
 ```bash
 # Credentials come from CI secrets; paste as --dart-define for local runs.
-# CI instead runs tool/run_integration_tests.sh, which loops the files one by
-# one (15m timeout each), restarts the emulator process before every file after
-# the first (fresh qemu = clean host GL state, see gotcha #9), and pulls
-# screenshots incrementally into build/report/parts + build/report/screenshots.
-# If a file fails while the emulator's adb connection is offline, the script
-# recovers the device once and retries that file; real test failures (device
-# reachable, test events emitted) are never retried. Exception: a launch-level
-# failure with the device still reachable is retried once on a fresh qemu —
-# either the 15m timeout was hit (exit 124: the app froze/ANR'd under the
-# software renderer and never printed a result) or the reporter file ended up
-# empty (the app never connected / the tool died before any output). If
-# recovery AND a full emulator restart both fail, the emulator process is
-# presumed dead and all remaining files are skipped fast. The script runs under
-# `set -e`, so exit codes from `run_file` are captured with the
-# `cmd || RC=$?` idiom (NEVER a bare `cmd` + `RC=$?` line — a failing bare call
-# kills the whole script before the recovery branches run).
-# `generate_test_report.dart` globs integration_test/*_test.dart
-# and renders any file with no JSON part as an INTERRUPTED row, so the report
-# always reflects all 25 files, not just the ones that produced output.
+# CI instead runs tool/run_integration_tests.sh: loops files one by one
+# (15m timeout each), restarts the emulator before every file after the first
+# (gotcha #9), recovers/retries on adb wedges, pulls screenshots incrementally
+# into build/report/parts + build/report/screenshots. Editing that script?
+# It runs under `set -e` — capture run_file exit codes with `cmd || RC=$?`,
+# NEVER a bare `cmd` + `RC=$?` line (a failing bare call kills the recovery path).
 flutter test integration_test -d emulator-5554 --no-uninstall \
   --dart-define=TEST_EMAIL=... --dart-define=TEST_PASSWORD=... \
   --dart-define=PRO_TEST_EMAIL=... --dart-define=PRO_TEST_PASSWORD=... \
@@ -102,7 +91,7 @@ dart run tool/generate_test_report.dart --unit=build/report/unit.json \
   --screenshots=build/report/screenshots --out=build/report/report.html
 ```
 
-CI (`.github/workflows/flutter_build.yml`): analyze → unit/widget test → integration test (Android emulator, live Firebase test accounts via `TEST_EMAIL`/`TEST_PASSWORD` (free) + `PRO_TEST_EMAIL`/`PRO_TEST_PASSWORD` (Pro) secrets) → build **gated on integration_test passing** (`build`/`build_web` `needs: integration_test` — nothing ships until every test passes). On merge to `master`, CI auto-bumps `pubspec.yaml` to `2.0.<run_number>`, updates `app_version.json` + README download link, creates a signed GitHub release (`v2.0.<run_number>`), and deploys web to GitHub Pages under base-href `/WealthSync/`. Version-commit/README-commit loops are avoided by skipping the commit when the message starts with `CI:`. Every run uploads a self-contained `report.html` artifact (pass/fail per test, collapsible errors, base64 screenshots) — generated even on red runs.
+CI (`.github/workflows/flutter_build.yml`, Flutter 3.44.8): analyze → unit/widget test → integration test (Android emulator, live Firebase test accounts via `TEST_EMAIL`/`TEST_PASSWORD` (free) + `PRO_TEST_EMAIL`/`PRO_TEST_PASSWORD` (Pro) secrets) → build **gated on integration_test passing** (`build`/`build_web` `needs: integration_test` — nothing ships until every test passes). Integration tests and release builds run on master pushes / manual dispatch only — **never on PRs** (E2E mutates the shared test accounts), so a green PR check means analyze + unit tests only. On merge to `master`, CI auto-bumps `pubspec.yaml` to `2.0.<run_number>`, updates `app_version.json` + README download link, creates a signed GitHub release (`v2.0.<run_number>`), and deploys web to GitHub Pages under base-href `/WealthSync/`. Version-commit/README-commit loops are avoided by skipping the commit when the message starts with `CI:`. Every run uploads a self-contained `report.html` artifact (pass/fail per test, collapsible errors, base64 screenshots) — generated even on red runs.
 
 ## Architecture
 
@@ -131,12 +120,18 @@ CI (`.github/workflows/flutter_build.yml`): analyze → unit/widget test → int
 3. **`createTransaction` waits for the payment screen to open AND pop** — after submit the screen lingers ~700 ms for the confetti celebration before `Navigator.pop`, and 'Total Balance' is already present in the offstage home route below, so `waitForHome` alone races into the next tap.
 4. **Decorative blobs must not block taps** — the balance-card gradient circles are wrapped in `IgnorePointer`; they overlap the Send/Receive buttons once the streak banner grows the card (`balance_card.dart`).
 5. **`_InviteFriendsCard` listener needs an `onError`** — the `users/{email}` snapshots stream errors with permission-denied after sign-out; without the handler the settings sign-out test fails on an unhandled exception (`settings.dart`).
-6. **Data-dependent analytics markers** — 'Monthly Trend' only renders with ≥2 months of data ('Current Period' otherwise), and 'Expense Breakdown' needs non-zero expenses. `analytics_insights_test.dart` seeds an expense + income first and accepts either trend title. |
+6. **Data-dependent analytics markers** — 'Monthly Trend' only renders with ≥2 months of data ('Current Period' otherwise), and 'Expense Breakdown' needs non-zero expenses. `analytics_reports_test.dart` seeds an expense + income first and accepts either trend title.
 7. **`flutter test` uninstalls the app after integration runs** — the `--uninstall` flag defaults to true (Flutter tool), wiping the device cache that holds the screenshots. Always pass `--no-uninstall` (CI does) so the `adb exec-out run-as ... cat` pull after the run finds them. Per-file reinstalls use `adb install -r`, so screenshots accumulate across test files while the app stays installed.
 8. **`testWidgetsWithScreenshots` auto-captures screenshots** — every integration test uses the wrapper in `test_helpers.dart`; on success it writes `result_<name>.png` to `<app cache>/screenshots/`, on failure `failure_<name>.png` (error is rethrown so the test still fails). Capture is engine-first (`layer.toImage()` — no `convertFlutterSurfaceToImage()` surface swap, which is what stresses the emulator's fragile gfxstream ColorBuffer path); it falls back to `binding.takeScreenshot()` only if the engine path yields nothing. `tool/generate_test_report.dart` embeds them base64 into the single-file `report.html`; new integration tests must keep using the wrapper so their screenshots land in the report. FAIL rows with no error text are labeled **HOST LOST** — the emulator/adb connection dropped mid-test (an infra failure, never a test assertion).
 9. **Emulator dies from host-GL accumulation across app launches — restart between files** — `analytics_insights_test` deterministically killed the emulator process (qemu gone; `adb -s emulator-5554 emu kill` at job end failed with `Connection refused` on TCP 5554) after ~7 min in three consecutive runs. The death is tied to the SECOND app launch: `add_transaction_test` (first file) always survives ~11 min, the second file dies ~7 min in. `-gpu guest` does NOT help (API 34 google_apis image doesn't support guest rendering — it silently falls back to host `lavapipe`). Fix: `restart_emulator()` in `tool/run_integration_tests.sh` kills qemu and boots a fresh emulator before every file after the first, so each file runs as a first app instance on clean host GL state. `recover_device()` only helps an adb wedge — after recovery fails the script tries a full restart, and only gives up (setting `EMULATOR_DEAD`, skipping remaining files fast) when the restart itself fails.
 
 ThemeController is inline in `main.dart` (registered before any screen). Note: `PerformanceController` and `ConnectivityController` are GetX controllers but live in `lib/Services/` (not `lib/Controllers/`).
+
+## UI Copy / Revamp Audit
+
+- When restyling a screen, move the copy that integration tests assert on into `lib/Config/app_strings.dart` in the same change. Integration tests must assert `find.text(AppStrings.x)` — never re-type the literal — so copy changes stay compile-time safe on both sides. Data-dependent literals (amounts, counts, plan prices) stay inline.
+- `tool/check_ui_strings.sh --strict` (wired into CI in the `test` job, after `flutter analyze`) tracks mechanical design-debt caps (raw `Color(0x…)`, `GlassContainer`, gradients, `BackdropFilter`) recorded in `tool/revamp_baseline.env`. Lower the caps after each revamp wave; never raise — a regression above a cap is new debt.
+- Design tokens live in `lib/Components/colors.dart`: `AppColors` (indigo `primary` `0xFF4F46E5`, zinc neutrals, `success`/`error`/`warning`), `AppRadius`, `AppShadows`, `chartSeries`. Pre-revamp brand hexes (cyan `0xFF00E5FF`, purple `0xFF6C63FF`, navy `0xFF1A1A2E`, mint `0xFF69F0AE`, pink `0xFFFF2975`) are fully rebranded to tokens — never reintroduce them. Category data colors (Material palette, seeded `0xFFFF7043`) stay inline.
 
 ## Controller Registration (2-Phase)
 
@@ -161,9 +156,42 @@ One Firestore subcollection per asset type under `users/{userEmail}/`, plus `wea
 
 **WealthPortfolio** (`lib/Models/wealth_data.dart`): 24 asset fields + `custom` map, `targets`, `hiddenKeys`. `totalAssets` sums all 24 + custom entries. `totalLiabilities = loans + creditCard + bnpl`.
 
-**Dashboard** must use `streamPortfolio()` (not `getPortfolio()`) — one-shot fetch leaves amounts stale after navigating back. Confirmed in `wealth_builder.dart:61` (primary subscription in `initState`). Note: `_loadData()` (line 74) also calls `getPortfolio()` (line 89) for geo-enrichment, but the primary real-time data comes from the stream.
+**Dashboard** must use `streamPortfolio()` (not `getPortfolio()`) — one-shot fetch leaves amounts stale after navigating back. Confirmed in `wealth_builder.dart:63` (primary subscription in `initState`). Note: `_loadData()` also calls `getPortfolio()` (~line 106) for geo-enrichment, but the primary real-time data comes from the stream.
 
 **Generic screen**: `AssetDetailScreen(config:)` — 22 configs in `lib/Config/asset_screen_configs.dart` (all types except the four below). Custom screens: `RealEstateDetailScreen` (properties), `VehicleDetailScreen`, `InsurancePolicyScreen`, `CreditCardDetailScreen`.
+
+## Admin Feature Flags (global kill-switches)
+
+Admins toggle live feature availability from Settings → Admin Utils → Feature Flags. State lives in the **global doc `app_config/feature_flags`** (a `Map<String,String>` of strings: `enabled`/`comingSoon`/`hidden`) — `firestore.rules` already allows auth-read + admin-write, no rule changes. Missing doc/key/value ⇒ `enabled` (safe default).
+
+**3-state semantics**: `enabled` = normal (Pro gates unchanged); `comingSoon` = non-admins get a ComingSoon placeholder at every entry point while admins keep using the feature; `hidden` = removed for everyone including admins ("as if never there", re-enabled only from the admin screen).
+
+**Registry**: `lib/Config/feature_flags.dart` is the single source of truth for the 55 keys (`transactions` (only `critical`), `transaction_search`, `upi_pay`, `qr_scan`, `budget`, `category`, `lent_money`, `recurring`, `goals`, `challenges`, `forecast`, `analytics`, `analytics_advanced`, `data_filters`, `financial_summary`, `quick_overview`, `current_period`, `expense_breakdown`, `spending_heatmap`, `top_merchants`, `salary_detected`, `spending_personality`, `export_csv`, `export_pdf`, `share_report`, `ai_insights`, `ai_monthly_forecast`, `ai_daily_limit`, `monthly_heatmap`, `category_insights`, `wealth`, `custom_mode`, `total_net_worth`, `wealth_assets`, `allocation`, `ideal_income`, `smart_suggestions`, `loan_tracker`, `sms_tracking`, `sms_import`, `sms_auto_import`, `expense_reminder`, `lite_mode`, `biometric_app_lock`, `privacy_mode`, `restore_data`, `import_data`, `export_all_data`, `transaction_audit`, `sms_rules`, `invite`, `profile`, `notifications`, `home_widget`, `update_checker`) + copy/icons. Gate with these keys as string literals. `FeatureFlag.groups` (title/icon/ordered keys) organizes the admin Feature Flags screen by screen/section — every `all` key must appear in exactly one group and in the known-keys list in `test/feature_flags_test.dart` (both test-enforced); add new flags to `all`, a group, and the known-keys list together.
+
+**Settings switches**: entry tiles in the settings sections use `FeatureVisible` to remove the row when `hidden` and an inner `Obx` + `Switch(onChanged: visible ? handler : null)` so `comingSoon` disables the toggle for non-admins but keeps the row (admins keep using it). A privacy switch/balance-tap must call `PrivacyController.toggle()` (guarded — no-ops on hidden) so masking can never be re-enabled; a `ever(statusMap)` worker in `main.dart` force-flips `isPrivacyMode` off the moment `privacy_mode` is hidden. Biometric gates read `BiometricService.lockActive` (pref AND not-hidden) at `main.dart` (home lock screen, pause/resume) and `checkBiometricOnLaunch`. UI-facing flags: `lite_mode` is UI-only — `hidden` disables the manual toggle but the startup auto-detect (≤4 cores) stays. Background flags: `sms_auto_import` / `expense_reminder` are additionally enforced in `background_worker.dart` via a per-tick `app_config/feature_flags` `.get()` (failure ⇒ all enabled); only `hidden` halts background work — `comingSoon` is a UI-level state.
+
+**Transport** (`lib/Services/feature_flag_service.dart`, mirrors PaymentConfigService): native `.snapshots(includeMetadataChanges: true)` in `onInit`; **web 60s `.get()` poll** via `startPolling()` kicked off in `main.dart` after login (JS b815/ca9 constraint — see the web gotcha). Firestore wiring lives in protected `startRealtime()` so test fakes can `super.onInit()` + no-op it. `statusOf` must read `_status[key]` (not `_status.value[key]` — GetX 4.7.2 marks `.value` `@protected`; `operator []` registers the Obx dependency identically).
+
+**Admin identity**: `users/{email}.isAdmin` → `SubscriptionController.isAdmin`; `FeatureFlagService.userIsAdmin` uses a `Get.isRegistered` guard + `adminOverride` test hook.
+
+**Gating tiers**:
+- Entry points: `if (!ensureFeatureVisible(context, 'key')) return;` before `gotoPage`/`Get.to` (pushes the ComingSoon placeholder, returns false).
+- `ensureFeatureUsable(context, key)` is the same guard minus the placeholder — `hidden` is a hard no-op. Use it for surfaces that must STAY on screen when the flag is hidden but whose taps are still gated (home AppBar avatar + "Welcome back" greeting under `profile`: always visible, taps dead when hidden).
+- Entry-point inventory (several surfaces share a key — know what a toggle really hides):
+  - Send/Receive on the home balance card + the core add/send flow → `transactions` (`FeatureVisible` + tap guards in `balance_card.dart`); the same-card "+ Add Lent" / "- Subs" chips → `lent_money` / `recurring` (a worker force-flips the toggles off when hidden).
+  - Home "Quick Send" UPI row (`QuickSendRow`, guards in `quick_send.dart`) **and** the Add-Send form's "Scan & Pay with UPI" button (`_upiPayButton` in `add_transaction.dart`, only when `type == send && !kIsWeb`) **both reuse `upi_pay`** — hiding it removes the UPI pay surface everywhere at once; keep it that way (deliberate reuse decision).
+  - Home "Scan QR to Pay" FAB → `qr_scan` (Pro-check runs before the flag guard).
+  - SMS import is THREE screens under THREE keys: Settings "Automation → Import SMS" tile → `sms_tracking`; Transaction History AppBar SMS button → `sms_import`; background auto-import → `sms_auto_import` (enforced per-tick in `background_worker.dart`). All three open `SmsImportScreen` — the key is distinct per entry surface, don't conflate them.
+  - Decision rule that produced the above: a surface gets its own key when it lives on a different screen/place and wants independent control (`sms_import`); it reuses an existing key when it's the same feature reached from another spot (`upi_pay` on the Add-Send form).
+- Bodies: `FeatureGate(flagKey:, child:)` — reactive (GetBuilder on the service), returns `child` unchanged when visible so layout never shifts. Used on the three tab bodies (Analytics, AI Insights, Wealth).
+- Settings sections: `FeatureSection(flagKeys: [...], child:)` hides a header + tile group (including its trailing `SectionDivider`) when **every** listed flag is `hidden`, so no heading dangles over an empty section (Automation, Access Control). Empty-only-when-all-hidden, not a single-key gate.
+- AI Insights sub-components (`analysis.dart` `_buildContent`): each card is wrapped in its own `FeatureVisible` (`ai_monthly_forecast`, `ai_daily_limit`, `monthly_heatmap`, `category_insights`); the Forecast + Daily-Limit combo is additionally wrapped in `FeatureSection(['ai_monthly_forecast', 'ai_daily_limit'])` so both cards + their gap disappear together. Per-component gating MUST use these self-registering GetBuilder widgets — the outer `FeatureGate` re-renders only its own subtree, so top-of-build booleans would go stale on a mid-session admin flip.
+- Wealth sub-components (`wealth_builder.dart`): sections inside the `CustomScrollView` are gated with `SliverFeatureVisible` (sliver-safe — a plain box `FeatureVisible` crashes a sliver slot). `custom_mode` hides the banner Smart/Custom switch + the Manage-Visibility tune button only ("hide toggle only" — persisted Smart/Custom mode untouched); `total_net_worth`, `wealth_assets` (header + every `_buildAssetSlivers` element), `allocation`, `ideal_income`, `smart_suggestions` hide their whole section. The `loan_tracker` card wrap inside `_buildAssetSlivers` stays as-is.
+- Analytics screen sub-components (`analytics.dart` `_buildBody`, a `SingleChildScrollView` → `Column`): 9 sections are individually gated with box `FeatureVisible` (`data_filters`, `financial_summary`, `quick_overview`, `current_period`, `expense_breakdown`, `spending_heatmap`, `top_merchants`, `salary_detected`, `spending_personality`), each wrapping a leading `SizedBox(32.h)` inside the gate so hiding leaves uniform spacing — note `current_period` gates both the multi-month "Monthly Trend" chart and the single-month "Current Period" fallback, and analytics' `spending_heatmap` is a distinct key from AI Insights' `monthly_heatmap`. The "View Advanced Category Trends" button stays under `analytics_advanced`; the outer tab gate stays `analytics`.
+- Bottom-nav tabs: **name-keyed, not indexed**. `lib/Config/tab_destinations.dart` centralizes the 5 tabs (`home/null`, `analytics`, `insights`/`ai_insights`, `wealth`, `settings/null`); `visibleTabs()` filters `hidden` ones out everywhere (bottom pill + wide rail + MainShell). All tab logic in `main_shell.dart`/`adaptive_scaffold.dart`/`bottom_nav_bar.dart`/`methods.dart` (`gotoScreen(name)`) switches on tab **name**, so hiding a tab never renumbers the others. `_select` shape: feature-gate → Wealth age-gate → setState.
+- Business logic: `ExportService` `_requireFeature('export_csv'|'export_pdf')` throws on direct calls. **BudgetController is intentionally NOT gated** — budget aggregation runs internally for alerts/analytics; only the budget UI (CategoryBudgetScreen/category management) is gated, so aggregation never breaks.
+
+**Performance**: this is why GlassContainer reads `PerformanceController.to.liteMode.value` first and every nav surface is `GetBuilder<FeatureFlagService>` (reactive to a mid-session admin flip without a restart). Keep the liteMode-first read ordering — moving it breaks GetX's "improper use" guard under `flutter test`.
 
 ## Code Style
 

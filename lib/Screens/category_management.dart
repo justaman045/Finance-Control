@@ -8,6 +8,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
@@ -185,7 +186,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                         if (ctx.mounted) Navigator.pop(ctx);
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6C63FF),
+                  backgroundColor: AppColors.primary,
                 ),
                 child: const Text("Migrate & Delete",
                     style: TextStyle(color: Colors.white)),
@@ -281,7 +282,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCategoryDialog(),
-        backgroundColor: const Color(0xFF00E5FF),
+        backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.black),
       ),
     );
@@ -291,7 +292,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     final isDark = _cachedTheme.brightness == Brightness.dark;
     final color = cat.color != null
         ? Color(cat.color!)
-        : const Color(0xFF6C63FF);
+        : AppColors.primary;
     final icon = IconHelper.getIconFromCode(cat.iconCode);
 
     return GestureDetector(
@@ -538,7 +539,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                 padding: EdgeInsets.symmetric(vertical: 12.h),
               ),
               child: Text(
-                "Save",
+                AppStrings.save,
                 style: TextStyle(
                   color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontWeight: FontWeight.bold,

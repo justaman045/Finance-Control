@@ -340,7 +340,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: isDark
                       ? Colors.white
-                      : const Color(0xFF1A1A2E),
+                      : AppColors.darkBackground,
                   side: BorderSide(
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.2)

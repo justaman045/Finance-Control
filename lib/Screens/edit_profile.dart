@@ -147,7 +147,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         body: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               )
             : Center(
                 child: ConstrainedBox(
@@ -204,9 +204,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             height: 32.r,
                             width: 32.r,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00E5FF),
+                              color: AppColors.primary,
                               border: Border.all(
-                                color: const Color(0xFF1A1A2E),
+                                color: AppColors.darkBackground,
                                 width: 3,
                               ),
                               shape: BoxShape.circle,
@@ -214,7 +214,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             child: Icon(
                               Icons.camera_alt_rounded,
                               size: 16.sp,
-                              color: const Color(0xFF1A1A2E),
+                              color: AppColors.darkBackground,
                             ),
                           ),
                         ),
@@ -287,7 +287,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: Text(
                             "Age: ${_calculateAge(_dob!)} years",
                             style: TextStyle(
-                              color: const Color(0xFF00E5FF),
+                              color: AppColors.primary,
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w600,
                             ),
@@ -321,7 +321,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         height: 56.h,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                            colors: [AppColors.primary, AppColors.primary],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
@@ -357,7 +357,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       height: 56.h,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF00E5FF),
+                          foregroundColor: AppColors.primary,
                           side: BorderSide(
                             color: isDark
                                 ? Colors.white.withValues(alpha: 0.3)

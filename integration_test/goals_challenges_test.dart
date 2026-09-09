@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -16,12 +17,12 @@ void main() {
       await tapUntilMarker(
         tester,
         find.byIcon(Icons.flag_outlined),
-        isPro ? find.text('Goals') : find.text('Monthly'),
+        isPro ? find.text(AppStrings.goals) : find.text(AppStrings.monthly),
       );
 
       if (isPro) {
-        await waitFor(tester, find.text('Goals'));
-        expect(find.text('Goals'), findsWidgets);
+        await waitFor(tester, find.text(AppStrings.goals));
+        expect(find.text(AppStrings.goals), findsWidgets);
 
         final goalName = uniqueName('Goal');
         await tapUntilMarker(
@@ -77,7 +78,7 @@ void main() {
       // Make sure we are truly back on the home screen and no overlay (SnackBar
       // from the goal deletion, etc.) is swallowing the AppBar tap. The emoji
       // icon lives only on the home AppBar and the Challenges screen itself.
-      await waitFor(tester, find.text('Total Balance'));
+      await waitFor(tester, find.text(AppStrings.totalBalance));
       await dismissDialogs(tester);
       // The challenges button is the rightmost AppBar action; on the narrow
       // CI emulator its center sits within 24px of the screen edge, which the

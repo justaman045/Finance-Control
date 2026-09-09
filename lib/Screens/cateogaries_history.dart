@@ -143,7 +143,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                     (budgetController.isLoading.value &&
                         budgetController.categoryBudgets.isEmpty)) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   );
                 }
 
@@ -263,8 +263,8 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
     final isSelected = selectedTab == index;
     // Income = Green (index 0), Expense = Red (index 1)
     final activeColor = index == 0
-        ? const Color(0xFF00E676)
-        : const Color(0xFFFF1744);
+        ? AppColors.success
+        : AppColors.error;
 
     return GestureDetector(
       onTap: () => _onTabChanged(index),
@@ -302,8 +302,8 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
     // 0 = Income (Green), 1 = Expense (Red)
     final isExpense = selectedTab == 1;
     final primaryColor = isExpense
-        ? const Color(0xFFFF1744)
-        : const Color(0xFF00E676);
+        ? AppColors.error
+        : AppColors.success;
 
     // Dim items with 0 spend
     final isZero = category.total == 0;

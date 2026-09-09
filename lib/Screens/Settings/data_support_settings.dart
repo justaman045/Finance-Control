@@ -14,6 +14,7 @@ import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/terms_and_policy.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/settings_widgets.dart';
 import 'package:money_control/Screens/import_screen.dart';
 import 'package:money_control/Screens/transaction_audit_screen.dart';
@@ -61,6 +62,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
   }
 
   Future<void> _handleRestore(BuildContext context) async {
+    if (!ensureFeatureVisible(context, 'restore_data')) return;
     final userEmail = FirebaseAuth.instance.currentUser?.email;
     if (userEmail == null) return;
 
@@ -108,6 +110,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
   }
 
   Future<void> _handleGdprExport(BuildContext context) async {
+    if (!ensureFeatureVisible(context, 'export_all_data')) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user?.email == null) return;
 
@@ -198,6 +201,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
   }
 
   Future<void> _handleExportCsv(BuildContext context) async {
+    if (!ensureFeatureVisible(context, 'export_csv')) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user?.email == null) return;
 
@@ -321,30 +325,55 @@ class DataSupportSettingsScreen extends StatelessWidget {
                   title: "Backup Data",
                   onTap: () => _handleBackup(context),
                 ),
-                SettingsTile(
-                  icon: Icons.restore_outlined,
-                  title: "Restore Data",
-                  onTap: () => _handleRestore(context),
+                FeatureVisible(
+                  flagKey: 'restore_data',
+                  child: SettingsTile(
+                    icon: Icons.restore_outlined,
+                    title: "Restore Data",
+                    onTap: () => _handleRestore(context),
+                  ),
                 ),
-                SettingsTile(
-                  icon: Icons.upload_file,
-                  title: "Import Data (CSV)",
-                  onTap: () => Get.to(() => const ImportScreen()),
+                FeatureVisible(
+                  flagKey: 'import_data',
+                  child: SettingsTile(
+                    icon: Icons.upload_file,
+                    title: "Import Data (CSV)",
+                    onTap: () {
+                      if (!ensureFeatureVisible(context, 'import_data')) {
+                        return;
+                      }
+                      Get.to(() => const ImportScreen());
+                    },
+                  ),
                 ),
-                SettingsTile(
-                  icon: Icons.download,
-                  title: "Export Transactions (CSV)",
-                  onTap: () => _handleExportCsv(context),
+                FeatureVisible(
+                  flagKey: 'export_csv',
+                  child: SettingsTile(
+                    icon: Icons.download,
+                    title: "Export Transactions (CSV)",
+                    onTap: () => _handleExportCsv(context),
+                  ),
                 ),
-                SettingsTile(
-                  icon: Icons.cloud_download,
-                  title: "Export All Data (GDPR)",
-                  onTap: () => _handleGdprExport(context),
+                FeatureVisible(
+                  flagKey: 'export_all_data',
+                  child: SettingsTile(
+                    icon: Icons.cloud_download,
+                    title: "Export All Data (GDPR)",
+                    onTap: () => _handleGdprExport(context),
+                  ),
                 ),
-                SettingsTile(
-                  icon: Icons.fact_check,
-                  title: "Transaction Audit",
-                  onTap: () => Get.to(() => const TransactionAuditScreen()),
+                FeatureVisible(
+                  flagKey: 'transaction_audit',
+                  child: SettingsTile(
+                    icon: Icons.fact_check,
+                    title: "Transaction Audit",
+                    onTap: () {
+                      if (!ensureFeatureVisible(context, 'transaction_audit')) {
+                        return;
+                      }
+                      Get.to(() => const TransactionAuditScreen());
+                    },
+                  ),
                 ),
 
                 SectionDivider(),

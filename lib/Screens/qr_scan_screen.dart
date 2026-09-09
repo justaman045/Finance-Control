@@ -140,7 +140,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                   child: Container(
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: const Color(0xFF00E5FF),
+                        color: AppColors.primary,
                         width: 2.5,
                       ),
                       borderRadius: BorderRadius.circular(24.r),

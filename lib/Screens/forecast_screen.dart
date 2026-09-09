@@ -160,7 +160,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
                   _ForecastCard(
                     label: l10n.projectedRemaining,
                     amount: controller.forecastIncome.value,
-                    color: const Color(0xFF69F0AE),
+                    color: AppColors.success,
                     formattedAmount: _formatIndianCurrency(
                       controller.forecastIncome.value,
                     ),
@@ -187,7 +187,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
                   _ForecastCard(
                     label: l10n.projectedRemaining,
                     amount: controller.forecastExpense.value,
-                    color: const Color(0xFFFF5252),
+                    color: AppColors.error,
                     formattedAmount: _formatIndianCurrency(
                       controller.forecastExpense.value,
                     ),

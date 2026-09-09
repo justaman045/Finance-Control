@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/auth_controller.dart';
 import 'package:money_control/Screens/forgot_password.dart';
 import 'package:money_control/Screens/signup.dart'; // Correct import
@@ -261,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     )
                   : Text(
-                      "Sign In",
+                      AppStrings.signIn,
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,

@@ -197,7 +197,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
         body: Obx(() {
           if (_controller.isLoading.value) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
           final (spots, maxY) = _calculateChartData();
@@ -336,7 +336,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                     children: [
                       Icon(
                         Icons.show_chart,
-                        color: const Color(0xFF00E5FF),
+                        color: AppColors.primary,
                         size: 20.sp,
                       ),
                       SizedBox(width: 8.w),
@@ -432,7 +432,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                 LineChartBarData(
                                   spots: spots,
                                   isCurved: true,
-                                  color: const Color(0xFF00E5FF),
+                                  color: AppColors.primary,
                                   barWidth: 3,
                                   isStrokeCapRound: true,
                                   dotData: const FlDotData(show: true),

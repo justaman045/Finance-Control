@@ -45,6 +45,7 @@ import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Platform/widget_platform.dart';
 import 'package:money_control/Screens/add_transaction.dart';
@@ -54,8 +55,8 @@ import 'package:money_control/Services/recurring_service.dart';
 
 // ---- THEME CONTROLLER ----
 class ThemeController extends GetxController {
-  // Default to system theme until loaded
-  Rx<ThemeMode> currentTheme = ThemeMode.system.obs;
+  // Dark-first default until a stored preference loads from Firestore.
+  Rx<ThemeMode> currentTheme = ThemeMode.dark.obs;
 
   ThemeMode get themeMode => currentTheme.value;
   StreamSubscription<DocumentSnapshot>? _themeSubscription;
@@ -166,11 +167,15 @@ void main() {
 Future<void> mainCommon({bool isTest = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalCacheService.init();
+  // Firebase must be initialized BEFORE any controller touches
+  // FirebaseAuth.instance — ThemeController.onInit subscribes to
+  // authStateChanges() immediately (previously the app crashed on cold start
+  // with `[core/no-app] No Firebase App '[DEFAULT]' has been created`).
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Must be registered after ensureInitialized so GetX platform channels work.
   themeController = Get.put(ThemeController());
   TutorialController.isTestMode = isTest;
   Get.testMode = isTest;
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   themeController.resubscribe();
 
   if (!isTest) {
@@ -218,6 +223,17 @@ Future<void> mainCommon({bool isTest = false}) async {
   Get.put(AuthController());
   Get.put(SubscriptionController());
   Get.put(PaymentConfigService());
+  Get.put(FeatureFlagService());
+
+  // Force privacy blur off the instant an admin hides the feature — "as if
+  // never there". Reads local Rx state only (no Firestore), so it is safe on
+  // every platform including the web b815 constraints; every masking widget
+  // already listens to isPrivacyMode, so one flip un-blurs them reactively.
+  ever(FeatureFlagService.to.statusMap, (_) {
+    if (FeatureFlagService.to.isHidden('privacy_mode')) {
+      Get.find<PrivacyController>().isPrivacyMode.value = false;
+    }
+  });
   Get.put(PerformanceController());
   Get.put(ConnectivityController());
   Get.put(IapService());
@@ -331,12 +347,12 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       // Lock app when backgrounded
-      if (_bioService.isBiometricEnabled.value) {
+      if (_bioService.lockActive) {
         _bioService.isAuthenticated.value = false;
       }
     } else if (state == AppLifecycleState.resumed) {
       // Trigger auth on resume
-      if (_bioService.isBiometricEnabled.value &&
+      if (_bioService.lockActive &&
           !_bioService.isAuthenticated.value) {
         _bioService.authenticate();
       }
@@ -371,7 +387,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
             return child ?? const SizedBox.shrink();
           },
           home: Obx(() {
-            if (_bioService.isBiometricEnabled.value &&
+            if (_bioService.lockActive &&
                 !_bioService.isAuthenticated.value) {
               return Scaffold(
                 body: Center(
@@ -531,6 +547,9 @@ class _AuthCheckerState extends State<AuthChecker> {
         // can trigger the Firestore JS SDK WatchChangeAggregator ca9/b815 bug.
         if (kIsWeb && Get.isRegistered<PaymentConfigService>()) {
           PaymentConfigService.to.startPolling();
+        }
+        if (kIsWeb && Get.isRegistered<FeatureFlagService>()) {
+          FeatureFlagService.to.startPolling();
         }
         final email = user.email;
         if (!_didInitialBackup && email != null) {

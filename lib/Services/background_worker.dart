@@ -159,15 +159,23 @@ void callbackDispatcher() {
 
       final prefs = await SharedPreferences.getInstance();
 
+      // Global kill switches (one small app_config read per tick; failure
+      // defaults to everything enabled so a network blip never disables
+      // automation). Only `hidden` halts background work here — `comingSoon`
+      // is a UI-level state and this isolate can't cheaply tell admins from
+      // customers.
+      final flags = await _fetchFeatureFlags();
+
       // --- LOGIC 1: SMS AUTO-IMPORT ---
       // Runs before the inactivity reminder so a run that just imported
       // transactions does not also nag the user in the same tick.
-      if (prefs.getBool('sms_auto_import_enabled') == true) {
+      if (!_flagHidden(flags, 'sms_auto_import') &&
+          prefs.getBool('sms_auto_import_enabled') == true) {
         await _processSmsMessages(prefs);
       }
 
       // --- LOGIC 2: INACTIVITY REMINDER ---
-      await _checkInactivity(prefs);
+      await _checkInactivity(prefs, flags);
 
       // --- LOGIC 3: DAILY INSIGHTS (10 PM) ---
       await _checkDailyInsights(prefs);
@@ -188,7 +196,11 @@ void callbackDispatcher() {
 
 // ---------------- CHECKERS ----------------
 
-Future<void> _checkInactivity(SharedPreferences prefs) async {
+Future<void> _checkInactivity(
+  SharedPreferences prefs,
+  Map<String, String> featureFlags,
+) async {
+  if (_flagHidden(featureFlags, 'expense_reminder')) return;
   final now = DateTime.now().millisecondsSinceEpoch;
   final shouldSend = shouldSendInactivityReminder(
     lastOpened: prefs.getInt('lastOpened') ?? 0,
@@ -647,3 +659,33 @@ int _isoWeekNumber(DateTime date) {
   }
   return woy;
 }
+
+/// Reads the `app_config/feature_flags` kill switches for the background
+/// isolate. Returns an empty map (everything enabled) on any failure.
+Future<Map<String, String>> _fetchFeatureFlags() async {
+  try {
+    final snap = await FirebaseFirestore.instance
+        .collection('app_config')
+        .doc('feature_flags')
+        .get()
+        .timeout(const Duration(seconds: 5));
+    final data = snap.exists ? snap.data() : null;
+    if (data == null) return const {};
+    final out = <String, String>{};
+    data.forEach((key, value) {
+      final status = value?.toString() ?? '';
+      if (status == 'enabled' ||
+          status == 'comingSoon' ||
+          status == 'hidden') {
+        out[key] = status;
+      }
+    });
+    return out;
+  } catch (e) {
+    developer.log("Feature flag fetch failed (defaults enabled): $e");
+    return const {};
+  }
+}
+
+bool _flagHidden(Map<String, String> flags, String key) =>
+    flags[key] == 'hidden';

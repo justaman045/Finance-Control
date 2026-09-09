@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -41,8 +42,8 @@ void main() {
     mark('category insights visible');
 
     // ── 2. Back to the home tab ─────────────────────────────────────────────
-    await tapNavTab(tester, Icons.grid_view_rounded, 'Total Balance');
-    expect(find.text('Total Balance'), findsWidgets);
+    await tapNavTab(tester, Icons.grid_view_rounded, AppStrings.totalBalance);
+    expect(find.text(AppStrings.totalBalance), findsWidgets);
     mark('back home');
   });
 }

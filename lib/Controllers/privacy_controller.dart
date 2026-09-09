@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 
 class PrivacyController extends GetxController {
   RxBool isPrivacyMode = false.obs;
 
   void togglePrivacy() {
     isPrivacyMode.value = !isPrivacyMode.value;
+  }
+
+  /// Flag-aware toggle: no-ops when an admin has hidden the feature, so the
+  /// balance-card tap and the settings switch can never re-enable masking the
+  /// instant `privacy_mode` is `hidden`.
+  void toggle() {
+    if (FeatureFlagService.to.isHidden('privacy_mode')) return;
+    togglePrivacy();
   }
 }
 

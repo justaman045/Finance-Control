@@ -74,7 +74,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
       name: 'CRED',
       package: 'com.dreamplug.androidapp',
       icon: 'C',
-      color: Color(0xFF1A1A2E),
+      color: AppColors.darkBackground,
     ),
     UpiAppDescriptor(
       name: 'Any UPI',

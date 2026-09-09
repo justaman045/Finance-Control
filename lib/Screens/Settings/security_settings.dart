@@ -8,7 +8,9 @@ import 'package:money_control/Services/biometric_service.dart';
 import 'package:money_control/Screens/deactivate_account.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/settings_widgets.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
@@ -78,36 +80,58 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
                 child: Column(
                   children: [
-                SectionHeader("Access Control"),
+                FeatureSection(
+                  flagKeys: kIsWeb
+                      ? ['privacy_mode']
+                      : ['biometric_app_lock', 'privacy_mode'],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SectionHeader("Access Control"),
 
-                // Biometric Toggle
-                if (!kIsWeb)
-                  Obx(
-                    () => SettingsTile(
-                      icon: Icons.fingerprint,
-                      title: "Biometric App Lock",
-                      trailing: Switch(
-                        value: bioService.isBiometricEnabled.value,
-                        activeThumbColor: const Color(0xFF00E5FF),
-                        onChanged: (val) => bioService.toggleBiometric(val),
+                      // Biometric Toggle
+                      if (!kIsWeb)
+                        FeatureVisible(
+                          flagKey: 'biometric_app_lock',
+                          child: Obx(
+                            () => SettingsTile(
+                              icon: Icons.fingerprint,
+                              title: "Biometric App Lock",
+                              trailing: Switch(
+                                value: bioService.isBiometricEnabled.value,
+                                activeThumbColor: AppColors.primary,
+                                onChanged: FeatureFlagService.to
+                                        .visibleToMe('biometric_app_lock')
+                                    ? (val) => bioService.toggleBiometric(val)
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Privacy Mode Toggle
+                      FeatureVisible(
+                        flagKey: 'privacy_mode',
+                        child: Obx(
+                          () => SettingsTile(
+                            icon: Icons.visibility_off_outlined,
+                            title: "Privacy Mode (Blur)",
+                            trailing: Switch(
+                              value: privacyController.isPrivacyMode.value,
+                              activeThumbColor: AppColors.primary,
+                              onChanged: FeatureFlagService.to
+                                      .visibleToMe('privacy_mode')
+                                  ? (val) => privacyController.toggle()
+                                  : null,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
 
-                // Privacy Mode Toggle
-                Obx(
-                  () => SettingsTile(
-                    icon: Icons.visibility_off_outlined,
-                    title: "Privacy Mode (Blur)",
-                    trailing: Switch(
-                      value: privacyController.isPrivacyMode.value,
-                      activeThumbColor: const Color(0xFF00E5FF),
-                      onChanged: (val) => privacyController.togglePrivacy(),
-                    ),
+                      const SectionDivider(),
+                    ],
                   ),
                 ),
-
-                SectionDivider(),
 
                 SectionHeader("Account Security"),
 

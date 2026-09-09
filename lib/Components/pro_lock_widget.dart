@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 
 class ProLockWidget extends StatelessWidget {
@@ -53,7 +54,7 @@ class ProLockWidget extends StatelessWidget {
                 ),
               ),
               child: Text(
-                "Upgrade to Pro",
+                AppStrings.upgradeToPro,
                 style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
               ),
             ),

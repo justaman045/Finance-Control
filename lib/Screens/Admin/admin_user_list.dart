@@ -32,7 +32,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)]
+              ? [AppColors.darkBackground, AppColors.darkSurface, AppColors.darkSurface]
               : AppColors.lightGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

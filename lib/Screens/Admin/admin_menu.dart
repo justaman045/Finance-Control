@@ -8,6 +8,7 @@ import 'package:money_control/Screens/admin_dashboard.dart';
 import 'package:money_control/Screens/Admin/admin_user_list.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Screens/Admin/payment_settings_screen.dart';
+import 'package:money_control/Screens/Admin/feature_flags_screen.dart';
 import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/responsive.dart';
@@ -112,7 +113,7 @@ class _AdminMenuState extends State<AdminMenu> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)]
+              ? [AppColors.darkBackground, AppColors.darkSurface, AppColors.darkSurface]
               : AppColors.lightGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -170,6 +171,15 @@ class _AdminMenuState extends State<AdminMenu> {
                 icon: Icons.payment_rounded,
                 color: Colors.purpleAccent,
                 onTap: () => Get.to(() => const PaymentSettingsScreen()),
+              ),
+              SizedBox(height: 16.h),
+              _buildMenuCard(
+                context,
+                title: "Feature Flags",
+                subtitle: "Globally enable, hide or mark features as coming soon",
+                icon: Icons.toggle_on_rounded,
+                color: AppColors.primary,
+                onTap: () => Get.to(() => const FeatureFlagsScreen()),
               ),
               SizedBox(height: 16.h),
               _buildMenuCard(

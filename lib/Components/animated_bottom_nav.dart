@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Config/tab_destinations.dart';
 
 class AnimatedBottomNav extends StatelessWidget {
-  final int currentIndex;
+  final String currentTab;
+  final List<TabDestination> destinations;
   final ValueNotifier<bool> isVisible;
   final Key? navBarKey;
 
   const AnimatedBottomNav({
     super.key,
-    required this.currentIndex,
+    required this.currentTab,
+    required this.destinations,
     required this.isVisible,
     this.navBarKey,
   });
@@ -24,7 +27,11 @@ class AnimatedBottomNav extends StatelessWidget {
           child: child,
         );
       },
-      child: BottomNavBar(key: navBarKey, currentIndex: currentIndex),
+      child: BottomNavBar(
+        key: navBarKey,
+        currentTab: currentTab,
+        destinations: destinations,
+      ),
     );
   }
 }

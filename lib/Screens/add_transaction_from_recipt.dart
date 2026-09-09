@@ -315,7 +315,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                   child: _scanning
                       ? const Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFF00E5FF),
+                            color: AppColors.primary,
                           ),
                         )
                       : SingleChildScrollView(
@@ -343,14 +343,14 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                   height: 56.h,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                      colors: [AppColors.primary, AppColors.primary],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
                     borderRadius: BorderRadius.circular(28.r),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                        color: AppColors.primary.withValues(alpha: 0.4),
                         blurRadius: 15.w,
                         offset: Offset(0, 8.w),
                       ),
@@ -396,7 +396,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF00E5FF), size: 20.sp),
+            Icon(icon, color: AppColors.primary, size: 20.sp),
             SizedBox(width: 8.w),
             Text(
               label,

@@ -16,6 +16,7 @@ import 'package:money_control/Utils/icon_helper.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/category_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Components/responsive_form_row.dart';
 import 'package:money_control/Utils/responsive.dart';
 
@@ -127,7 +128,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   blurRadius: 20.w,
                   spreadRadius: 2.w,
                 ),
@@ -212,18 +213,18 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                            colors: [AppColors.primary, AppColors.primary],
                           ),
                           borderRadius: BorderRadius.circular(12.r),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                              color: AppColors.primary.withValues(alpha: 0.4),
                               blurRadius: 10.w,
                             ),
                           ],
                         ),
                         child: Text(
-                          "Add",
+                          AppStrings.add,
                           style: TextStyle(
                             color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontWeight: FontWeight.bold,
@@ -441,7 +442,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                       child: Ink(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                            colors: [AppColors.primary, AppColors.primary],
                           ),
                           borderRadius: BorderRadius.circular(28.r),
                           boxShadow: [
@@ -530,17 +531,17 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+              color: AppColors.primary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8.r),
               border: Border.all(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
               ),
             ),
             margin: EdgeInsets.all(8.w),
             child: Text(
               widget.transaction.currency,
               style: TextStyle(
-                color: const Color(0xFF6C63FF),
+                color: AppColors.primary,
                 fontWeight: FontWeight.w800,
                 fontSize: 15.sp,
               ),
@@ -620,7 +621,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             final isSelected = _selectedCategory == cat.name;
             final catColor = cat.color != null
                 ? Color(cat.color!)
-                : const Color(0xFF00E5FF);
+                : AppColors.primary;
             final borderColor = isSelected
                 ? catColor
                 : isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1);
@@ -687,10 +688,10 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
               decoration: BoxDecoration(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(30.r),
                 border: Border.all(
-                  color: const Color(0xFF6C63FF).withValues(alpha: 0.5),
+                  color: AppColors.primary.withValues(alpha: 0.5),
                   style: BorderStyle.none,
                 ),
               ),
@@ -698,14 +699,14 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                 children: [
                   Icon(
                     Icons.add_circle,
-                    color: const Color(0xFF6C63FF),
+                    color: AppColors.primary,
                     size: 18.sp,
                   ),
                   SizedBox(width: 8.w),
                   Text(
                     "Add Link",
                     style: TextStyle(
-                      color: const Color(0xFF6C63FF),
+                      color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -733,19 +734,19 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               data: Theme.of(context).copyWith(
                 colorScheme: isDark
                     ? const ColorScheme.dark(
-                        primary: Color(0xFF6C63FF),
+                        primary: AppColors.primary,
                         onPrimary: Colors.white,
-                        surface: Color(0xFF1E1E2C),
+                        surface: AppColors.darkSurface,
                         onSurface: Colors.white,
                       )
                     : ColorScheme.light(
-                        primary: const Color(0xFF6C63FF),
+                        primary: AppColors.primary,
                         onPrimary: Colors.white,
                         surface: Colors.white,
                         onSurface: Colors.black,
                       ),
                 dialogTheme: DialogThemeData(
-                  backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+                  backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
                 ),
               ),
               child: child!,
@@ -767,7 +768,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.calendar_today_outlined, color: Color(0xFF6C63FF)),
+            const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
           ],
         ),
       ),

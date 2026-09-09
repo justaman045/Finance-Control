@@ -9,7 +9,9 @@ import 'package:get/get.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/cateogary.dart';
@@ -375,7 +377,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           AppLocalizations.of(context)!.selectCategory,
                           theme,
                         ),
-                        _categorySelector(theme),                        ResponsiveFormRow(
+                        _categorySelector(theme),
+                        ResponsiveFormRow(
                           left: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -406,13 +409,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         _submitButton(
                           context: context,
                           label: widget.type == PaymentType.send
-                              ? AppLocalizations.of(context)!.send
-                              : AppLocalizations.of(context)!.receive,
+                              ? AppStrings.sendCta
+                              : AppStrings.receiveCta,
                           onTap: saveTransaction,
                         ),
                         if (widget.type == PaymentType.send && !kIsWeb) ...[
                           SizedBox(height: 12.h),
-                          _upiPayButton(context),
+                          FeatureVisible(
+                            flagKey: 'upi_pay',
+                            child: _upiPayButton(context),
+                          ),
                         ],
                         SizedBox(height: 20.h),
                       ],
@@ -436,9 +442,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   minBlastForce: 8,
                   gravity: 0.3,
                   colors: const [
-                    Color(0xFF00E5FF),
-                    Color(0xFF69F0AE),
-                    Color(0xFFFF4081),
+                    AppColors.primary,
+                    AppColors.success,
+                    AppColors.error,
                     Color(0xFFFFD740),
                   ],
                 ),
@@ -825,8 +831,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     letterSpacing: 1.5,
                   ),
                 ),
-              ),
-              ),
+        ),
+      ),
     );
   }
 
@@ -834,6 +840,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () async {
+        if (!ensureFeatureVisible(context, 'upi_pay')) return;
         final saved = await Navigator.push<bool>(
           context,
           MaterialPageRoute(builder: (_) => const UpiPaymentScreen()),

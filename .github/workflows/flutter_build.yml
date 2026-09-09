@@ -40,6 +40,9 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
+      - name: UI revamp audit (design-debt caps)
+        run: bash tool/check_ui_strings.sh --strict
+
       - name: Run unit & widget tests
         run: |
           mkdir -p build/report

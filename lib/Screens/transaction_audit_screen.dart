@@ -71,9 +71,9 @@ class _TransactionAuditScreenState extends State<TransactionAuditScreen>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelColor: const Color(0xFF00E5FF),
+          labelColor: AppColors.primary,
           unselectedLabelColor: isDark ? Colors.white54 : Colors.grey[500],
-          indicatorColor: const Color(0xFF00E5FF),
+          indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.label,
           labelStyle: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600),
           tabs: const [
@@ -381,7 +381,7 @@ class _IssuesTab extends StatelessWidget {
   // ---------------------------------------------------------------------------
 
   void _showDuplicateResolutionSheet(BuildContext context, DuplicateGroup group, bool isDark) {
-    final bgColor = isDark ? const Color(0xFF1A1F36) : Colors.white;
+    final bgColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
     final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
 
@@ -455,7 +455,7 @@ class _IssuesTab extends StatelessWidget {
                 context: sheetContext,
                 icon: Icons.check_circle_outline,
                 label: 'Keep newest, delete others',
-                color: const Color(0xFF00E5FF),
+                color: AppColors.primary,
                 isDark: isDark,
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -465,7 +465,7 @@ class _IssuesTab extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Removed $deleted duplicate(s)'),
-                        backgroundColor: const Color(0xFF0FA958),
+                        backgroundColor: AppColors.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                       ),
@@ -488,7 +488,7 @@ class _IssuesTab extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Removed $deleted duplicate(s)'),
-                        backgroundColor: const Color(0xFF0FA958),
+                        backgroundColor: AppColors.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                       ),
@@ -517,7 +517,7 @@ class _IssuesTab extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Deleted $deleted transaction(s)'),
-                          backgroundColor: const Color(0xFF0FA958),
+                          backgroundColor: AppColors.success,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                         ),
@@ -546,7 +546,7 @@ class _IssuesTab extends StatelessWidget {
   }
 
   void _showSignErrorResolutionSheet(BuildContext context, SignError error, bool isDark) {
-    final bgColor = isDark ? const Color(0xFF1A1F36) : Colors.white;
+    final bgColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
     final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
     final tx = error.transaction;
@@ -607,7 +607,7 @@ class _IssuesTab extends StatelessWidget {
                 context: sheetContext,
                 icon: Icons.auto_fix_high,
                 label: 'Auto-correct sign (flip to ${error.expected})',
-                color: const Color(0xFF00E5FF),
+                color: AppColors.primary,
                 isDark: isDark,
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -616,7 +616,7 @@ class _IssuesTab extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text('Sign corrected'),
-                        backgroundColor: const Color(0xFF0FA958),
+                        backgroundColor: AppColors.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                       ),
@@ -656,7 +656,7 @@ class _IssuesTab extends StatelessWidget {
   }
 
   void _showOrphanResolutionSheet(BuildContext context, OrphanedRecurring orphan, bool isDark) {
-    final bgColor = isDark ? const Color(0xFF1A1F36) : Colors.white;
+    final bgColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
     final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
     final pmt = orphan.payment;
@@ -717,7 +717,7 @@ class _IssuesTab extends StatelessWidget {
                 context: sheetContext,
                 icon: Icons.add_circle_outline,
                 label: 'Create missing transaction & advance due date',
-                color: const Color(0xFF00E5FF),
+                color: AppColors.primary,
                 isDark: isDark,
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -726,7 +726,7 @@ class _IssuesTab extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Created transaction for "${pmt.title}"'),
-                        backgroundColor: const Color(0xFF0FA958),
+                        backgroundColor: AppColors.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                       ),
@@ -748,7 +748,7 @@ class _IssuesTab extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Skipped cycle for "${pmt.title}"'),
-                        backgroundColor: const Color(0xFF0FA958),
+                        backgroundColor: AppColors.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                       ),
@@ -822,7 +822,7 @@ Future<bool> _confirmDestructive(
   final result = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: isDark ? const Color(0xFF1A1F36) : Colors.white,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       title: Text(title, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
       content: Text(message, style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[600], fontSize: 13.sp)),
       actions: [
@@ -873,7 +873,7 @@ class _BankCompareTab extends StatelessWidget {
                 label: Text('Import Bank CSV',
                     style: TextStyle(fontSize: 13.sp)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00E5FF),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.r),
@@ -1179,7 +1179,7 @@ class _SummaryTab extends StatelessWidget {
             _summaryCard(
                 'Final Balance', finalBalance.toStringAsFixed(2),
                 Icons.account_balance_wallet, isDark,
-                color: const Color(0xFF00E5FF)),
+                color: AppColors.primary),
           ],
         ),
       );

@@ -559,7 +559,7 @@ class _ChallengeSheetContent extends StatelessWidget {
         ),
         padding: EdgeInsets.all(24.w),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         child: SingleChildScrollView(

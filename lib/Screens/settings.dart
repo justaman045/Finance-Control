@@ -12,6 +12,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/auth_controller.dart';
 import 'package:money_control/Screens/Settings/general_settings.dart';
@@ -77,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AdaptiveScaffold(
-      currentIndex: 4,
+      currentTab: 'settings',
       isVisible: widget.showNavigation ? _isBottomBarVisible : null,
       showNavigation: widget.showNavigation,
       backgroundColor: Colors.transparent,
@@ -133,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (ctrl.isAdmin.value) return const SizedBox.shrink();
                         final isPro = ctrl.isPro;
                         return _SettingsCategoryCard(
-                          title: isPro ? "Managing Subscription" : "Upgrade to Pro",
+                          title: isPro ? "Managing Subscription" : AppStrings.upgradeToPro,
                           subtitle: isPro
                               ? "You are a Pro Member"
                               : "Unlock limits & features",
@@ -149,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: "General",
                         subtitle: "Currency, Categories, Budget, Notifications",
                         icon: Icons.tune_rounded,
-                        color: const Color(0xFF6C63FF),
+                        color: AppColors.primary,
                         onTap: () => Get.to(() => const GeneralSettingsScreen()),
                       ),
 
@@ -159,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: "Security & Privacy",
                         subtitle: "Lock, Password, Account",
                         icon: Icons.security_rounded,
-                        color: const Color(0xFF00E5FF),
+                        color: AppColors.primary,
                         onTap: () => Get.to(() => const SecuritySettingsScreen()),
                       ),
 
@@ -176,36 +178,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       SizedBox(height: 16.h),
 
-                      _SettingsCategoryCard(
-                        title: "Automation",
-                        subtitle: "Import SMS",
-                        icon: Icons.auto_mode_rounded,
-                        color: Colors.greenAccent,
-                        onTap: () => Get.to(() => const SmsImportScreen()),
+                      FeatureVisible(
+                        flagKey: 'sms_tracking',
+                        child: _SettingsCategoryCard(
+                          title: "Automation",
+                          subtitle: "Import SMS",
+                          icon: Icons.auto_mode_rounded,
+                          color: Colors.greenAccent,
+                          onTap: () {
+                            if (!ensureFeatureVisible(context, 'sms_tracking')) {
+                              return;
+                            }
+                            Get.to(() => const SmsImportScreen());
+                          },
+                        ),
                       ),
 
                       SizedBox(height: 16.h),
 
                       // INVITE FRIENDS
-                      _InviteFriendsCard(),
+                      FeatureVisible(
+                        flagKey: 'invite',
+                        child: _InviteFriendsCard(),
+                      ),
 
                       SizedBox(height: 16.h),
 
                       // LENT MONEY (PRO FEATURE)
-                      _SettingsCategoryCard(
-                        title: "Future Money Tracker",
-                        subtitle: "Track money you lent and borrowed",
-                        icon: Icons.handshake_rounded,
-                        color: Colors.orangeAccent,
-                        onTap: () {
-                          if (!Get.isRegistered<SubscriptionController>()) return;
-                          final ctrl = Get.find<SubscriptionController>();
-                          if (!ctrl.isPro) {
-                            Get.to(() => const SubscriptionScreen());
-                            return;
-                          }
-                          Get.to(() => const LentMoneyScreen());
-                        },
+                      FeatureVisible(
+                        flagKey: 'lent_money',
+                        child: _SettingsCategoryCard(
+                          title: "Future Money Tracker",
+                          subtitle: "Track money you lent and borrowed",
+                          icon: Icons.handshake_rounded,
+                          color: Colors.orangeAccent,
+                          onTap: () {
+                            if (!Get.isRegistered<SubscriptionController>()) {
+                              return;
+                            }
+                            final ctrl = Get.find<SubscriptionController>();
+                            if (!ctrl.isPro) {
+                              Get.to(() => const SubscriptionScreen());
+                              return;
+                            }
+                            if (!ensureFeatureVisible(context, 'lent_money')) {
+                              return;
+                            }
+                            Get.to(() => const LentMoneyScreen());
+                          },
+                        ),
                       ),
 
                       SizedBox(height: 40.h),
@@ -325,8 +346,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildProfileHeader() {
-    return GestureDetector(
-      onTap: () => Get.to(() => const EditProfileScreen()),
+    return FeatureVisible(
+      flagKey: 'profile',
+      child: GestureDetector(
+        onTap: () {
+          if (!ensureFeatureVisible(context, 'profile')) return;
+          Get.to(() => const EditProfileScreen());
+        },
       child: GlassContainer(
         padding: EdgeInsets.all(20.w),
         borderRadius: BorderRadius.circular(24.r),
@@ -339,7 +365,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 60.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF00E5FF), width: 2),
+                  border: Border.all(color: AppColors.primary, width: 2),
                   image: DecorationImage(
                     image: url.isNotEmpty
                         ? CachedNetworkImageProvider(url)
@@ -349,7 +375,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                       blurRadius: 15.w,
                     ),
                   ],
@@ -398,6 +424,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -416,7 +443,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         child: Text(
-          "Sign Out",
+          AppStrings.signOut,
           style: TextStyle(
             color: Colors.redAccent,
             fontWeight: FontWeight.bold,
@@ -642,7 +669,10 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
     final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: _share,
+      onTap: () {
+        if (!ensureFeatureVisible(context, 'invite')) return;
+        _share();
+      },
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(

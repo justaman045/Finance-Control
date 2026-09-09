@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/goals_controller.dart';
 import 'package:money_control/Models/goal_model.dart';
@@ -43,7 +44,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Goals"),
+          title: const Text(AppStrings.goals),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,

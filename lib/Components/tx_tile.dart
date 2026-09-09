@@ -6,6 +6,7 @@ import 'package:money_control/Models/transaction.dart';
 
 import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
+import 'package:money_control/Components/colors.dart';
 
 class TxTile extends StatelessWidget {
   final TransactionModel tx;
@@ -27,7 +28,7 @@ class TxTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final Color amtColor = received
-        ? (receivedColor ?? const Color(0xFF0FA958))
+        ? (receivedColor ?? AppColors.success)
         : (sentColor ?? scheme.error);
 
     return GestureDetector(

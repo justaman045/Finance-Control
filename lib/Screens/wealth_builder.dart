@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:money_control/Components/adaptive_scaffold.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Services/wealth_service.dart';
@@ -219,13 +221,15 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     final gradientColors = isDark
         ? [
-            const Color(0xFF1A1A2E),
-            const Color(0xFF16213E).withValues(alpha: 0.95),
+            AppColors.darkBackground,
+            AppColors.darkSurface.withValues(alpha: 0.95),
           ]
-        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
+        : [AppColors.lightBackground, AppColors.lightBorder];
 
-    return AdaptiveScaffold(
-      currentIndex: 3,
+    return FeatureGate(
+      flagKey: 'wealth',
+      child: AdaptiveScaffold(
+      currentTab: 'wealth',
       isVisible: widget.showNavigation ? _isBottomBarVisible : null,
       showNavigation: widget.showNavigation,
       backgroundColor: Colors.transparent,
@@ -266,8 +270,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   ? _buildAgeBlocker(scheme)
                   : RefreshIndicator(
                       onRefresh: _loadData,
-                      color: const Color(0xFF00E5FF),
-                      backgroundColor: const Color(0xFF1A1A2E),
+                      color: AppColors.primary,
+                      backgroundColor: AppColors.darkBackground,
                       child: Center(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
@@ -279,8 +283,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               physics: const AlwaysScrollableScrollPhysics(),
                               slivers: [
                                 if (userAge != null)
-                                  SliverToBoxAdapter(
-                                    child: _buildAgeStrategyBanner(),
+                                  SliverFeatureVisible(
+                                    flagKey: 'custom_mode',
+                                    sliver: SliverToBoxAdapter(
+                                      child: _buildAgeStrategyBanner(),
+                                    ),
                                   ),
                                 if (geoResult != null &&
                                     geoResult!.city.isNotEmpty)
@@ -290,75 +297,116 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                 SliverToBoxAdapter(
                                   child: SizedBox(height: 8.h),
                                 ),
-                                SliverToBoxAdapter(
-                                  child: _buildNetWorthCard(scheme),
-                                ),
-                                SliverToBoxAdapter(
-                                  child: SizedBox(height: 20.h),
-                                ),
-                                SliverToBoxAdapter(
-                                  child: _buildAssetsHeader(scheme),
-                                ),
-                                SliverToBoxAdapter(
-                                  child: SizedBox(height: 10.h),
-                                ),
-                                ..._buildAssetSlivers(scheme),
-                                SliverToBoxAdapter(
-                                  child: SizedBox(height: 20.h),
-                                ),
-                                SliverToBoxAdapter(
-                                  child: Text(
-                                    "Allocation",
-                                    style: TextStyle(
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: scheme.onSurface,
-                                    ),
+                                SliverFeatureVisible(
+                                  flagKey: 'total_net_worth',
+                                  sliver: SliverToBoxAdapter(
+                                    child: _buildNetWorthCard(scheme),
                                   ),
                                 ),
                                 SliverToBoxAdapter(
-                                  child: SizedBox(height: 10.h),
+                                  child: SizedBox(height: 20.h),
                                 ),
-                                SliverToBoxAdapter(
-                                  child: _buildPieChart(scheme),
+                                SliverFeatureVisible(
+                                  flagKey: 'wealth_assets',
+                                  sliver: SliverToBoxAdapter(
+                                    child: _buildAssetsHeader(scheme),
+                                  ),
+                                ),
+                                SliverFeatureVisible(
+                                  flagKey: 'wealth_assets',
+                                  sliver: SliverToBoxAdapter(
+                                    child: SizedBox(height: 10.h),
+                                  ),
+                                ),
+                                ..._buildAssetSlivers(scheme).map(
+                                  (s) => SliverFeatureVisible(
+                                    flagKey: 'wealth_assets',
+                                    sliver: s,
+                                  ),
                                 ),
                                 SliverToBoxAdapter(
                                   child: SizedBox(height: 20.h),
                                 ),
-                                SliverToBoxAdapter(
-                                  child: Text(
-                                    "Ideal Income",
-                                    style: TextStyle(
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: scheme.onSurface,
+                                SliverFeatureVisible(
+                                  flagKey: 'allocation',
+                                  sliver: SliverToBoxAdapter(
+                                    child: Text(
+                                      "Allocation",
+                                      style: TextStyle(
+                                        fontSize: 18.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: scheme.onSurface,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                SliverToBoxAdapter(
-                                  child: SizedBox(height: 10.h),
+                                SliverFeatureVisible(
+                                  flagKey: 'allocation',
+                                  sliver: SliverToBoxAdapter(
+                                    child: SizedBox(height: 10.h),
+                                  ),
                                 ),
-                                SliverToBoxAdapter(
-                                  child: _buildIdealIncomeCard(scheme),
+                                SliverFeatureVisible(
+                                  flagKey: 'allocation',
+                                  sliver: SliverToBoxAdapter(
+                                    child: _buildPieChart(scheme),
+                                  ),
                                 ),
                                 SliverToBoxAdapter(
                                   child: SizedBox(height: 20.h),
                                 ),
-                                SliverToBoxAdapter(
-                                  child: Text(
-                                    "Smart Suggestions",
-                                    style: TextStyle(
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: scheme.onSurface,
+                                SliverFeatureVisible(
+                                  flagKey: 'ideal_income',
+                                  sliver: SliverToBoxAdapter(
+                                    child: Text(
+                                      "Ideal Income",
+                                      style: TextStyle(
+                                        fontSize: 18.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: scheme.onSurface,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                SliverToBoxAdapter(
-                                  child: SizedBox(height: 10.h),
+                                SliverFeatureVisible(
+                                  flagKey: 'ideal_income',
+                                  sliver: SliverToBoxAdapter(
+                                    child: SizedBox(height: 10.h),
+                                  ),
+                                ),
+                                SliverFeatureVisible(
+                                  flagKey: 'ideal_income',
+                                  sliver: SliverToBoxAdapter(
+                                    child: _buildIdealIncomeCard(scheme),
+                                  ),
                                 ),
                                 SliverToBoxAdapter(
-                                  child: _buildSuggestions(scheme),
+                                  child: SizedBox(height: 20.h),
+                                ),
+                                SliverFeatureVisible(
+                                  flagKey: 'smart_suggestions',
+                                  sliver: SliverToBoxAdapter(
+                                    child: Text(
+                                      "Smart Suggestions",
+                                      style: TextStyle(
+                                        fontSize: 18.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: scheme.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SliverFeatureVisible(
+                                  flagKey: 'smart_suggestions',
+                                  sliver: SliverToBoxAdapter(
+                                    child: SizedBox(height: 10.h),
+                                  ),
+                                ),
+                                SliverFeatureVisible(
+                                  flagKey: 'smart_suggestions',
+                                  sliver: SliverToBoxAdapter(
+                                    child: _buildSuggestions(scheme),
+                                  ),
                                 ),
                                 SliverToBoxAdapter(
                                   child: SizedBox(
@@ -376,6 +424,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       ),
                     )),
       ),
+      ),
     );
   }
 
@@ -389,13 +438,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             Container(
               padding: EdgeInsets.all(24.w),
               decoration: BoxDecoration(
-                color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.cake_outlined,
                 size: 56.sp,
-                color: const Color(0xFF00E5FF),
+                color: AppColors.primary,
               ),
             ),
             SizedBox(height: 24.h),
@@ -430,7 +479,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text("Go to Profile"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00E5FF),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.black,
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   shape: RoundedRectangleBorder(
@@ -473,7 +522,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             color: _ageBasedEnabled
                 ? AppColors.primary
                 : isDark
-                    ? const Color(0xFF00E5FF)
+                    ? AppColors.primary
                     : const Color(0xFF0A8EA0),
             size: 18.sp,
           ),
@@ -523,7 +572,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Widget _buildGeoBadge(GeoResult geo) {
-    const zoneColor = Color(0xFF69F0AE);
+    const zoneColor = AppColors.success;
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(bottom: 8.h),
@@ -613,13 +662,16 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 ),
               ),
             if (_ageBasedEnabled) SizedBox(width: 8.w),
-            IconButton(
-              onPressed: _showVisibilityDialog,
-              icon: Icon(
-                Icons.tune_rounded,
-                color: scheme.onSurface.withValues(alpha: 0.6),
+            FeatureVisible(
+              flagKey: 'custom_mode',
+              child: IconButton(
+                onPressed: _showVisibilityDialog,
+                icon: Icon(
+                  Icons.tune_rounded,
+                  color: scheme.onSurface.withValues(alpha: 0.6),
+                ),
+                tooltip: "Manage Visibility",
               ),
-              tooltip: "Manage Visibility",
             ),
           ],
         ),
@@ -958,17 +1010,23 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ),
       MapEntry(
         'loans',
-        _assetCard(
-          "Loans / Liabilities",
-          loanController?.totalOutstanding ?? 0,
-          'loans',
-          Icons.money_off,
-          Colors.red,
-          scheme,
-          secondaryLabel: loanCount > 0
-              ? "$loanCount loan${loanCount > 1 ? 's' : ''}"
-              : null,
-          onTapOverride: () => Get.to(() => const LoanTrackerScreen()),
+        FeatureVisible(
+          flagKey: 'loan_tracker',
+          child: _assetCard(
+            "Loans / Liabilities",
+            loanController?.totalOutstanding ?? 0,
+            'loans',
+            Icons.money_off,
+            Colors.red,
+            scheme,
+            secondaryLabel: loanCount > 0
+                ? "$loanCount loan${loanCount > 1 ? 's' : ''}"
+                : null,
+            onTapOverride: () {
+              if (!ensureFeatureVisible(context, 'loan_tracker')) return;
+              Get.to(() => const LoanTrackerScreen());
+            },
+          ),
         ),
       ),
       MapEntry(
@@ -1188,7 +1246,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               }
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text("Save"),
+            child: const Text(AppStrings.save),
           ),
         ],
       ),
@@ -1498,7 +1556,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   // ... same premium decoration
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [Color(0xFF2E1A47), Color(0xFF1A1A2E)]
+                        ? [AppColors.primaryContainerDark, AppColors.darkBackground]
                         : AppColors.lightGradient,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -1594,7 +1652,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                           labelText: isBank
                               ? "Monthly Expense Basis"
                               : "Target Goal (Formula)",
-                          labelStyle: TextStyle(color: const Color(0xFF00E5FF)),
+                          labelStyle: TextStyle(color: AppColors.primary),
                           hintText: isBank
                               ? "Enter expense"
                               : "Auto-calculated",
@@ -1686,7 +1744,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                 if (context.mounted) Navigator.pop(context);
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00E5FF),
+                                backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.black,
                                 padding: EdgeInsets.symmetric(vertical: 12.h),
                                 shape: RoundedRectangleBorder(
@@ -1790,7 +1848,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isDark
-                          ? [Color(0xFF2E1A47), Color(0xFF1A1A2E)]
+                          ? [AppColors.primaryContainerDark, AppColors.darkBackground]
                           : AppColors.lightGradient,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -1920,7 +1978,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                 ],
                               ),
                               value: isVisible,
-                              activeColor: const Color(0xFF00E5FF),
+                              activeColor: AppColors.primary,
                               checkColor: Colors.black,
                               side: BorderSide(
                                 color: isDark
@@ -1966,7 +2024,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                 if (context.mounted) Navigator.pop(context);
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00E5FF),
+                                backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.black,
                                 padding: EdgeInsets.symmetric(vertical: 12.h),
                                 shape: RoundedRectangleBorder(

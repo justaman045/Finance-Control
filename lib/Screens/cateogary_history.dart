@@ -115,7 +115,7 @@ class _CategoryTransactionsScreenState
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               );
             }
             if (snapshot.hasError) {
@@ -222,8 +222,8 @@ class _CategoryTransactionsScreenState
                             textColor: isDark
                                 ? Colors.white
                                 : AppColors.lightTextPrimary,
-                            receivedColor: const Color(0xFF00E676),
-                            sentColor: const Color(0xFFFF1744),
+                            receivedColor: AppColors.success,
+                            sentColor: AppColors.error,
                           ),
                         ),
                       ),

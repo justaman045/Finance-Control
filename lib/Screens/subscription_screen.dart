@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:money_control/Services/error_handler.dart';
@@ -63,7 +64,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         gradient: LinearGradient(
           colors: [
             ...(isDark ? AppColors.darkGradient : AppColors.lightGradient),
-            isDark ? const Color(0xFF0F3460) : const Color(0xFFCBD5E1),
+            isDark ? AppColors.darkSurface : const Color(0xFFCBD5E1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -280,7 +281,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     SizedBox(height: 24.h),
                     Text(
-                      "You are a Pro Member!",
+                      AppStrings.youAreAProMember,
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
@@ -331,8 +332,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             final expiry =
                                 SubscriptionController.to.expiryDate.value;
                             final label = expiry != null
-                                ? "Renews on: ${expiry.day.toString().padLeft(2, '0')}/${expiry.month.toString().padLeft(2, '0')}/${expiry.year}"
-                                : "Renews on: --";
+                                ? "${AppStrings.renewsOn} ${expiry.day.toString().padLeft(2, '0')}/${expiry.month.toString().padLeft(2, '0')}/${expiry.year}"
+                                : "${AppStrings.renewsOn} --";
                             return Text(
                               label,
                               style: TextStyle(
@@ -618,18 +619,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         margin: EdgeInsets.only(bottom: 20.h),
                         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF69F0AE).withValues(alpha: 0.15),
+                          color: AppColors.success.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: const Color(0xFF69F0AE), width: 1),
+                          border: Border.all(color: AppColors.success, width: 1),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.timer_outlined, color: Color(0xFF69F0AE), size: 20.sp),
+                            Icon(Icons.timer_outlined, color: AppColors.success, size: 20.sp),
                             SizedBox(width: 8.w),
                             Text(
                               '${sub.daysLeftInTrial} day${sub.daysLeftInTrial == 1 ? '' : 's'} left in free trial',
                               style: TextStyle(
-                                color: const Color(0xFF69F0AE),
+                                color: AppColors.success,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14.sp,
                               ),
@@ -711,11 +712,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             (p) => p.id == IapService.kMonthlyId,
                           );
                           return _buildPriceCard(
-                            "Monthly",
+                            AppStrings.monthly,
                             monthly?.price ?? "${CurrencyController.to.currencySymbol.value}249",
                             "/mo",
                             false,
-                            "Monthly",
+                            AppStrings.monthly,
                             isDark,
                           );
                         }),
@@ -729,11 +730,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             (p) => p.id == IapService.kYearlyId,
                           );
                           return _buildPriceCard(
-                            "Yearly",
+                            AppStrings.yearly,
                             yearly?.price ?? "${CurrencyController.to.currencySymbol.value}1,999",
                             "/yr",
                             true,
-                            "Yearly",
+                            AppStrings.yearly,
                             isDark,
                           );
                         }),
@@ -851,14 +852,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                 margin: EdgeInsets.only(bottom: 8.h),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF69F0AE).withValues(alpha: 0.2),
+                  color: AppColors.success.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(color: const Color(0xFF69F0AE), width: 1),
+                  border: Border.all(color: AppColors.success, width: 1),
                 ),
                 child: Text(
                   "SAVE 33%",
                   style: TextStyle(
-                    color: const Color(0xFF69F0AE),
+                    color: AppColors.success,
                     fontWeight: FontWeight.bold,
                     fontSize: 10.sp,
                   ),

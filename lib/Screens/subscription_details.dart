@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Services/recurring_service.dart';
@@ -65,12 +66,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
 
     return Scaffold(
       backgroundColor: isDark
-          ? const Color(0xFF1A1A2E)
-          : const Color(0xFFF5F7FA),
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
       appBar: AppBar(
         title: Text(
           "Subscription Details",
@@ -349,7 +350,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             backgroundColor: payment.isActive
                 ? (_isPending(payment)
                       ? Colors.orange.withValues(alpha: 0.12)
-                      : const Color(0xFF6C63FF).withValues(alpha: 0.1))
+                      : AppColors.primary.withValues(alpha: 0.1))
                 : Colors.grey.withValues(alpha: 0.1),
             child: Icon(
               payment.isActive
@@ -358,7 +359,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         : Icons.receipt_long_rounded)
                   : Icons.pause_rounded,
               color: payment.isActive
-                  ? (_isPending(payment) ? Colors.orange : const Color(0xFF6C63FF))
+                  ? (_isPending(payment) ? Colors.orange : AppColors.primary)
                   : Colors.grey,
               size: 30.sp,
             ),
@@ -388,12 +389,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                 decoration: BoxDecoration(
                   color: payment.isActive && !_isPending(payment)
-                      ? const Color(0xFF00B8D4).withValues(alpha: 0.12)
+                      ? AppColors.primary.withValues(alpha: 0.12)
                       : Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
                     color: payment.isActive && !_isPending(payment)
-                        ? const Color(0xFF00B8D4).withValues(alpha: 0.35)
+                        ? AppColors.primary.withValues(alpha: 0.35)
                         : Colors.orange.withValues(alpha: 0.3),
                   ),
                 ),
@@ -407,7 +408,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     fontSize: 12.sp,
                     fontWeight: FontWeight.bold,
                     color: payment.isActive && !_isPending(payment)
-                        ? const Color(0xFF00B8D4)
+                        ? AppColors.primary
                         : Colors.orange,
                   ),
                 ),
@@ -460,7 +461,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
             color: isHighlight
-                ? (highlightColor ?? const Color(0xFF6C63FF))
+                ? (highlightColor ?? AppColors.primary)
                 : textColor,
           ),
         ),
@@ -525,11 +526,11 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                   ? Icons.auto_awesome_rounded
                   : Icons.notifications_active_outlined,
               color: payment.autoPay
-                  ? const Color(0xFF00B8D4)
+                  ? AppColors.primary
                   : Colors.orange,
               size: 22.sp,
             ),
-            activeThumbColor: const Color(0xFF00B8D4),
+            activeThumbColor: AppColors.primary,
           ),
         ),
       ),
@@ -549,7 +550,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           icon: Icon(Icons.check_circle_outline_rounded, size: 18.sp),
           label: const Text("Mark Paid"),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C63FF),
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(vertical: 12.h),
             shape: RoundedRectangleBorder(
@@ -587,7 +588,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
       constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
@@ -815,7 +816,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
         title: const Text("Mark as Paid?"),
         content: const Text(
           "This will update the due date and creating a transaction record.",
@@ -876,7 +877,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
           title: const Text("Skip this payment?"),
           content: Text(
             "This will advance the due date to the next cycle without recording a payment.",
@@ -988,7 +989,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: widget.isDark ? const Color(0xFF1E1E2C) : Colors.white,
+        backgroundColor: widget.isDark ? AppColors.darkSurface : Colors.white,
         title: const Text("Link Transaction?"),
         content: Text(
           'Link this transaction to "${widget.payment.title}"? '
@@ -1027,7 +1028,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     final candidates = _candidates;
 
     return Padding(

@@ -4,8 +4,10 @@ import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Components/colors.dart';
 
 import 'package:money_control/Screens/add_transaction.dart';
 
@@ -100,9 +102,10 @@ class _QuickSendRowState extends State<QuickSendRow> {
                           size: 40.sp,
                         ),
                         name: topCategories.first,
-                        color: const Color(0xFF00E5FF), // Neon Cyan
+                        color: AppColors.primary, // Neon Cyan
                         isDark: isDark,
                         onTap: () {
+                          if (!ensureFeatureVisible(context, 'upi_pay')) return;
                           gotoPage(
                             PaymentScreen(
                               type: PaymentType.send,
@@ -118,9 +121,9 @@ class _QuickSendRowState extends State<QuickSendRow> {
             } else {
               // Assign neon colors cyclically
               final colors = [
-                const Color(0xFF00E5FF), // Cyan
+                AppColors.primary, // Cyan
                 const Color(0xFFEA80FC), // Purple
-                const Color(0xFFFF4081), // Pink
+                AppColors.error, // Pink
                 const Color(0xFFFDD835), // Yellow
               ];
 
@@ -140,6 +143,7 @@ class _QuickSendRowState extends State<QuickSendRow> {
                     color: color,
                     isDark: isDark,
                     onTap: () {
+                      if (!ensureFeatureVisible(context, 'upi_pay')) return;
                       gotoPage(
                         PaymentScreen(
                           type: PaymentType.send,

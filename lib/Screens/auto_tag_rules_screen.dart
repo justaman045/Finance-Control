@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/category_service.dart';
@@ -134,7 +135,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
               });
               _save();
             },
-            child: Text("Add", style: TextStyle(color: AppColors.secondary)),
+            child: Text(AppStrings.add, style: TextStyle(color: AppColors.secondary)),
           ),
         ],
       ),
@@ -372,7 +373,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                     children: [
                       Icon(Icons.add, size: 14.sp, color: AppColors.secondary),
                       SizedBox(width: 4.w),
-                      Text("Add", style: TextStyle(fontSize: 12.sp, color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                      Text(AppStrings.add, style: TextStyle(fontSize: 12.sp, color: AppColors.secondary, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),

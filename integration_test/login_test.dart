@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/main.dart' as app;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'test_helpers.dart';
@@ -28,7 +29,7 @@ void main() {
     await handleSplashAndOnboarding(tester);
     await pumpAndSettleSafe(tester);
 
-    final loginButtonFinder = find.text('Sign In');
+    final loginButtonFinder = find.text(AppStrings.signIn);
     if (loginButtonFinder.evaluate().isEmpty) {
       print('Login screen not found even after sign out and splash nav.');
       return;

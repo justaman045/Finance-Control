@@ -6,6 +6,7 @@ import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Platform/openfile_platform.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -14,6 +15,13 @@ import 'package:share_plus/share_plus.dart';
 import 'package:universal_io/io.dart';
 
 class ExportService {
+  /// Defense-in-depth: entry points are gated in the UI, but direct callers
+  /// (deep links, future code paths) must not bypass an admin's flags.
+  static void _requireFeature(String flagKey) {
+    if (FeatureFlagService.to.visibleToMe(flagKey)) return;
+    throw Exception('This feature has been disabled.');
+  }
+
   // Brand Colors (Approximate matches to Neon/Midnight theme for Print)
   static const PdfColor primaryColor = PdfColor.fromInt(
     0xFF0F172A,
@@ -31,6 +39,7 @@ class ExportService {
   }
 
   static Future<void> exportTransactionsCSV(List<TransactionModel> list) async {
+    _requireFeature('export_csv');
     if (!SubscriptionController.to.isPro) throw Exception('Pro subscription required');
     final rows = <List<dynamic>>[
       [
@@ -95,6 +104,7 @@ class ExportService {
     required double netBalance,
     required String periodLabel,
   }) async {
+    _requireFeature('export_pdf');
     if (!SubscriptionController.to.isPro) throw Exception('Pro subscription required');
     final pdf = pw.Document();
     final theme = await _loadPdfTheme();
@@ -416,6 +426,7 @@ class ExportService {
     required List<TransactionModel> filtered,
     required String periodLabel,
   }) async {
+    _requireFeature('export_pdf');
     if (!SubscriptionController.to.isPro) throw Exception('Pro subscription required');
     final uid = FirebaseAuth.instance.currentUser?.uid;
     final sym = CurrencyController.to.currencySymbol.value;

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
@@ -564,7 +565,7 @@ class _AddSheetState extends State<_AddSheet> {
                 ),
                 child: _saving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save",
+                    : const Text(AppStrings.save,
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),
               ),
@@ -580,7 +581,7 @@ class _AddSheetState extends State<_AddSheet> {
       return StatefulBuilder(builder: (ctx, localSet) {
         return DropdownButtonFormField<String>(
           initialValue: _dropdownValues[f.key],
-          dropdownColor: isDark ? const Color(0xFF1E1E2C) : AppColors.lightSurface,
+          dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
           decoration: _inputDecoration(f.label, isDark),
           items: f.options!

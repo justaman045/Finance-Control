@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -18,20 +19,20 @@ void main() {
     await launchAndSignIn(tester, account: TestAccount.pro);
 
     await tapWhenVisible(tester, find.byIcon(Icons.event_repeat));
-    await waitFor(tester, find.text('Subscriptions'));
-    expect(find.text('Subscriptions'), findsWidgets);
+    await waitFor(tester, find.text(AppStrings.subscriptions));
+    expect(find.text(AppStrings.subscriptions), findsWidgets);
     await popScreen(tester);
     await waitForHome(tester);
 
     await tapWhenVisible(tester, find.byIcon(Icons.handshake_outlined));
-    await waitFor(tester, find.text('Lent Money Tracker'));
-    expect(find.text('Lent Money Tracker'), findsWidgets);
+    await waitFor(tester, find.text(AppStrings.lentMoneyTracker));
+    expect(find.text(AppStrings.lentMoneyTracker), findsWidgets);
     await popScreen(tester);
     await waitForHome(tester);
 
     await tapWhenVisible(tester, find.byIcon(Icons.flag_outlined));
-    await waitFor(tester, find.text('Goals'));
-    expect(find.text('Goals'), findsWidgets);
+    await waitFor(tester, find.text(AppStrings.goals));
+    expect(find.text(AppStrings.goals), findsWidgets);
     await popScreen(tester);
     await waitForHome(tester);
 

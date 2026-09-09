@@ -154,7 +154,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                       controller: _search,
                       onChanged: _onSearchChanged,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp),
-                      cursorColor: const Color(0xFF00E5FF),
+                      cursorColor: AppColors.primary,
                       decoration: InputDecoration(
                         prefixIcon: Icon(
                           Icons.search,
@@ -202,7 +202,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: CircularProgressIndicator(
-                  color: const Color(0xFF00E5FF),
+                  color: AppColors.primary,
                 ),
               ),
 
@@ -285,8 +285,8 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                           ? Icons.arrow_downward
                                           : Icons.arrow_upward,
                                       color: isIncome
-                                          ? const Color(0xFF00E676)
-                                          : const Color(0xFFFF1744),
+                                          ? AppColors.success
+                                          : AppColors.error,
                                       size: 20.sp,
                                     ),
                                   ),

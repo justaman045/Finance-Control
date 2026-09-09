@@ -12,6 +12,7 @@ import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Controllers/budget_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 class CategoryBudgetScreen extends StatefulWidget {
   const CategoryBudgetScreen({super.key});
@@ -66,15 +67,15 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
 
     final gradientColors = isDark
         ? [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
+            AppColors.darkBackground, // Midnight Void
+            AppColors.darkSurface.withValues(alpha: 0.95),
           ]
-        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
+        : [AppColors.lightBackground, AppColors.lightBorder]; // Premium Light
 
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     final secondaryTextColor = isDark
         ? Colors.white.withValues(alpha: 0.6)
-        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
+        : AppColors.darkBackground.withValues(alpha: 0.6);
 
     final cardColor = isDark
         ? Colors.white.withValues(alpha: 0.05)
@@ -85,7 +86,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
         : Colors.white.withValues(alpha: 0.4);
 
     return AdaptiveScaffold(
-      currentIndex: 3,
+      currentTab: 'wealth',
       backgroundColor: Colors.transparent,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -99,7 +100,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          "Category Budgets",
+          AppStrings.categoryBudgets,
           style: TextStyle(
             color: textColor,
             fontWeight: FontWeight.bold,
@@ -116,7 +117,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
           final SubscriptionController subscriptionController = Get.find();
           if (!subscriptionController.isPro) {
             return const ProLockWidget(
-              title: "Budgeting",
+              title: AppStrings.budgeting,
               description:
                   "Create budgets, track spending, and get alerts with Pro.",
             );
@@ -124,7 +125,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
 
           if (_budgetController.isLoading.value) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -195,10 +196,10 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
         : 0.0;
 
     final progressColor = progress > 0.9
-        ? const Color(0xFFFF4081)
+        ? AppColors.error
         : (progress > 0.7
               ? Colors.orangeAccent
-              : const Color(0xFF00E5FF));
+              : AppColors.primary);
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -315,12 +316,12 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                      colors: [AppColors.primary, AppColors.primary],
                     ),
                     borderRadius: BorderRadius.circular(12.r),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                        color: AppColors.primary.withValues(alpha: 0.4),
                         blurRadius: 8.w,
                       ),
                     ],

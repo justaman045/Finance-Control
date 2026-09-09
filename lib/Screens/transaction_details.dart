@@ -331,7 +331,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     if (t == TransactionResultType.failed) {
       return _buildIconContainer(
         Icons.close_rounded,
-        [const Color(0xFFE53935), const Color(0xFFB71C1C)], // Red for Failure
+        [const Color(0xFFE53935), AppColors.error], // Red for Failure
       );
     } else if (t == TransactionResultType.inProgress) {
       return _buildIconContainer(
@@ -348,7 +348,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       return _buildIconContainer(
         Icons.arrow_downward_rounded,
         [
-          const Color(0xFF00E5FF),
+          AppColors.primary,
           const Color(0xFF00BFA5),
         ], // Neon Cyan/Green for Received
       );
@@ -356,7 +356,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       return _buildIconContainer(
         Icons.check_rounded,
         [
-          const Color(0xFFFF2975),
+          AppColors.error,
           const Color(0xFFC2185B),
         ], // Neon Pink/Red for Sent
       );
@@ -535,8 +535,8 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             "Amount",
             "${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}",
             valueColor: isReceived
-                ? const Color(0xFF00E5FF)
-                : const Color(0xFFFF2975),
+                ? AppColors.primary
+                : AppColors.error,
           ),
 
           _detailRow(

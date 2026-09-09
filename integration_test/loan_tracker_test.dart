@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'test_helpers.dart';
 
@@ -72,7 +73,7 @@ void main() {
     expect(find.text('No loans tracked yet'), findsWidgets);
 
     await popScreen(tester); // back to the Wealth tab
-    await tapNavTab(tester, Icons.grid_view_rounded, 'Total Balance');
+    await tapNavTab(tester, Icons.grid_view_rounded, AppStrings.totalBalance);
     await waitForHome(tester);
   });
 }

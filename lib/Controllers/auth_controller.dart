@@ -131,13 +131,13 @@ class AuthController extends GetxController {
       debugPrint('Google signOut error: $e');
     }
     _disposeUserScopedState();
-    // Reset theme to system so the next user does not inherit the previous
-    // user's preference; resubscribe() also cancels the old user's listener.
+    // Reset to the dark-first default so the next user does not inherit the
+    // previous user's preference; resubscribe() also cancels their listener.
     if (Get.isRegistered<ThemeController>()) {
       final theme = Get.find<ThemeController>();
       theme.resubscribe();
-      theme.currentTheme.value = ThemeMode.system;
-      Get.changeThemeMode(ThemeMode.system);
+      theme.currentTheme.value = ThemeMode.dark;
+      Get.changeThemeMode(ThemeMode.dark);
     }
     // Re-arm the auth listener so the next login triggers a fresh
     // subscription status check (cancels the old user's Firestore listener).

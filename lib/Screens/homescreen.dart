@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Components/balance_card.dart';
 import 'package:money_control/Components/adaptive_scaffold.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/methods.dart';
@@ -116,7 +117,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return AdaptiveScaffold(
-      currentIndex: 0,
+      currentTab: 'home',
       isVisible: widget.showNavigation ? _isBottomBarVisible : null,
       navBarKey: widget.showNavigation ? _keyNavBar : null,
       showNavigation: widget.showNavigation,
@@ -134,38 +135,44 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
           leading: Padding(
             padding: EdgeInsets.only(left: 16.w, top: 2.h, bottom: 2.h),
             child: GestureDetector(
-              onTap: () => gotoPage(const EditProfileScreen()),
+              onTap: () {
+                if (!ensureFeatureUsable(context, 'profile')) return;
+                gotoPage(const EditProfileScreen());
+              },
               child: Obx(() {
-                final url = _profileController.photoURL.value;
-                return Hero(
-                  tag: 'profile_pic',
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: scheme.onSurface.withValues(alpha: 0.1),
-                        width: 1.5,
-                      ),
-                      image: DecorationImage(
-                        image: url.isNotEmpty
-                            ? CachedNetworkImageProvider(url)
-                            : const AssetImage('assets/profile.png')
-                                  as ImageProvider,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  final url = _profileController.photoURL.value;
+                  return Hero(
+                    tag: 'profile_pic',
                     child: Container(
-                      width: 34.w,
-                      height: 34.w,
-                      decoration: const BoxDecoration(shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: scheme.onSurface.withValues(alpha: 0.1),
+                          width: 1.5,
+                        ),
+                        image: DecorationImage(
+                          image: url.isNotEmpty
+                              ? CachedNetworkImageProvider(url)
+                              : const AssetImage('assets/profile.png')
+                                    as ImageProvider,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      child: Container(
+                        width: 34.w,
+                        height: 34.w,
+                        decoration: const BoxDecoration(shape: BoxShape.circle),
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
-          ),
           title: GestureDetector(
-            onTap: () => gotoPage(const EditProfileScreen()),
+            onTap: () {
+              if (!ensureFeatureUsable(context, 'profile')) return;
+              gotoPage(const EditProfileScreen());
+            },
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -216,77 +223,107 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             SizedBox(width: 4.w),
 
             // 🔍 NEW SEARCH BUTTON
-            _buildActionButton(
-              icon: Icons.search,
-              onTap: () => gotoPage(const TransactionSearchPage()),
-              theme: theme,
-              heroTag: 'search_bar',
+            FeatureVisible(
+              flagKey: 'transaction_search',
+              child: _buildActionButton(
+                icon: Icons.search,
+                onTap: () {
+                  if (!ensureFeatureVisible(context, 'transaction_search')) {
+                    return;
+                  }
+                  gotoPage(const TransactionSearchPage());
+                },
+                theme: theme,
+                heroTag: 'search_bar',
+              ),
             ),
             SizedBox(width: 4.w),
 
             // 📅 SUBSCRIPTIONS BUTTON
-            _buildActionButton(
-              icon: Icons.event_repeat,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                gotoPage(const RecurringPaymentsScreen());
-              },
-              theme: theme,
+            FeatureVisible(
+              flagKey: 'recurring',
+              child: _buildActionButton(
+                icon: Icons.event_repeat,
+                onTap: () {
+                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
+                    gotoPage(const SubscriptionScreen());
+                    return;
+                  }
+                  if (!ensureFeatureVisible(context, 'recurring')) return;
+                  gotoPage(const RecurringPaymentsScreen());
+                },
+                theme: theme,
+              ),
             ),
             SizedBox(width: 4.w),
 
             // 🤝 LENT MONEY TRACKER BUTTON
-            _buildActionButton(
-              icon: Icons.handshake_outlined,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                gotoPage(const LentMoneyScreen());
-              },
-              theme: theme,
-              color: Colors.greenAccent,
+            FeatureVisible(
+              flagKey: 'lent_money',
+              child: _buildActionButton(
+                icon: Icons.handshake_outlined,
+                onTap: () {
+                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
+                    gotoPage(const SubscriptionScreen());
+                    return;
+                  }
+                  if (!ensureFeatureVisible(context, 'lent_money')) return;
+                  gotoPage(const LentMoneyScreen());
+                },
+                theme: theme,
+                color: Colors.greenAccent,
+              ),
             ),
             SizedBox(width: 4.w),
 
             // 📈 FORECAST BUTTON
-            _buildActionButton(
-              icon: Icons.trending_up,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                gotoPage(const ForecastScreen());
-              },
-              theme: theme,
+            FeatureVisible(
+              flagKey: 'forecast',
+              child: _buildActionButton(
+                icon: Icons.trending_up,
+                onTap: () {
+                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
+                    gotoPage(const SubscriptionScreen());
+                    return;
+                  }
+                  if (!ensureFeatureVisible(context, 'forecast')) return;
+                  gotoPage(const ForecastScreen());
+                },
+                theme: theme,
+              ),
             ),
             SizedBox(width: 4.w),
 
             // 🎯 GOALS BUTTON
-            _buildActionButton(
-              icon: Icons.flag_outlined,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                gotoPage(const GoalsScreen());
-              },
-              theme: theme,
-              color: Colors.amberAccent,
+            FeatureVisible(
+              flagKey: 'goals',
+              child: _buildActionButton(
+                icon: Icons.flag_outlined,
+                onTap: () {
+                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
+                    gotoPage(const SubscriptionScreen());
+                    return;
+                  }
+                  if (!ensureFeatureVisible(context, 'goals')) return;
+                  gotoPage(const GoalsScreen());
+                },
+                theme: theme,
+                color: Colors.amberAccent,
+              ),
             ),
             SizedBox(width: 4.w),
             // 🏆 CHALLENGES BUTTON
-            _buildActionButton(
-              icon: Icons.emoji_events_outlined,
-              onTap: () => gotoPage(const SavingsChallengesScreen()),
-              theme: theme,
-              color: Colors.greenAccent,
+            FeatureVisible(
+              flagKey: 'challenges',
+              child: _buildActionButton(
+                icon: Icons.emoji_events_outlined,
+                onTap: () {
+                  if (!ensureFeatureVisible(context, 'challenges')) return;
+                  gotoPage(const SavingsChallengesScreen());
+                },
+                theme: theme,
+                color: Colors.greenAccent,
+              ),
             ),
             SizedBox(width: 6.w),
           ],
@@ -321,7 +358,9 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                         .fadeIn(duration: 600.ms)
                         .slideY(begin: -0.1, end: 0, curve: Curves.easeOutBack),
                     SizedBox(height: 12.h), // Added some spacing after card
-                    SectionTitle(
+                    FeatureVisible(
+                      flagKey: 'category',
+                      child: SectionTitle(
                           title: AppLocalizations.of(context)!.quickSend,
                           color: scheme.onSurface,
                           accentColor: AppColors.primary,
@@ -331,8 +370,11 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                         .animate()
                         .fadeIn(delay: 200.ms, duration: 500.ms)
                         .slideX(begin: -0.1, end: 0, curve: Curves.easeOut),
+                    ),
                     SizedBox(height: 12.h),
-                    QuickSendRow(
+                    FeatureVisible(
+                      flagKey: 'upi_pay',
+                      child: QuickSendRow(
                           cardColor: isDark
                               ? AppColors.darkSurface.withValues(alpha: 0.5)
                               : AppColors.lightSurface.withValues(alpha: 0.6),
@@ -341,6 +383,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                         .animate()
                         .fadeIn(delay: 300.ms, duration: 500.ms)
                         .slideX(begin: 0.1, end: 0, curve: Curves.easeOut),
+                    ),
                     SizedBox(height: 18.h),
                     SectionTitle(
                           title: AppLocalizations.of(
@@ -374,19 +417,23 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         ),
       ),
     ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: AppColors.primary,
-          tooltip: 'Scan QR to Pay',
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            if (!Get.isRegistered<SubscriptionController>() ||
-                !Get.find<SubscriptionController>().isPro) {
-              gotoPage(const SubscriptionScreen());
-              return;
-            }
-            _openQrPay();
-          },
-          child: const Icon(Icons.qr_code_scanner, color: Colors.white),
+        floatingActionButton: FeatureVisible(
+          flagKey: 'qr_scan',
+          child: FloatingActionButton(
+            backgroundColor: AppColors.primary,
+            tooltip: 'Scan QR to Pay',
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              if (!Get.isRegistered<SubscriptionController>() ||
+                  !Get.find<SubscriptionController>().isPro) {
+                gotoPage(const SubscriptionScreen());
+                return;
+              }
+              if (!ensureFeatureVisible(context, 'qr_scan')) return;
+              _openQrPay();
+            },
+            child: const Icon(Icons.qr_code_scanner, color: Colors.white),
+          ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         extendBody: true,

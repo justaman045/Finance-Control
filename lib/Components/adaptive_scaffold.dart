@@ -7,13 +7,16 @@ import 'package:get/get.dart';
 import 'package:money_control/Components/animated_bottom_nav.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/hover_effect.dart';
 import 'package:money_control/Components/methods.dart';
+import 'package:money_control/Config/tab_destinations.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class AdaptiveScaffold extends StatelessWidget {
-  final int currentIndex;
+  final String currentTab;
   final ValueNotifier<bool>? isVisible;
   final Key? navBarKey;
   final PreferredSizeWidget? appBar;
@@ -26,11 +29,11 @@ class AdaptiveScaffold extends StatelessWidget {
   final Decoration? decoration;
   final List<Widget>? persistentFooterButtons;
   final bool showNavigation;
-  final ValueChanged<int>? onNavChanged;
+  final ValueChanged<String>? onNavChanged;
 
   const AdaptiveScaffold({
     super.key,
-    required this.currentIndex,
+    required this.currentTab,
     this.isVisible,
     this.navBarKey,
     this.appBar,
@@ -46,88 +49,80 @@ class AdaptiveScaffold extends StatelessWidget {
     this.onNavChanged,
   });
 
-  static const _destinations = [
-    _NavDestination(icon: Icons.grid_view_rounded, label: 'Home', index: 0),
-    _NavDestination(
-      icon: Icons.pie_chart_outline_rounded,
-      label: 'Analytics',
-      index: 1,
-    ),
-    _NavDestination(
-      icon: Icons.auto_awesome_outlined,
-      label: 'Insights',
-      index: 2,
-    ),
-    _NavDestination(
-      icon: Icons.monetization_on_outlined,
-      label: 'Wealth',
-      index: 3,
-    ),
-    _NavDestination(icon: Icons.tune_rounded, label: 'Settings', index: 4),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final isWide =
         Responsive.isTablet(context) && Responsive.isLandscape(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final fab = (showNavigation || isWide || floatingActionButton == null)
-        ? floatingActionButton
-        : Padding(
-            padding: EdgeInsets.only(bottom: BottomNavBar.extendedHeight),
-            child: floatingActionButton,
-          );
-
-    final scaffold = Scaffold(
-      backgroundColor: backgroundColor,
-      extendBodyBehindAppBar: extendBodyBehindAppBar,
-      appBar: appBar,
-      body: body,
-      floatingActionButton: fab,
-      floatingActionButtonLocation: floatingActionButtonLocation,
-      bottomNavigationBar: (!isWide && showNavigation)
-          ? _buildBottomNav(context)
-          : null,
-      extendBody: extendBody && !isWide,
-      persistentFooterButtons: persistentFooterButtons,
-    );
+    Widget buildScaffold(bool wide) {
+      final fab = (showNavigation || wide || floatingActionButton == null)
+          ? floatingActionButton
+          : Padding(
+              padding: EdgeInsets.only(bottom: BottomNavBar.extendedHeight),
+              child: floatingActionButton,
+            );
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        extendBodyBehindAppBar: extendBodyBehindAppBar,
+        appBar: appBar,
+        body: body,
+        floatingActionButton: fab,
+        floatingActionButtonLocation: floatingActionButtonLocation,
+        bottomNavigationBar: (!wide && showNavigation)
+            ? _buildBottomNav(context, visibleTabs())
+            : null,
+        extendBody: extendBody && !wide,
+        persistentFooterButtons: persistentFooterButtons,
+      );
+    }
 
     if (isWide && showNavigation) {
       return Container(
         decoration: decoration,
         child: _WideLayout(
-          currentIndex: currentIndex,
+          currentTab: currentTab,
           isDark: isDark,
           onNavChanged: onNavChanged,
-          child: scaffold,
+          child: Container(
+            decoration: const BoxDecoration(),
+            child: GetBuilder<FeatureFlagService>(
+              builder: (_) => buildScaffold(true),
+            ),
+          ),
         ),
       );
     }
 
-    return Container(decoration: decoration, child: scaffold);
+    return Container(
+      decoration: decoration,
+      child: GetBuilder<FeatureFlagService>(
+        builder: (_) => buildScaffold(false),
+      ),
+    );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
+  Widget _buildBottomNav(BuildContext context, List<TabDestination> tabs) {
     if (isVisible != null) {
       return AnimatedBottomNav(
-        currentIndex: currentIndex,
+        currentTab: currentTab,
+        destinations: tabs,
         isVisible: isVisible!,
         navBarKey: navBarKey,
       );
     }
-    return BottomNavBar(currentIndex: currentIndex);
+    return BottomNavBar(currentTab: currentTab, destinations: tabs);
   }
 }
 
 class _WideLayout extends StatelessWidget {
-  final int currentIndex;
+  final String currentTab;
   final bool isDark;
   final Widget child;
-  final ValueChanged<int>? onNavChanged;
+  final ValueChanged<String>? onNavChanged;
 
   const _WideLayout({
-    required this.currentIndex,
+    required this.currentTab,
     required this.isDark,
     required this.child,
     this.onNavChanged,
@@ -138,7 +133,7 @@ class _WideLayout extends StatelessWidget {
     return Row(
       children: [
         AdaptiveNavigationRail(
-          currentIndex: currentIndex,
+          currentTab: currentTab,
           isDark: isDark,
           onNavChanged: onNavChanged,
         ),
@@ -149,13 +144,13 @@ class _WideLayout extends StatelessWidget {
 }
 
 class AdaptiveNavigationRail extends StatelessWidget {
-  final int currentIndex;
+  final String currentTab;
   final bool isDark;
-  final ValueChanged<int>? onNavChanged;
+  final ValueChanged<String>? onNavChanged;
 
   const AdaptiveNavigationRail({
     super.key,
-    required this.currentIndex,
+    required this.currentTab,
     required this.isDark,
     this.onNavChanged,
   });
@@ -173,9 +168,7 @@ class AdaptiveNavigationRail extends StatelessWidget {
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : AppColors.lightBorder;
-    final activeColor = isDark
-        ? const Color(0xFF00E5FF)
-        : const Color(0xFF6C63FF);
+    final activeColor = isDark ? AppColors.primary : AppColors.primary;
 
     return Container(
       width: 96,
@@ -188,7 +181,7 @@ class AdaptiveNavigationRail extends StatelessWidget {
             ? SafeArea(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
-                  child: _buildRailItems(activeColor),
+                  child: _buildRailItems(context, activeColor),
                 ),
               )
             : BackdropFilter(
@@ -196,7 +189,7 @@ class AdaptiveNavigationRail extends StatelessWidget {
                 child: SafeArea(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: _buildRailItems(activeColor),
+                    child: _buildRailItems(context, activeColor),
                   ),
                 ),
               ),
@@ -204,28 +197,36 @@ class AdaptiveNavigationRail extends StatelessWidget {
     );
   }
 
-  Widget _buildRailItems(Color activeColor) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ...AdaptiveScaffold._destinations.map(
-          (d) => _RailItem(
-            icon: d.icon,
-            label: d.label,
-            active: currentIndex == d.index,
-            activeColor: activeColor,
-            isDark: isDark,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              if (onNavChanged != null) {
-                onNavChanged!(d.index);
-              } else {
-                gotoScreen(d.index, currentIndex);
-              }
-            },
-          ),
-        ),
-      ],
+  Widget _buildRailItems(BuildContext ctx, Color activeColor) {
+    final tabs = visibleTabs();
+    if (tabs.isEmpty) return const SizedBox.shrink();
+    return GetBuilder<FeatureFlagService>(
+      builder: (_) => Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ...tabs.map((d) {
+            final key = d.featureKey;
+            return _RailItem(
+              icon: d.icon,
+              label: d.label,
+              active: currentTab == d.name,
+              activeColor: activeColor,
+              isDark: isDark,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                if (key != null && !ensureFeatureVisible(ctx, key)) {
+                  return;
+                }
+                if (onNavChanged != null) {
+                  onNavChanged!(d.name);
+                } else {
+                  gotoScreen(d.name);
+                }
+              },
+            );
+          }),
+        ],
+      ),
     );
   }
 }
@@ -307,16 +308,4 @@ class _RailItem extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NavDestination {
-  final IconData icon;
-  final String label;
-  final int index;
-
-  const _NavDestination({
-    required this.icon,
-    required this.label,
-    required this.index,
-  });
 }

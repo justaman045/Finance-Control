@@ -9,7 +9,10 @@ import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/main.dart'; // For ThemeController
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/settings_widgets.dart';
+import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Utils/responsive.dart';
 
@@ -93,49 +96,84 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                   children: [
                 SectionHeader("Preferences"),
                 _buildCurrencyTile(context),
-                SettingsTile(
-                  icon: Icons.category_outlined,
-                  title: "Manage Categories",
-                  onTap: () => Get.to(() => const CategoryManagementScreen()),
-                ),
-                SettingsTile(
-                  icon: Icons.monetization_on_outlined,
-                  title: "Set Budget",
-                  onTap: () => Get.to(() => const CategoryBudgetScreen()),
-                ),
-                SettingsTile(
-                  icon: Icons.notifications_none_rounded,
-                  title: "Notifications",
-                  onTap: () {
-                    Get.to(() => const NotificationHistoryScreen());
-                  },
-                ),
-
-                SectionDivider(),
-
-                SectionHeader("Automation"),
-                SettingsTile(
-                  icon: Icons.smart_toy_outlined,
-                  title: "Auto-Import SMS",
-                  trailing: Switch(
-                    value: _autoImport,
-                    activeThumbColor: const Color(0xFF00E5FF),
-                    onChanged: _toggleAutoImport,
+                FeatureVisible(
+                  flagKey: 'category',
+                  child: SettingsTile(
+                    icon: Icons.category_outlined,
+                    title: AppStrings.manageCategories,
+                    onTap: () {
+                      if (!ensureFeatureVisible(context, 'category')) return;
+                      Get.to(() => const CategoryManagementScreen());
+                    },
                   ),
                 ),
-                SettingsTile(
-                  icon: Icons.alarm_on_outlined,
-                  title: "Expense Reminder",
-                  subtitle:
-                      "Nudge me when no expenses are added for a while",
-                  trailing: Switch(
-                    value: _expenseReminder,
-                    activeThumbColor: const Color(0xFF00E5FF),
-                    onChanged: _toggleExpenseReminder,
+                FeatureVisible(
+                  flagKey: 'budget',
+                  child: SettingsTile(
+                    icon: Icons.monetization_on_outlined,
+                    title: AppStrings.setBudget,
+                    onTap: () {
+                      if (!ensureFeatureVisible(context, 'budget')) return;
+                      Get.to(() => const CategoryBudgetScreen());
+                    },
+                  ),
+                ),
+                FeatureVisible(
+                  flagKey: 'notifications',
+                  child: SettingsTile(
+                    icon: Icons.notifications_none_rounded,
+                    title: "Notifications",
+                    onTap: () {
+                      if (!ensureFeatureVisible(context, 'notifications')) return;
+                      Get.to(() => const NotificationHistoryScreen());
+                    },
                   ),
                 ),
 
                 SectionDivider(),
+
+                FeatureSection(
+                  flagKeys: ['sms_auto_import', 'expense_reminder'],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SectionHeader("Automation"),
+                      FeatureVisible(
+                        flagKey: 'sms_auto_import',
+                        child: Obx(() => SettingsTile(
+                          icon: Icons.smart_toy_outlined,
+                          title: "Auto-Import SMS",
+                          trailing: Switch(
+                            value: _autoImport,
+                            activeThumbColor: AppColors.primary,
+                            onChanged: FeatureFlagService.to
+                                    .visibleToMe('sms_auto_import')
+                                ? _toggleAutoImport
+                                : null,
+                          ),
+                        )),
+                      ),
+                      FeatureVisible(
+                        flagKey: 'expense_reminder',
+                        child: Obx(() => SettingsTile(
+                          icon: Icons.alarm_on_outlined,
+                          title: "Expense Reminder",
+                          subtitle:
+                              "Nudge me when no expenses are added for a while",
+                          trailing: Switch(
+                            value: _expenseReminder,
+                            activeThumbColor: AppColors.primary,
+                            onChanged: FeatureFlagService.to
+                                    .visibleToMe('expense_reminder')
+                                ? _toggleExpenseReminder
+                                : null,
+                          ),
+                        )),
+                      ),
+                      const SectionDivider(),
+                    ],
+                  ),
+                ),
 
                 SectionHeader("Appearance"),
                 Obx(() {
@@ -148,37 +186,43 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                     title: "Dark Mode",
                     trailing: Switch(
                       value: isDarkMode,
-                      activeThumbColor: const Color(0xFF00E5FF),
+                      activeThumbColor: AppColors.primary,
                       onChanged: (val) {
                         themeController.setTheme(val);
                       },
                     ),
                   );
                 }),
-                Obx(() {
-                  final perf = PerformanceController.to;
-                  final manual = perf.userOverridden.value;
-                  return SettingsTile(
-                    icon: Icons.bolt_outlined,
-                    title: "Lite Mode",
-                    subtitle: manual
-                        ? "Manual override active — tap here to restore auto detection"
-                        : "Improves performance on low-end devices by "
-                            "reducing animations and visual effects",
-                    onTap: manual ? perf.resetToAuto : null,
-                    trailing: Switch(
-                      value: perf.liteMode.value,
-                      activeThumbColor: const Color(0xFF00E5FF),
-                      onChanged: (val) {
-                        if (val) {
-                          perf.setLiteMode(true);
-                        } else {
-                          perf.setLiteMode(false);
-                        }
-                      },
-                    ),
-                  );
-                }),
+                FeatureVisible(
+                  flagKey: 'lite_mode',
+                  child: Obx(() {
+                    final perf = PerformanceController.to;
+                    final manual = perf.userOverridden.value;
+                    return SettingsTile(
+                      icon: Icons.bolt_outlined,
+                      title: "Lite Mode",
+                      subtitle: manual
+                          ? "Manual override active — tap here to restore auto detection"
+                          : "Improves performance on low-end devices by "
+                              "reducing animations and visual effects",
+                      onTap: manual ? perf.resetToAuto : null,
+                      trailing: Switch(
+                        value: perf.liteMode.value,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: FeatureFlagService.to
+                                .visibleToMe('lite_mode')
+                            ? (val) {
+                                if (val) {
+                                  perf.setLiteMode(true);
+                                } else {
+                                  perf.setLiteMode(false);
+                                }
+                              }
+                            : null,
+                      ),
+                    );
+                  }),
+                ),
                   ],
                 ),
               ),

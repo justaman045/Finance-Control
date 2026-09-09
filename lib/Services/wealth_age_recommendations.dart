@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 class WealthCardRecommendation {
   final String key;
@@ -357,7 +358,7 @@ class WealthAgeRecommendations {
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
-                      child: Text('Show All Cards'),
+                      child: Text(AppStrings.showAllCards),
                     ),
                   ),
                   SizedBox(width: 12.w),

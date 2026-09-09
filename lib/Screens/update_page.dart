@@ -124,7 +124,7 @@ class _UpdatePageState extends State<UpdatePage> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDark
-                ? [const Color(0xFF2E1A47), ...AppColors.darkGradient]
+                ? [AppColors.primaryContainerDark, ...AppColors.darkGradient]
                 : [const Color(0xFFE8E0F0), ...AppColors.lightGradient],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -132,7 +132,7 @@ class _UpdatePageState extends State<UpdatePage> {
         ),
         child: loading
             ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               )
             : error
             ? _errorContent()
@@ -210,12 +210,12 @@ class _UpdatePageState extends State<UpdatePage> {
                 Container(
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.system_update_rounded,
-                    color: const Color(0xFF00E5FF),
+                    color: AppColors.primary,
                     size: 40.sp,
                   ),
                 ),
@@ -295,7 +295,7 @@ class _UpdatePageState extends State<UpdatePage> {
                   return _buildFeatureRow(
                     feature,
                     Icons.check_circle_outline_rounded,
-                    const Color(0xFF00E676),
+                    AppColors.success,
                     isDark,
                   );
                 }),
@@ -351,9 +351,9 @@ class _UpdatePageState extends State<UpdatePage> {
                 mode: LaunchMode.externalApplication,
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E5FF),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.black,
-                shadowColor: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                shadowColor: AppColors.primary.withValues(alpha: 0.4),
                 elevation: 8,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16.r),
@@ -419,7 +419,7 @@ class _UpdatePageState extends State<UpdatePage> {
             onPressed: () => fetchLatestRelease(),
             child: const Text(
               "Retry",
-              style: TextStyle(color: Color(0xFF00E5FF)),
+              style: TextStyle(color: AppColors.primary),
             ),
           ),
         ],

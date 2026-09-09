@@ -4,11 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Platform/biometric_platform.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 
 class BiometricService extends GetxController {
   final LocalAuthentication? auth = kIsWeb ? null : LocalAuthentication();
   RxBool isBiometricEnabled = false.obs;
   RxBool isAuthenticated = false.obs;
+
+  /// Effective lock state: the user's preference AND the feature not being
+  /// disabled by an admin kill-switch. Reads the RxBool so Obx call sites
+  /// stay reactive to both the toggle and the flag.
+  bool get lockActive =>
+      isBiometricEnabled.value &&
+      !FeatureFlagService.to.isHidden('biometric_app_lock');
 
   @override
   void onInit() {
@@ -71,7 +79,7 @@ class BiometricService extends GetxController {
 
   Future<void> checkBiometricOnLaunch() async {
     await _loadSettings();
-    if (isBiometricEnabled.value) {
+    if (lockActive) {
       isAuthenticated.value = false;
       // Authentication result is handled by the UI overlay (lock screen widget in RootApp).
       // Do not pop the navigator — the user can retry via the lock screen.

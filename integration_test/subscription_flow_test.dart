@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -19,7 +20,7 @@ void main() {
     await tapUntilMarker(
       tester,
       find.byIcon(Icons.event_repeat),
-      isPro ? find.text('Subscriptions') : find.text('Monthly'),
+      isPro ? find.text(AppStrings.subscriptions) : find.text(AppStrings.monthly),
     );
 
     if (!isPro) {
@@ -27,8 +28,8 @@ void main() {
       return;
     }
 
-    await waitFor(tester, find.text('Subscriptions'));
-    expect(find.text('Subscriptions'), findsOneWidget);
+    await waitFor(tester, find.text(AppStrings.subscriptions));
+    expect(find.text(AppStrings.subscriptions), findsOneWidget);
     await waitFor(tester, find.text('Add Subscription'));
     expect(find.text('Add Subscription'), findsOneWidget);
 
@@ -55,7 +56,7 @@ void main() {
     await pumpAndSettleSafe(tester);
     var saved = false;
     for (var attempt = 0; attempt < 3 && !saved; attempt++) {
-      await tapWhenVisible(tester, find.text('Save'));
+      await tapWhenVisible(tester, find.text(AppStrings.save));
       saved = await waitForGoneCheck(
         tester,
         find.text('New Subscription'),
@@ -93,7 +94,7 @@ void main() {
     await tapWhenVisible(tester, find.text('OK'));
 
     // Save
-    await tapWhenVisible(tester, find.text('Save'));
+    await tapWhenVisible(tester, find.text(AppStrings.save));
 
     // 7. Pay (Mark as Paid)
     await tapUntilMarker(
@@ -122,13 +123,16 @@ void main() {
     expect(find.textContaining('499'), findsWidgets);
 
     // 8. Verify Home Screen Reflection
-    await tapWhenVisible(tester, find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await tapWhenVisible(
+      tester,
+      find.byIcon(Icons.arrow_back_ios_new_rounded),
+    );
     await tapUntilMarker(
       tester,
       find.byIcon(Icons.arrow_back_ios_new_rounded),
-      find.text('Total Balance'),
+      find.text(AppStrings.totalBalance),
     );
-    expect(find.text('Total Balance'), findsOneWidget);
+    expect(find.text(AppStrings.totalBalance), findsOneWidget);
 
     // Perform Pull-to-Refresh to ensure list is updated
     await dragToRefresh(tester);

@@ -123,7 +123,7 @@ class _ImportScreenState extends State<ImportScreen> {
                   backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
                   title: const Text(
                   "Success",
-                  style: TextStyle(color: Color(0xFF00E5FF)),
+                  style: TextStyle(color: AppColors.primary),
                 ),
                 content: Text(
                   "Imported ${transactions.length} transactions successfully.",
@@ -180,7 +180,7 @@ class _ImportScreenState extends State<ImportScreen> {
         ),
         body: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               )
             : SingleChildScrollView(
                 padding: EdgeInsets.all(20.w),
@@ -272,7 +272,7 @@ class _ImportScreenState extends State<ImportScreen> {
     final isDark = _cachedTheme.brightness == Brightness.dark;
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF00E5FF), size: 18.sp),
+        Icon(icon, color: AppColors.primary, size: 18.sp),
         SizedBox(width: 8.w),
         Text(
           title,
@@ -300,12 +300,12 @@ class _ImportScreenState extends State<ImportScreen> {
         padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 20.w),
         decoration: BoxDecoration(
           color: isHighlight
-              ? const Color(0xFF00E5FF).withValues(alpha: 0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightSurfaceCard,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isHighlight
-                ? const Color(0xFF00E5FF)
+                ? AppColors.primary
                 : isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5),
             width: isHighlight ? 1.5 : 1,
           ),
@@ -314,14 +314,14 @@ class _ImportScreenState extends State<ImportScreen> {
           children: [
             Icon(
               icon,
-              color: isHighlight ? const Color(0xFF00E5FF) : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
+              color: isHighlight ? AppColors.primary : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
               size: 30.sp,
             ),
             SizedBox(height: 10.h),
             Text(
               title,
               style: TextStyle(
-                color: isHighlight ? const Color(0xFF00E5FF) : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
+                color: isHighlight ? AppColors.primary : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -355,8 +355,8 @@ class _ImportScreenState extends State<ImportScreen> {
             ),
             DropdownButton<String>(
               value: _headers.contains(value) ? value : null,
-              dropdownColor: isDark ? const Color(0xFF1E1E2C) : AppColors.lightSurface,
-              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF00E5FF)),
+              dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
               underline: const SizedBox(),
               hint: Text(
                 "Select Column",
@@ -380,12 +380,12 @@ class _ImportScreenState extends State<ImportScreen> {
       height: 55.h,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00E5FF), Color(0xFF7B2CBF)],
+          colors: [AppColors.primary, Color(0xFF7B2CBF)],
         ),
         borderRadius: BorderRadius.circular(30.r),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 15.w,
             offset: Offset(0, 5.w),
           ),
@@ -424,7 +424,7 @@ class _ImportScreenState extends State<ImportScreen> {
       scrollDirection: Axis.horizontal,
       child: DataTable(
         headingTextStyle: TextStyle(
-          color: const Color(0xFF00E5FF),
+          color: AppColors.primary,
           fontWeight: FontWeight.bold,
           fontSize: 12.sp,
         ),

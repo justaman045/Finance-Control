@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:money_control/Components/colors.dart';
 
 class EmptyStateWidget extends StatelessWidget {
   final String title;
@@ -25,8 +26,8 @@ class EmptyStateWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final accentColor =
-        color ?? (isDark ? const Color(0xFF00E5FF) : const Color(0xFF6C63FF));
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+        color ?? (isDark ? AppColors.primary : AppColors.primary);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
 
     return Center(
       child: Padding(

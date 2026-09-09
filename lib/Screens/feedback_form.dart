@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class FeedbackScreen extends StatefulWidget {
@@ -123,15 +124,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
     final gradientColors = isDark
         ? [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
+            AppColors.darkBackground, // Midnight Void
+            AppColors.darkSurface.withValues(alpha: 0.95),
           ]
-        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)]; // Premium Light
+        : [AppColors.lightBackground, AppColors.lightBorder]; // Premium Light
 
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     final secondaryTextColor = isDark
         ? Colors.white.withValues(alpha: 0.7)
-        : const Color(0xFF1A1A2E).withValues(alpha: 0.7);
+        : AppColors.darkBackground.withValues(alpha: 0.7);
 
     return Container(
       decoration: BoxDecoration(
@@ -222,8 +223,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         gradient: LinearGradient(
                           colors: isDark
                               ? [
-                                  const Color(0xFF6C63FF),
-                                  const Color(0xFF4834D4),
+                                  AppColors.primary,
+                                  AppColors.primaryPress,
                                 ]
                               : [
                                   const Color(

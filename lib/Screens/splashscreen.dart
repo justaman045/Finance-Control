@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/animated_widget.dart';
 import 'package:money_control/Components/methods.dart';
+import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Models/splash_data.dart';
 import 'package:money_control/Screens/loginscreen.dart';
 import 'package:money_control/Services/performance_controller.dart';
@@ -22,7 +24,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
       headline: 'Save your Money',
       subtitle:
           'Discover smart ways to manage your finances and grow your savings—start making your money work for you, effortlessly and securely.',
-      buttonText: 'Get Started',
+      buttonText: AppStrings.getStarted,
     ),
     SplashData(
       bgColor: Color(0xFF347EA3),
@@ -30,7 +32,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
       headline: 'Track Your Expenses',
       subtitle:
           'Monitor your spending habits effortlessly and take control of your financial goals in real time.',
-      buttonText: 'Continue',
+      buttonText: AppStrings.continueLabel,
     ),
     SplashData(
       bgColor: Color(0xFF89BCE6),
@@ -38,7 +40,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
       headline: 'Fill Your Wallet',
       subtitle:
           'Take control of your earnings by working smarter and building your own success story.',
-      buttonText: 'Let\'s Start',
+      buttonText: AppStrings.letsStart,
     ),
   ];
 
@@ -75,20 +77,20 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
 
     final gradientColors = isDark
         ? [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
-            const Color(0xFF0F3460),
+            AppColors.darkBackground, // Midnight Void
+            AppColors.darkSurface.withValues(alpha: 0.95),
+            AppColors.darkSurface,
           ]
         : [
-            const Color(0xFFF5F7FA), // Premium Light
-            const Color(0xFFC3CFE2),
+            AppColors.lightBackground, // Premium Light
+            AppColors.lightBorder,
             const Color(0xFFE3F2FD),
           ];
 
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     final secondaryTextColor = isDark
         ? Colors.white.withValues(alpha: 0.7)
-        : const Color(0xFF1A1A2E).withValues(alpha: 0.7);
+        : AppColors.darkBackground.withValues(alpha: 0.7);
 
     return Scaffold(
       body: Container(
@@ -213,7 +215,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                             decoration: BoxDecoration(
                               color: currentIndex == index
                                   ? (isDark
-                                        ? const Color(0xFF6C63FF)
+                                        ? AppColors.primary
                                         : Colors.deepPurple)
                                   : (isDark
                                         ? Colors.white.withValues(alpha: 0.2)
@@ -234,8 +236,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                               gradient: LinearGradient(
                                 colors: isDark
                                     ? [
-                                        const Color(0xFF6C63FF),
-                                        const Color(0xFF4834D4),
+                                        AppColors.primary,
+                                        AppColors.primaryPress,
                                       ]
                                     : [
                                         const Color(

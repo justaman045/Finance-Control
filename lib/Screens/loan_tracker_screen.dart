@@ -96,7 +96,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF6C63FF), Color(0xFF3B39C4)],
+          colors: [AppColors.primary, Color(0xFF3B39C4)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

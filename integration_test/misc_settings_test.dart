@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:money_control/Components/settings_widgets.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/main.dart' as app;
 import 'test_helpers.dart';
 
@@ -58,7 +59,7 @@ void main() {
     await popScreen(tester); // Data & Support → Settings
     await waitFor(tester, find.text('General'));
 
-    await tapNavTab(tester, Icons.grid_view_rounded, 'Total Balance');
+    await tapNavTab(tester, Icons.grid_view_rounded, AppStrings.totalBalance);
     await waitForHome(tester);
   });
 }

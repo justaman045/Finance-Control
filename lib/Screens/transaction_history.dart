@@ -12,6 +12,7 @@ import 'package:money_control/Screens/sms_import_screen.dart';
 import 'package:money_control/Components/empty_state.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Components/shimmer_loading.dart';
@@ -25,11 +26,18 @@ import 'package:money_control/Components/hover_effect.dart';
 class TransactionHistoryScreen extends StatefulWidget {
   /// 0 = all, 1 = income, 2 = expense
   final int initialTab;
+
   /// When set, only transactions in this month/year are shown.
   final DateTime? filterMonth;
+
   /// When set, filters to a single specific day.
   final DateTime? filterDate;
-  const TransactionHistoryScreen({super.key, this.initialTab = 0, this.filterMonth, this.filterDate});
+  const TransactionHistoryScreen({
+    super.key,
+    this.initialTab = 0,
+    this.filterMonth,
+    this.filterDate,
+  });
 
   @override
   State<TransactionHistoryScreen> createState() =>
@@ -50,7 +58,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   void initState() {
     super.initState();
     selectedTab = widget.initialTab;
-    if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
     _controller = Get.find<TransactionController>();
     _txWorker = ever(_controller.transactions, (_) => _regroup());
     _loadingWorker = ever(_controller.isLoading, (_) {
@@ -73,22 +83,27 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final controller = Get.find<TransactionController>();
     final fm = widget.filterMonth;
     final fd = widget.filterDate;
-    var txs = controller.transactions
-        .where((tx) => tx.senderId == user.uid || tx.recipientId == user.uid);
+    var txs = controller.transactions.where(
+      (tx) => tx.senderId == user.uid || tx.recipientId == user.uid,
+    );
     if (fd != null) {
-      txs = txs.where((tx) =>
-          tx.date.year == fd.year &&
-          tx.date.month == fd.month &&
-          tx.date.day == fd.day);
+      txs = txs.where(
+        (tx) =>
+            tx.date.year == fd.year &&
+            tx.date.month == fd.month &&
+            tx.date.day == fd.day,
+      );
     } else if (fm != null) {
-      txs = txs.where((tx) => tx.date.year == fm.year && tx.date.month == fm.month);
+      txs = txs.where(
+        (tx) => tx.date.year == fm.year && tx.date.month == fm.month,
+      );
     }
     final txsList = txs.toList();
     final filtered = selectedTab == 0
         ? txsList
         : selectedTab == 1
-            ? txsList.where((tx) => tx.recipientId == user.uid).toList()
-            : txsList.where((tx) => tx.senderId == user.uid).toList();
+        ? txsList.where((tx) => tx.recipientId == user.uid).toList()
+        : txsList.where((tx) => tx.senderId == user.uid).toList();
     final grouped = <DateTime, List<TransactionModel>>{};
     for (var tx in filtered) {
       final day = DateTime(tx.date.year, tx.date.month, tx.date.day);
@@ -153,8 +168,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             widget.filterDate != null
                 ? DateFormat('d MMM yyyy').format(widget.filterDate!)
                 : widget.filterMonth != null
-                    ? DateFormat('MMMM yyyy').format(widget.filterMonth!)
-                    : l10n.transactionHistoryTitle,
+                ? DateFormat('MMMM yyyy').format(widget.filterMonth!)
+                : l10n.transactionHistoryTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
@@ -170,20 +185,24 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             onPressed: () => goBack(),
           ),
           actions: [
-            IconButton(
-              icon: Icon(
-                Icons.sms_rounded,
-                color: theme.iconTheme.color,
-                size: 24.sp,
+            FeatureVisible(
+              flagKey: 'sms_import',
+              child: IconButton(
+                icon: Icon(
+                  Icons.sms_rounded,
+                  color: theme.iconTheme.color,
+                  size: 24.sp,
+                ),
+                tooltip: l10n.importSmsTooltip,
+                onPressed: () async {
+                  if (!ensureFeatureVisible(context, 'sms_import')) return;
+                  HapticFeedback.lightImpact();
+                  await Get.to(
+                    () => const SmsImportScreen(),
+                    transition: Transition.rightToLeftWithFade,
+                  );
+                },
               ),
-              tooltip: l10n.importSmsTooltip,
-              onPressed: () async {
-                HapticFeedback.lightImpact();
-                await Get.to(
-                  () => const SmsImportScreen(),
-                  transition: Transition.rightToLeftWithFade,
-                );
-              },
             ),
             SizedBox(width: 8.w),
           ],
@@ -193,253 +212,333 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             final controller = _controller;
 
             if (controller.isLoading.value && controller.transactions.isEmpty) {
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-              child: const TransactionListShimmer(),
-            );
-          }
-
-          final filteredTxs = _filteredTxs;
-          final grouped = _grouped;
-          final sections = _sections;
-
-          // Build flat list: alternating date-header items and tx items
-          final flatItems = <({bool isHeader, DateTime? date, int sectionIdx, TransactionModel? tx})>[];
-          for (int s = 0; s < sections.length; s++) {
-            final date = sections[s];
-            flatItems.add((isHeader: true, date: date, sectionIdx: s, tx: null));
-            for (final tx in grouped[date]!) {
-              flatItems.add((isHeader: false, date: null, sectionIdx: s, tx: tx));
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                child: const TransactionListShimmer(),
+              );
             }
-          }
 
-          final tabSelector = Center(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: GlassContainer(
-                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                borderRadius: BorderRadius.circular(30.r),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(tabs.length, (i) {
-                    final isSelected = i == selectedTab;
-                    return GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => selectedTab = i);
-                        _regroup();
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(30.r),
-                        ),
-                        child: Text(
-                          tabs[i],
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : theme.textTheme.bodyMedium?.color,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
+            final filteredTxs = _filteredTxs;
+            final grouped = _grouped;
+            final sections = _sections;
+
+            // Build flat list: alternating date-header items and tx items
+            final flatItems =
+                <
+                  ({
+                    bool isHeader,
+                    DateTime? date,
+                    int sectionIdx,
+                    TransactionModel? tx,
+                  })
+                >[];
+            for (int s = 0; s < sections.length; s++) {
+              final date = sections[s];
+              flatItems.add((
+                isHeader: true,
+                date: date,
+                sectionIdx: s,
+                tx: null,
+              ));
+              for (final tx in grouped[date]!) {
+                flatItems.add((
+                  isHeader: false,
+                  date: null,
+                  sectionIdx: s,
+                  tx: tx,
+                ));
+              }
+            }
+
+            final tabSelector = Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: GlassContainer(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                  borderRadius: BorderRadius.circular(30.r),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(tabs.length, (i) {
+                      final isSelected = i == selectedTab;
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => selectedTab = i);
+                          _regroup();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.w,
+                            vertical: 10.h,
                           ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          );
-
-          return AdaptivePanel(
-            master: RefreshIndicator(
-            color: AppColors.secondary,
-            backgroundColor: theme.scaffoldBackgroundColor,
-            onRefresh: () async {
-              HapticFeedback.mediumImpact();
-              await controller.refreshData();
-            },
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                SliverToBoxAdapter(child: SizedBox(height: 10.h)),
-                SliverToBoxAdapter(child: tabSelector),
-                SliverToBoxAdapter(child: SizedBox(height: 20.h)),
-                if (filteredTxs.isEmpty)
-                  SliverFillRemaining(
-                    child: Center(
-                      child: EmptyStateWidget(
-                        title: l10n.noTransactions,
-                        subtitle: l10n.noTransactionsSubtitle,
-                        icon: Icons.receipt_long_outlined,
-                        color: theme.disabledColor,
-                      ),
-                    ),
-                  )
-                else ...[
-                  SliverPadding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (ctx, i) {
-                          final item = flatItems[i];
-                          if (item.isHeader) {
-                            final sectionDate = item.date!;
-                            final label = formatDateLabel(sectionDate, l10n);
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: 12.h, top: 10.h, left: 4.w),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    label,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16.sp,
-                                    ),
-                                  ),
-                                  Text(
-                                    "${sectionDate.day.toString().padLeft(2, '0')} "
-                                    "${_monthAbbr(sectionDate.month)}, "
-                                    "${sectionDate.year}",
-                                    style: theme.textTheme.bodyMedium,
-                                  ),
-                                ],
-                              ),
-                            ).animate()
-                              .fadeIn(duration: 400.ms, delay: (item.sectionIdx * 50).ms)
-                              .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
-                          }
-                          final tx = item.tx!;
-                          final received = tx.recipientId == user.uid;
-                          final amountColor = received ? colorIncome : colorOutcome;
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 12.h),
-                            child: Slidable(
-                              key: ValueKey(tx.id),
-                              startActionPane: ActionPane(
-                                motion: const ScrollMotion(),
-                                extentRatio: 0.25,
-                                children: [
-                                  SlidableAction(
-                                    onPressed: (context) {
-                                      Get.to(() => TransactionEditScreen(transaction: tx));
-                                    },
-                                    backgroundColor: const Color(0xFF21B7CA),
-                                    foregroundColor: Colors.white,
-                                    icon: Icons.edit,
-                                    label: 'Edit',
-                                    borderRadius: BorderRadius.horizontal(left: Radius.circular(20.r)),
-                                  ),
-                                ],
-                              ),
-                              endActionPane: ActionPane(
-                                motion: const ScrollMotion(),
-                                extentRatio: 0.25,
-                                children: [
-                                  SlidableAction(
-                                    onPressed: (_) => _confirmDelete(tx),
-                                    backgroundColor: const Color(0xFFFE4A49),
-                                    foregroundColor: Colors.white,
-                                    icon: Icons.delete,
-                                    label: 'Delete',
-                                    borderRadius: BorderRadius.horizontal(right: Radius.circular(20.r)),
-                                  ),
-                                ],
-                              ),
-                              child: HoverEffect(
-                                child: GlassContainer(
-                                onTap: () {
-                                  final isSplit = Responsive.isTablet(context) && Responsive.isLandscape(context);
-                                  if (isSplit) {
-                                    setState(() => _selectedTx = tx);
-                                  } else {
-                                    Get.to(
-                                      () => TransactionResultScreen(
-                                        type: getTransactionTypeFromStatus(tx.status),
-                                        transaction: tx,
-                                      ),
-                                      curve: curve,
-                                      transition: transition,
-                                      duration: duration,
-                                    );
-                                  }
-                                },
-                                padding: EdgeInsets.all(16.w),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(10.w),
-                                      decoration: BoxDecoration(
-                                        color: amountColor.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        received ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                                        color: amountColor,
-                                        size: 20.sp,
-                                      ),
-                                    ),
-                                    SizedBox(width: 16.w),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            tx.recipientName.isEmpty ? l10n.unknownRecipient : tx.recipientName,
-                                            style: theme.textTheme.bodyLarge?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16.sp,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4.h),
-                                          Text(
-                                            tx.category ?? l10n.uncategorized,
-                                            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13.sp),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Text(
-                                      '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        color: amountColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 17.sp,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(30.r),
+                          ),
+                          child: Text(
+                            tabs[i],
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : theme.textTheme.bodyMedium?.color,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.sp,
                             ),
                           ),
-                        );
-                        },
-                        childCount: flatItems.length,
-                      ),
-                    ),
+                        ),
+                      );
+                    }),
                   ),
-                  SliverToBoxAdapter(child: SizedBox(height: 20.h)),
-                ],
-                  ],
                 ),
               ),
-             ),
-             ),
-            detail: _selectedTx != null
-                ? TransactionResultScreen(
-                    type: getTransactionTypeFromStatus(_selectedTx!.status),
-                    transaction: _selectedTx!,
-                  )
-                : _buildDetailPlaceholder(),
-            showDetail: _selectedTx != null,
-          );
-        }),
+            );
+
+            return AdaptivePanel(
+              master: RefreshIndicator(
+                color: AppColors.secondary,
+                backgroundColor: theme.scaffoldBackgroundColor,
+                onRefresh: () async {
+                  HapticFeedback.mediumImpact();
+                  await controller.refreshData();
+                },
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: Responsive.contentMaxWidth(context),
+                    ),
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(child: SizedBox(height: 10.h)),
+                        SliverToBoxAdapter(child: tabSelector),
+                        SliverToBoxAdapter(child: SizedBox(height: 20.h)),
+                        if (filteredTxs.isEmpty)
+                          SliverFillRemaining(
+                            child: Center(
+                              child: EmptyStateWidget(
+                                title: l10n.noTransactions,
+                                subtitle: l10n.noTransactionsSubtitle,
+                                icon: Icons.receipt_long_outlined,
+                                color: theme.disabledColor,
+                              ),
+                            ),
+                          )
+                        else ...[
+                          SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: 20.w),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate((ctx, i) {
+                                final item = flatItems[i];
+                                if (item.isHeader) {
+                                  final sectionDate = item.date!;
+                                  final label = formatDateLabel(
+                                    sectionDate,
+                                    l10n,
+                                  );
+                                  return Padding(
+                                        padding: EdgeInsets.only(
+                                          bottom: 12.h,
+                                          top: 10.h,
+                                          left: 4.w,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              label,
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16.sp,
+                                                  ),
+                                            ),
+                                            Text(
+                                              "${sectionDate.day.toString().padLeft(2, '0')} "
+                                              "${_monthAbbr(sectionDate.month)}, "
+                                              "${sectionDate.year}",
+                                              style: theme.textTheme.bodyMedium,
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                      .animate()
+                                      .fadeIn(
+                                        duration: 400.ms,
+                                        delay: (item.sectionIdx * 50).ms,
+                                      )
+                                      .slideY(
+                                        begin: 0.1,
+                                        end: 0,
+                                        curve: Curves.easeOut,
+                                      );
+                                }
+                                final tx = item.tx!;
+                                final received = tx.recipientId == user.uid;
+                                final amountColor = received
+                                    ? colorIncome
+                                    : colorOutcome;
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 12.h),
+                                  child: Slidable(
+                                    key: ValueKey(tx.id),
+                                    startActionPane: ActionPane(
+                                      motion: const ScrollMotion(),
+                                      extentRatio: 0.25,
+                                      children: [
+                                        SlidableAction(
+                                          onPressed: (context) {
+                                            Get.to(
+                                              () => TransactionEditScreen(
+                                                transaction: tx,
+                                              ),
+                                            );
+                                          },
+                                          backgroundColor: const Color(
+                                            0xFF21B7CA,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.edit,
+                                          label: 'Edit',
+                                          borderRadius: BorderRadius.horizontal(
+                                            left: Radius.circular(20.r),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    endActionPane: ActionPane(
+                                      motion: const ScrollMotion(),
+                                      extentRatio: 0.25,
+                                      children: [
+                                        SlidableAction(
+                                          onPressed: (_) => _confirmDelete(tx),
+                                          backgroundColor: const Color(
+                                            0xFFFE4A49,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.delete,
+                                          label: 'Delete',
+                                          borderRadius: BorderRadius.horizontal(
+                                            right: Radius.circular(20.r),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    child: HoverEffect(
+                                      child: GlassContainer(
+                                        onTap: () {
+                                          final isSplit =
+                                              Responsive.isTablet(context) &&
+                                              Responsive.isLandscape(context);
+                                          if (isSplit) {
+                                            setState(() => _selectedTx = tx);
+                                          } else {
+                                            Get.to(
+                                              () => TransactionResultScreen(
+                                                type:
+                                                    getTransactionTypeFromStatus(
+                                                      tx.status,
+                                                    ),
+                                                transaction: tx,
+                                              ),
+                                              curve: curve,
+                                              transition: transition,
+                                              duration: duration,
+                                            );
+                                          }
+                                        },
+                                        padding: EdgeInsets.all(16.w),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(10.w),
+                                              decoration: BoxDecoration(
+                                                color: amountColor.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                received
+                                                    ? Icons
+                                                          .arrow_downward_rounded
+                                                    : Icons
+                                                          .arrow_upward_rounded,
+                                                color: amountColor,
+                                                size: 20.sp,
+                                              ),
+                                            ),
+                                            SizedBox(width: 16.w),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    tx.recipientName.isEmpty
+                                                        ? l10n.unknownRecipient
+                                                        : tx.recipientName,
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodyLarge
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 16.sp,
+                                                        ),
+                                                  ),
+                                                  SizedBox(height: 4.h),
+                                                  Text(
+                                                    tx.category ??
+                                                        l10n.uncategorized,
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.copyWith(
+                                                          fontSize: 13.sp,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                color: amountColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 17.sp,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }, childCount: flatItems.length),
+                            ),
+                          ),
+                          SliverToBoxAdapter(child: SizedBox(height: 20.h)),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              detail: _selectedTx != null
+                  ? TransactionResultScreen(
+                      type: getTransactionTypeFromStatus(_selectedTx!.status),
+                      transaction: _selectedTx!,
+                    )
+                  : _buildDetailPlaceholder(),
+              showDetail: _selectedTx != null,
+            );
+          },
+        ),
       ),
     );
   }
@@ -458,10 +557,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           SizedBox(height: 16.h),
           Text(
             "Select a transaction to view details",
-            style: TextStyle(
-              color: theme.disabledColor,
-              fontSize: 16.sp,
-            ),
+            style: TextStyle(color: theme.disabledColor, fontSize: 16.sp),
           ),
         ],
       ),
@@ -474,18 +570,30 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        title: Text(l10n.delete,
-          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface,
+        title: Text(
+          l10n.delete,
+          style: TextStyle(
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+          ),
+        ),
         content: Text(
           "Are you sure you want to delete this transaction?",
-          style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text("Cancel",
-              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
+            child: Text(
+              "Cancel",
+              style: TextStyle(
+                color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),

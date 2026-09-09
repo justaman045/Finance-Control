@@ -6,44 +6,57 @@ import 'package:get/get.dart';
 import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/offline_banner.dart';
+import 'package:money_control/Config/tab_destinations.dart';
 import 'package:money_control/Screens/analysis.dart';
 import 'package:money_control/Screens/analytics.dart';
 import 'package:money_control/Screens/edit_profile.dart';
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Screens/settings.dart';
 import 'package:money_control/Screens/wealth_builder.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class MainShell extends StatefulWidget {
-  final int initialIndex;
-  const MainShell({super.key, this.initialIndex = 0});
+  final String initialName;
+  const MainShell({super.key, this.initialName = 'home'});
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
-  static const int _wealthIndex = 3;
+  /// Ordered list of tab names that have been opened this session, oldest
+  /// first. Kept pages are stored in [_pages] so hidden tabs keep state.
+  final List<String> _kept = [];
+  late String _current = widget.initialName;
+  final Map<String, Widget> _pages = {};
 
-  late int _index = widget.initialIndex;
-  late int _visited = widget.initialIndex + 1;
-  final List<Widget?> _pages = List.filled(5, null);
+  @override
+  void initState() {
+    super.initState();
+    _kept.add(widget.initialName);
+  }
 
-  Future<void> _select(int i) async {
-    if (i == _index) return;
+  Future<void> _select(String name) async {
+    if (name == _current) return;
+    final dest = allTabs.firstWhere((t) => t.name == name);
+    final key = dest.featureKey;
+    if (key != null && !ensureFeatureVisible(context, key)) {
+      return;
+    }
     // The Wealth Builder computes financial targets from the user's age, so
-    // users without an age must set one first (was enforced in gotoScreen
-    // before the switch was collapsed into this shell).
-    if (i == _wealthIndex) {
+    // users without an age must set one first.
+    if (name == 'wealth') {
       final hasAge = await _checkAgeGate();
       if (!mounted) return;
       if (!hasAge) return;
     }
     setState(() {
-      _index = i;
-      if (i + 1 > _visited) _visited = i + 1;
+      _current = name;
+      if (!_kept.contains(name)) _kept.add(name);
     });
   }
 
@@ -133,12 +146,12 @@ class _MainShellState extends State<MainShell> {
                   Container(
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.person_rounded,
-                      color: const Color(0xFF00E5FF),
+                      color: AppColors.primary,
                       size: 32.sp,
                     ),
                   ),
@@ -190,7 +203,7 @@ class _MainShellState extends State<MainShell> {
                             Get.to(() => const EditProfileScreen());
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00E5FF),
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.black,
                             padding: EdgeInsets.symmetric(vertical: 12.h),
                             shape: RoundedRectangleBorder(
@@ -222,22 +235,22 @@ class _MainShellState extends State<MainShell> {
     return false;
   }
 
-  Widget _buildPage(int i) {
-    switch (i) {
-      case 0:
+  Widget _buildPage(String name) {
+    switch (name) {
+      case 'home':
         return const BankingHomeScreen(showNavigation: false);
-      case 1:
+      case 'analytics':
         return const AnalyticsScreen(showNavigation: false);
-      case 2:
+      case 'insights':
         return const AIInsightsScreen(showNavigation: false);
-      case 3:
+      case 'wealth':
         return const WealthBuilderScreen(showNavigation: false);
       default:
         return const SettingsScreen(showNavigation: false);
     }
   }
 
-  Widget _page(int i) => _pages[i] ??= _buildPage(i);
+  Widget _page(String name) => _pages[name] ??= _buildPage(name);
 
   @override
   Widget build(BuildContext context) {
@@ -251,31 +264,17 @@ class _MainShellState extends State<MainShell> {
         Expanded(
           child: Stack(
             fit: StackFit.expand,
-            children: List.generate(_visited, (i) {
-              final active = i == _index;
+            children: [
               // Hidden pages are wrapped in Offstage (not just translated off-
               // screen) so they keep their state but stop rasterizing every
               // frame. Previously the heavy AI Insights/Analytics pages stayed
               // composited indefinitely after a visit, which melted the
               // emulator's software renderer (qemu segfault ~6 min in).
-              return IgnorePointer(
-                ignoring: !active,
-                child: ExcludeSemantics(
-                  excluding: !active,
-                  child: Offstage(
-                    offstage: !active,
-                    child: AnimatedSlide(
-                      offset: Offset(active ? 0 : (i < _index ? -1 : 1), 0),
-                      duration: PerformanceController.to.liteMode.value
-                          ? Duration.zero
-                          : const Duration(milliseconds: 320),
-                      curve: Curves.easeOutCubic,
-                      child: _page(i),
-                    ),
-                  ),
-                ),
-              );
-            }),
+              // The active page mirrors the row order of [_kept] for the slide
+              // direction so navigation still animates left/right.
+              for (int i = 0; i < _kept.length; i++)
+                _buildKeptPage(i),
+            ],
           ),
         ),
       ],
@@ -284,10 +283,14 @@ class _MainShellState extends State<MainShell> {
     if (isWide) {
       return Row(
         children: [
-          AdaptiveNavigationRail(
-            currentIndex: _index,
-            isDark: isDark,
-            onNavChanged: _select,
+          // Rebuild the rail when an admin toggles a tab feature so hidden
+          // tabs disappear (and restored tabs come back) without a restart.
+          GetBuilder<FeatureFlagService>(
+            builder: (_) => AdaptiveNavigationRail(
+              currentTab: _current,
+              isDark: isDark,
+              onNavChanged: _select,
+            ),
           ),
           Expanded(child: stack),
         ],
@@ -298,7 +301,36 @@ class _MainShellState extends State<MainShell> {
       backgroundColor: Colors.transparent,
       extendBody: true,
       body: stack,
-      bottomNavigationBar: BottomNavBar(currentIndex: _index, onTap: _select),
+      bottomNavigationBar: GetBuilder<FeatureFlagService>(
+        builder: (_) => BottomNavBar(
+          currentTab: _current,
+          destinations: visibleTabs(),
+          onTab: _select,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeptPage(int i) {
+    final name = _kept[i];
+    final active = name == _current;
+    final activeIndex = _kept.indexOf(_current);
+    return IgnorePointer(
+      ignoring: !active,
+      child: ExcludeSemantics(
+        excluding: !active,
+        child: Offstage(
+          offstage: !active,
+          child: AnimatedSlide(
+            offset: Offset(active ? 0 : (i < activeIndex ? -1 : 1), 0),
+            duration: PerformanceController.to.liteMode.value
+                ? Duration.zero
+                : const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+            child: _page(name),
+          ),
+        ),
+      ),
     );
   }
 }

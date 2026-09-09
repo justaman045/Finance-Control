@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -12,7 +13,7 @@ void main() {
 
     // 4. Verify Home Screen
     expect(find.textContaining('Welcome'), findsWidgets);
-    expect(find.text('Total Balance'), findsOneWidget);
+    expect(find.text(AppStrings.totalBalance), findsOneWidget);
 
     // 5. Navigate to Edit Profile (tap the profile picture Hero in the AppBar)
     final profilePic = find.byWidgetPredicate(

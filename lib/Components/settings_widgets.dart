@@ -84,12 +84,12 @@ class SettingsTile extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
-                      color: (iconColor ?? const Color(0xFF00E5FF)).withValues(alpha: 0.1),
+                      color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       icon,
-                      color: iconColor ?? const Color(0xFF00E5FF),
+                      color: iconColor ?? AppColors.primary,
                       size: 20.sp,
                     ),
                   ),

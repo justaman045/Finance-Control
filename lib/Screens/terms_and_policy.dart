@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class LegalTrustPage extends StatefulWidget {
   const LegalTrustPage({super.key});
@@ -186,18 +187,18 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
 
     final gradientColors = isDark
         ? [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
+            AppColors.darkBackground, // Midnight Void
+            AppColors.darkSurface.withValues(alpha: 0.95),
           ]
         : [
-            const Color(0xFFF5F7FA), // Premium Light
-            const Color(0xFFC3CFE2),
+            AppColors.lightBackground, // Premium Light
+            AppColors.lightBorder,
           ];
 
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     final secondaryTextColor = isDark
         ? Colors.white.withValues(alpha: 0.6)
-        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
+        : AppColors.darkBackground.withValues(alpha: 0.6);
 
     final cardColor = isDark
         ? Colors.white.withValues(alpha: 0.05)
@@ -347,7 +348,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
             style: TextStyle(
               fontSize: 17.sp,
               fontWeight: FontWeight.w700,
-              color: isDark ? const Color(0xFF6C63FF) : Colors.deepPurple,
+              color: isDark ? AppColors.primary : Colors.deepPurple,
             ),
           ),
           SizedBox(height: 12.h),
@@ -416,7 +417,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     Color secondaryColor,
   ) {
     return SwitchListTile(
-      activeThumbColor: const Color(0xFF6C63FF),
+      activeThumbColor: AppColors.primary,
       contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       title: Text(
         title,
@@ -451,15 +452,15 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
             borderRadius: BorderRadius.circular(26.r),
             gradient: LinearGradient(
               colors: isDark
-                  ? [const Color(0xFF6C63FF), const Color(0xFF4834D4)]
+                  ? [AppColors.primary, AppColors.primaryPress]
                   : [
-                      const Color(0xFF6C63FF).withValues(alpha: 0.8),
-                      const Color(0xFF4834D4).withValues(alpha: 0.8),
+                      AppColors.primary.withValues(alpha: 0.8),
+                      AppColors.primaryPress.withValues(alpha: 0.8),
                     ],
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                color: AppColors.primary.withValues(alpha: 0.4),
                 blurRadius: 10.w,
                 offset: Offset(0, 4.w),
               ),

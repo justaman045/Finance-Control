@@ -154,9 +154,13 @@ class LoanModel {
     };
   }
 
-  LoanModel copyWith({bool? isActive, String? linkedRecurringPaymentId}) {
+  LoanModel copyWith({
+    String? id,
+    bool? isActive,
+    String? linkedRecurringPaymentId,
+  }) {
     return LoanModel(
-      id: id,
+      id: id ?? this.id,
       name: name,
       loanType: loanType,
       principalAmount: principalAmount,

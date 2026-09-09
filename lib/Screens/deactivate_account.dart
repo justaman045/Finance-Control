@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Screens/loginscreen.dart';
 import 'package:money_control/Services/user_service.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/colors.dart';
 
 class DeactivateAccountScreen extends StatefulWidget {
   const DeactivateAccountScreen({super.key});
@@ -60,15 +61,15 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
     // ... (keep gradient colors setup)
     final gradientColors = isDark
         ? [
-            const Color(0xFF1A1A2E),
-            const Color(0xFF16213E).withValues(alpha: 0.95),
+            AppColors.darkBackground,
+            AppColors.darkSurface.withValues(alpha: 0.95),
           ]
-        : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
+        : [AppColors.lightBackground, AppColors.lightBorder];
 
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     final secondaryTextColor = isDark
         ? Colors.white.withValues(alpha: 0.6)
-        : const Color(0xFF1A1A2E).withValues(alpha: 0.6);
+        : AppColors.darkBackground.withValues(alpha: 0.6);
     final cardColor = isDark
         ? Colors.white.withValues(alpha: 0.05)
         : Colors.white.withValues(alpha: 0.6);
@@ -206,7 +207,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                                   context: context,
                                   builder: (ctx) => AlertDialog(
                                     backgroundColor: isDark
-                                        ? const Color(0xFF1E1E2C)
+                                        ? AppColors.darkSurface
                                         : Colors.white,
                                     title: Text(
                                       "Final Confirmation",

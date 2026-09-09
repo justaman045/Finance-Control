@@ -62,7 +62,7 @@ class NotificationHistoryScreen extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
                         child: CircularProgressIndicator(
-                          color: Color(0xFF00E5FF),
+                          color: AppColors.primary,
                         ),
                       );
                     }
@@ -211,11 +211,11 @@ class _NotificationTile extends StatelessWidget {
     switch (normalizedType) {
       case 'budget_alert':
         icon = Icons.warning_amber_rounded;
-        color = const Color(0xFFFF2975);
+        color = AppColors.error;
         break;
       case 'reminder':
         icon = Icons.alarm_on_rounded;
-        color = const Color(0xFF00E5FF);
+        color = AppColors.primary;
         break;
       case 'sms_import':
         icon = Icons.smart_toy_outlined;
@@ -224,19 +224,19 @@ class _NotificationTile extends StatelessWidget {
       case 'insight':
       case 'weekly_digest':
         icon = Icons.insights_rounded;
-        color = const Color(0xFF00C853);
+        color = AppColors.success;
         break;
       case 'update':
         icon = Icons.system_update_alt_rounded;
-        color = const Color(0xFF00E5FF);
+        color = AppColors.primary;
         break;
       case 'recurring_pending':
         icon = Icons.event_repeat_rounded;
-        color = const Color(0xFFFF9100);
+        color = AppColors.warning;
         break;
       default:
         icon = Icons.info_outline_rounded;
-        color = const Color(0xFF6C63FF);
+        color = AppColors.primary;
     }
 
     return Container(

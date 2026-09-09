@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Screens/homescreen.dart';
 import 'test_helpers.dart';
 
@@ -12,7 +13,7 @@ void main() {
     await launchAndSignIn(tester);
 
     // Open the send screen from the balance card.
-    await tester.tap(find.text('Send').last);
+    await tester.tap(find.text(AppStrings.send).last);
     await pumpAndSettleSafe(tester);
 
     // Ensure a category chip exists (adds it through the UI dialog when
@@ -36,7 +37,7 @@ void main() {
     // Dismiss keyboard and submit.
     FocusManager.instance.primaryFocus?.unfocus();
     await pumpAndSettleSafe(tester);
-    final sendButton = find.text('SEND').last;
+    final sendButton = find.text(AppStrings.sendCta).last;
     await tester.ensureVisible(sendButton);
     await pumpAndSettleSafe(tester);
     await tester.tap(sendButton);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -29,12 +30,12 @@ void main() {
 
     // ── 3. Budgets: Settings → General → Set Budget shows the lock ─────────
     await tapNavTab(tester, Icons.tune_rounded, 'Settings');
-    await tapUntilMarker(tester, find.text('General'), find.text('Set Budget'));
-    await tapUntilMarker(tester, find.text('Set Budget'), find.text('Budgeting'));
-    expect(find.text('Budgeting'), findsWidgets);
-    expect(find.text('Upgrade to Pro'), findsWidgets);
+    await tapUntilMarker(tester, find.text('General'), find.text(AppStrings.setBudget));
+    await tapUntilMarker(tester, find.text(AppStrings.setBudget), find.text(AppStrings.budgeting));
+    expect(find.text(AppStrings.budgeting), findsWidgets);
+    expect(find.text(AppStrings.upgradeToPro), findsWidgets);
     await popScreen(tester); // back to General
-    await waitFor(tester, find.text('Manage Categories'));
+    await waitFor(tester, find.text(AppStrings.manageCategories));
 
     // Pop back to the Settings root so the bottom nav bar is reachable again
     // (tapNavTab needs it to switch tabs — the General subpage has none).
@@ -65,7 +66,7 @@ void main() {
     }
 
     // ── 5. Back home ────────────────────────────────────────────────────────
-    await tapNavTab(tester, Icons.grid_view_rounded, 'Total Balance');
-    expect(find.text('Total Balance'), findsWidgets);
+    await tapNavTab(tester, Icons.grid_view_rounded, AppStrings.totalBalance);
+    expect(find.text(AppStrings.totalBalance), findsWidgets);
   });
 }

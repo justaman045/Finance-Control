@@ -324,7 +324,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
       borderRadius: BorderRadius.circular(24.r),
       child: Row(
         children: [
-          Icon(Icons.calendar_today_outlined, color: const Color(0xFF6C63FF), size: 24.sp),
+          Icon(Icons.calendar_today_outlined, color: AppColors.primary, size: 24.sp),
           SizedBox(width: 16.w),
           Expanded(
             child: InkWell(
@@ -350,7 +350,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
         () => ElevatedButton(
           onPressed: _controller.isSaving.value ? null : _submit,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C63FF),
+            backgroundColor: AppColors.primary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16.r),
             ),
