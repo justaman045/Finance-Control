@@ -12,6 +12,12 @@ on:
   pull_request:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      run_integration_tests:
+        description: 'Run E2E integration tests on the Android emulator (live Firebase test accounts)'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -64,16 +70,20 @@ jobs:
 
   # End-to-end tests against the live Firebase backend on an Android emulator.
   # These mutate the shared test account (create transactions, recurring
-  # payments, etc.), so they run on master pushes / manual dispatch only —
-  # never on pull requests. They GATE the build: build and build_web depend on
-  # this job, so nothing ships unless BOTH the unit/widget suite and the E2E
-  # suite pass. Each test file runs under a 15-minute timeout so a single hung
-  # file can't stall the whole suite. A downloadable report (pass/fail, errors,
-  # screenshots) is generated and uploaded whether the suite passes or fails.
+  # payments, etc.), so they NEVER run automatically: the job is skipped unless
+  # a manual workflow_dispatch is fired with the `run_integration_tests` input
+  # set to true. When opted in they GATE the build: build/build_web wait on this
+  # job with a status guard, so an E2E failure still blocks the release, while a
+  # skipped run lets them proceed on analyze + unit tests alone. To re-enable a
+  # hard master-push gate later, drop the job's `if` condition (or add a master
+  # push trigger back) — the tooling and secrets are fully intact. Each test
+  # file runs under a 15-minute timeout so a single hung file can't stall the
+  # suite. A downloadable report (pass/fail, errors, screenshots) is generated
+  # and uploaded whether the suite passes or fails.
   integration_test:
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
     timeout-minutes: 360
 
     steps:
@@ -142,9 +152,11 @@ jobs:
     # Release-producing build only on master pushes (or manual dispatch). PRs
     # must not bump versions, create releases, or deploy Pages — and their
     # detached-HEAD checkout makes the CI commit step fail outright.
-    # Gated on BOTH the unit/widget suite and the E2E suite: if either fails,
-    # nothing is released or deployed.
-    if: github.event_name != 'pull_request'
+    # Gated on the unit/widget suite and — only when an opt-in E2E run actually
+    # happens — on the E2E suite: the integration job is skipped by default, so
+    # this explicit status guard lets a skipped run ship while a failed one
+    # still blocks the release.
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.test.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
 
     steps:
       # ------------------------------------------------------------
@@ -308,8 +320,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, integration_test]
     # Pages deployment is master-push/manual only — never from pull requests.
-    # Gated on BOTH the unit/widget suite and the E2E suite.
-    if: github.event_name != 'pull_request'
+    # Gated on the unit/widget suite and — only when an opt-in E2E run actually
+    # happens — on the E2E suite (same status guard as the `build` job).
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.test.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
 
     steps:
       - name: Checkout repository
