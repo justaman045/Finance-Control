@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Services/update_checker.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class UpdatePage extends StatefulWidget {
@@ -20,6 +21,8 @@ class _UpdatePageState extends State<UpdatePage> {
   bool loading = true;
   bool analyzing = false;
   bool error = false;
+  bool _isDownloading = false;
+  double _downloadProgress = 0.0;
 
   @override
   void initState() {
@@ -101,6 +104,43 @@ class _UpdatePageState extends State<UpdatePage> {
     }
   }
 
+  Future<void> _downloadAndInstall() async {
+    if (_isDownloading) return;
+    final tag = releaseData?["tag_name"] ?? "";
+    if (tag.isEmpty || tag == "Unknown") return;
+
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+    });
+
+    try {
+      final installed = await UpdateChecker.downloadAndInstallApk(
+        version: tag.replaceFirst('v', ''),
+        onProgress: (p) {
+          if (mounted) setState(() => _downloadProgress = p);
+        },
+      );
+
+      if (!mounted) return;
+      setState(() => _isDownloading = false);
+
+      if (!installed && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Install cancelled")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isDownloading = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Download failed. Please try again.")),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -147,25 +187,6 @@ class _UpdatePageState extends State<UpdatePage> {
     final body = releaseData?["body"] ?? "";
     final publishedRaw = releaseData?["published_at"] ?? "";
     final publishedDate = DateTime.tryParse(publishedRaw);
-
-    // Construct the APK URL directly from the tag — CI always uploads app-release.apk.
-    // Fall back to scanning assets only when the direct URL can't be built.
-    final assets = releaseData?["assets"] as List<dynamic>? ?? [];
-    final String downloadUrl = () {
-      if (tag != "Unknown") {
-        return "https://github.com/justaman045/WealthSync/releases/download/$tag/app-release.apk";
-      }
-      // Secondary: scan assets, explicitly skipping .aab files
-      final apkAsset = assets.firstWhere(
-        (a) {
-          final name = (a["name"] as String? ?? '').toLowerCase();
-          return name.endsWith('.apk') && !name.endsWith('.aab');
-        },
-        orElse: () => <String, dynamic>{},
-      );
-      return apkAsset?["browser_download_url"] as String? ??
-          "https://github.com/justaman045/WealthSync/releases";
-    }();
 
     final fullReleaseUrl =
         releaseData?["html_url"] ??
@@ -342,36 +363,61 @@ class _UpdatePageState extends State<UpdatePage> {
           // ------------------------------------------------------------
           // ACTIONS
           // ------------------------------------------------------------
-          SizedBox(
-            width: double.infinity,
-            height: 54.h,
-            child: ElevatedButton(
-              onPressed: () => launchUrl(
-                Uri.parse(downloadUrl),
-                mode: LaunchMode.externalApplication,
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.black,
-                shadowColor: AppColors.primary.withValues(alpha: 0.4),
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.download_rounded),
-                  SizedBox(width: 8.w),
-                  Text(
-                    "Download Update",
-                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-                  ),
-                ],
+          if (_isDownloading) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: LinearProgressIndicator(
+                value: _downloadProgress > 0 ? _downloadProgress : null,
+                minHeight: 6.h,
+                backgroundColor: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : AppColors.lightBorder,
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
               ),
             ),
-          ),
+            SizedBox(height: 12.h),
+            Center(
+              child: Text(
+                _downloadProgress > 0
+                    ? "Downloading... ${(_downloadProgress * 100).toInt()}%"
+                    : "Preparing download...",
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: isDark
+                      ? Colors.white70
+                      : AppColors.lightTextSecondary,
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              height: 54.h,
+              child: ElevatedButton(
+                onPressed: _downloadAndInstall,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.black,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.4),
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.download_rounded),
+                    SizedBox(width: 8.w),
+                    Text(
+                      "Download & Install",
+                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           SizedBox(height: 16.h),
           Center(
             child: TextButton(

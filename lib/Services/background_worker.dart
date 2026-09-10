@@ -18,6 +18,7 @@ import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/widget_service.dart';
+import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Platform/permission_platform.dart';
 
 /// Background worker to check inactivity and show reminder notifications
@@ -48,11 +49,13 @@ class BackgroundWorker {
   static Future<int> triggerSmsImport({int days = 7}) async {
     if (kIsWeb) return 0;
     final prefs = await SharedPreferences.getInstance();
+    // Defense-in-depth: respect the kill-switch even for manual triggers.
+    final flags = await _fetchFeatureFlags(prefs);
+    if (_flagHidden(flags, 'sms_auto_import')) return 0;
     final scanFrom = DateTime.now().subtract(Duration(days: days));
     return _processSmsMessages(prefs, scanFrom: scanFrom);
   }
 
-  /// Show notification helper
   /// Show notification helper
   static Future<void> showNotification(
     String title,
@@ -61,10 +64,24 @@ class BackgroundWorker {
     String channelName, {
     String? userEmail,
   }) async {
+    // Kill switch + user prefs: a `hidden` notifications flag (admin) or a
+    // disabled master/per-channel toggle (user) suppresses the notification
+    // entirely — no display and no Firestore history entry. This choke point
+    // covers all six background channels at once.
+    final prefs = await SharedPreferences.getInstance();
+    final flags = await _fetchFeatureFlags(prefs);
+    if (_flagHidden(flags, 'notifications')) return;
+    if (!(prefs.getBool(notificationsMasterEnabledKey) ?? true)) return;
+    if (!(prefs.getBool(notificationChannelEnabledKey(channelId)) ?? true)) {
+      return;
+    }
+
     final plugin = FlutterLocalNotificationsPlugin();
-    await plugin.initialize(const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-    ));
+    await plugin.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      ),
+    );
 
     final AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
@@ -159,12 +176,12 @@ void callbackDispatcher() {
 
       final prefs = await SharedPreferences.getInstance();
 
-      // Global kill switches (one small app_config read per tick; failure
-      // defaults to everything enabled so a network blip never disables
-      // automation). Only `hidden` halts background work here — `comingSoon`
-      // is a UI-level state and this isolate can't cheaply tell admins from
+      // Global kill switches: one small app_config read per tick, cached in
+      // SharedPreferences so a network blip reuses the last known state.
+      // `hidden` halts all background work for that feature — `comingSoon` is
+      // a UI-level state and this isolate can't cheaply tell admins from
       // customers.
-      final flags = await _fetchFeatureFlags();
+      final flags = await _fetchFeatureFlags(prefs);
 
       // --- LOGIC 1: SMS AUTO-IMPORT ---
       // Runs before the inactivity reminder so a run that just imported
@@ -181,10 +198,10 @@ void callbackDispatcher() {
       await _checkDailyInsights(prefs);
 
       // --- LOGIC 4: UPDATE CHECK ---
-      await _checkUpdate(prefs);
+      await _checkUpdate(prefs, flags);
 
       // --- LOGIC 5: RECURRING PAYMENTS ---
-      await _checkRecurringPayments(prefs);
+      await _checkRecurringPayments(prefs, flags);
 
       // --- LOGIC 6: WEEKLY DIGEST ---
       await _checkWeeklyDigest(prefs);
@@ -287,7 +304,11 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
   }
 }
 
-Future<void> _checkUpdate(SharedPreferences prefs) async {
+Future<void> _checkUpdate(
+  SharedPreferences prefs,
+  Map<String, String> flags,
+) async {
+  if (_flagHidden(flags, 'update_checker')) return;
   // Check once per day to avoid spam
   final now = DateTime.now();
   final todayStr = DateFormat('yyyy-MM-dd').format(now);
@@ -338,8 +359,12 @@ bool _isNewer(String remote, String local) {
   int parseSeg(String s) => int.tryParse(s.split(RegExp(r'[+\-]')).first) ?? 0;
   List<int> r = remote.split('.').map(parseSeg).toList();
   List<int> l = local.split('.').map(parseSeg).toList();
-  while (r.length < 3) { r.add(0); }
-  while (l.length < 3) { l.add(0); }
+  while (r.length < 3) {
+    r.add(0);
+  }
+  while (l.length < 3) {
+    l.add(0);
+  }
 
   for (int i = 0; i < 3; i++) {
     if (r[i] > l[i]) return true;
@@ -348,7 +373,11 @@ bool _isNewer(String remote, String local) {
   return false;
 }
 
-Future<void> _checkRecurringPayments(SharedPreferences prefs) async {
+Future<void> _checkRecurringPayments(
+  SharedPreferences prefs,
+  Map<String, String> flags,
+) async {
+  if (_flagHidden(flags, 'recurring')) return;
   final now = DateTime.now();
   final todayStr = DateFormat('yyyy-MM-dd').format(now);
 
@@ -412,6 +441,11 @@ Future<int> _processSmsMessages(
 }) async {
   final userEmail = prefs.getString('user_email');
   if (userEmail == null) return 0;
+
+  // Defense-in-depth: verify the feature isn't hidden, even if the caller
+  // already checked. Prevents auto-import if a new caller forgets to gate.
+  final flags = await _fetchFeatureFlags(prefs);
+  if (_flagHidden(flags, 'sms_auto_import')) return 0;
 
   final smsStatus = await Permission.sms.status;
   if (!smsStatus.isGranted) return 0;
@@ -492,8 +526,8 @@ Future<int> _processSmsMessages(
         'recipientName': parsed.isDebit
             ? parsed.merchant
             : (parsed.merchant != 'Unknown' && parsed.merchant.isNotEmpty
-                ? parsed.merchant
-                : (parsed.sender.isNotEmpty ? parsed.sender : 'Bank Credit')),
+                  ? parsed.merchant
+                  : (parsed.sender.isNotEmpty ? parsed.sender : 'Bank Credit')),
         'recipientId': parsed.isDebit ? 'External' : uid,
         'senderId': parsed.isDebit ? uid : 'External',
         'date': Timestamp.fromDate(parsed.date),
@@ -514,7 +548,10 @@ Future<int> _processSmsMessages(
       await _updateWidgetBalance(userEmail);
       // Remember that transactions were recorded — this suppresses the
       // "haven't added expenses" inactivity reminder for the next 6 hours.
-      await prefs.setInt(lastTransactionAddedKey, DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt(
+        lastTransactionAddedKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
     }
 
     if (imported > 0) {
@@ -542,6 +579,12 @@ Future<int> _processSmsMessages(
 /// launched the app since the `balance` field was introduced.
 Future<void> _updateWidgetBalance(String email) async {
   try {
+    final prefs = await SharedPreferences.getInstance();
+    // Kill-switch: a `hidden` home_widget flag halts balance pushes here too
+    // (the isolate has no GetX, so it uses the cached flag map like every
+    // other background task).
+    final flags = await _fetchFeatureFlags(prefs);
+    if (_flagHidden(flags, 'home_widget')) return;
     final db = FirebaseFirestore.instance;
     double total;
     final portfolioSnap = await db
@@ -564,7 +607,6 @@ Future<void> _updateWidgetBalance(String email) async {
         total += (doc.data()['amount'] as num?)?.toDouble() ?? 0;
       }
     }
-    final prefs = await SharedPreferences.getInstance();
     final symbol = prefs.getString('currency_symbol') ?? '\u20B9';
     await WidgetService.updateBalance(total, symbol);
   } catch (e) {
@@ -589,20 +631,30 @@ Future<void> _checkWeeklyDigest(SharedPreferences prefs) async {
   try {
     final db = FirebaseFirestore.instance;
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weekStartDay = DateTime(weekStart.year, weekStart.month, weekStart.day);
+    final weekStartDay = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day,
+    );
     final lastWeekStart = weekStartDay.subtract(const Duration(days: 7));
 
     final snap = await db
         .collection('users')
         .doc(userEmail)
         .collection('transactions')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(lastWeekStart))
+        .where(
+          'date',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(lastWeekStart),
+        )
         .get();
 
     double thisWeekSpend = 0;
     double lastWeekSpend = 0;
 
-    final uid = prefs.getString('user_uid') ?? FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid =
+        prefs.getString('user_uid') ??
+        FirebaseAuth.instance.currentUser?.uid ??
+        '';
 
     for (final doc in snap.docs) {
       final data = doc.data();
@@ -624,7 +676,8 @@ Future<void> _checkWeeklyDigest(SharedPreferences prefs) async {
     if (lastWeekSpend > 0) {
       final pct = ((thisWeekSpend - lastWeekSpend) / lastWeekSpend * 100).abs();
       final dir = thisWeekSpend <= lastWeekSpend ? 'less' : 'more';
-      body = 'You spent $symbol${thisWeekSpend.toStringAsFixed(0)} this week — '
+      body =
+          'You spent $symbol${thisWeekSpend.toStringAsFixed(0)} this week — '
           '${pct.toStringAsFixed(0)}% $dir than last week.';
     } else {
       body = 'You spent $symbol${thisWeekSpend.toStringAsFixed(0)} this week.';
@@ -660,9 +713,16 @@ int _isoWeekNumber(DateTime date) {
   return woy;
 }
 
+/// SharedPreferences key for the cached feature-flag map. Persisted after
+/// every successful Firestore read so a network blip never re-enables a
+/// feature the admin explicitly hid.
+const String _cachedFlagsKey = 'bg_cached_feature_flags';
+
 /// Reads the `app_config/feature_flags` kill switches for the background
-/// isolate. Returns an empty map (everything enabled) on any failure.
-Future<Map<String, String>> _fetchFeatureFlags() async {
+/// isolate. On success the result is cached in SharedPreferences; on failure
+/// the cache is returned instead of an empty map so hidden features stay dead
+/// across network outages.
+Future<Map<String, String>> _fetchFeatureFlags(SharedPreferences prefs) async {
   try {
     final snap = await FirebaseFirestore.instance
         .collection('app_config')
@@ -670,21 +730,44 @@ Future<Map<String, String>> _fetchFeatureFlags() async {
         .get()
         .timeout(const Duration(seconds: 5));
     final data = snap.exists ? snap.data() : null;
-    if (data == null) return const {};
+    if (data == null) {
+      await _cacheFlags(prefs, const {});
+      return const {};
+    }
     final out = <String, String>{};
     data.forEach((key, value) {
       final status = value?.toString() ?? '';
-      if (status == 'enabled' ||
-          status == 'comingSoon' ||
-          status == 'hidden') {
+      if (status == 'enabled' || status == 'comingSoon' || status == 'hidden') {
         out[key] = status;
       }
     });
+    await _cacheFlags(prefs, out);
     return out;
   } catch (e) {
-    developer.log("Feature flag fetch failed (defaults enabled): $e");
-    return const {};
+    developer.log("Feature flag fetch failed (using cache): $e");
+    return _loadCachedFlags(prefs);
   }
+}
+
+Future<void> _cacheFlags(
+  SharedPreferences prefs,
+  Map<String, String> flags,
+) async {
+  try {
+    await prefs.setString(_cachedFlagsKey, jsonEncode(flags));
+  } catch (_) {}
+}
+
+Map<String, String> _loadCachedFlags(SharedPreferences prefs) {
+  final raw = prefs.getString(_cachedFlagsKey);
+  if (raw == null) return const {};
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, dynamic>) {
+      return decoded.map((k, v) => MapEntry(k, v.toString()));
+    }
+  } catch (_) {}
+  return const {};
 }
 
 bool _flagHidden(Map<String, String> flags, String key) =>

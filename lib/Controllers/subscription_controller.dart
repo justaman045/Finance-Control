@@ -87,7 +87,9 @@ class SubscriptionController extends GetxController {
   Timer? _webPollTimer;
 
   void checkSubscriptionStatus() {
-    try { _statusSub?.cancel(); } catch (_) {}
+    try {
+      _statusSub?.cancel();
+    } catch (_) {}
     _statusSub = null;
     _webPollTimer?.cancel();
     _webPollTimer = null;
@@ -100,13 +102,18 @@ class SubscriptionController extends GetxController {
           _fetchSubscriptionOnce(email);
         });
       } else {
-        _statusSub = _firestore.collection('users').doc(email).snapshots().listen((
-          snapshot,
-        ) {
-          _onSubscriptionSnapshot(snapshot, email);
-        }, onError: (e) {
-          debugPrint('SubscriptionController stream error: $e');
-        });
+        _statusSub = _firestore
+            .collection('users')
+            .doc(email)
+            .snapshots()
+            .listen(
+              (snapshot) {
+                _onSubscriptionSnapshot(snapshot, email);
+              },
+              onError: (e) {
+                debugPrint('SubscriptionController stream error: $e');
+              },
+            );
       }
     } else {
       subscriptionStatus.value = SubscriptionStatus.free;
@@ -128,7 +135,9 @@ class SubscriptionController extends GetxController {
           if (adminFlag) {
             newStatus = SubscriptionStatus.pro;
           } else if (data.containsKey('subscriptionStatus')) {
-            newStatus = _parseStatus((data['subscriptionStatus'] as String?) ?? '');
+            newStatus = _parseStatus(
+              (data['subscriptionStatus'] as String?) ?? '',
+            );
           }
           // NOTE: a bare `isPro: true` is deliberately NOT honored here. The
           // field is cosmetic/legacy (written alongside subscriptionStatus by
@@ -181,7 +190,9 @@ class SubscriptionController extends GetxController {
     // so a brand-new account stays Free until the user taps "Start Free Trial".
     trialUsed.value = data.containsKey('trialEndDate');
     final end = (data['trialEndDate'] as Timestamp?)?.toDate();
-    trialEndDate.value = (end != null && DateTime.now().isBefore(end)) ? end : null;
+    trialEndDate.value = (end != null && DateTime.now().isBefore(end))
+        ? end
+        : null;
   }
 
   /// Starts the opt-in free trial (7 days). Only callable from the trial CTA on
@@ -192,9 +203,13 @@ class SubscriptionController extends GetxController {
     if (email == null || isPro) return;
     try {
       final trialEnd = DateTime.now().add(const Duration(days: 7));
-      await _firestore.collection('users').doc(email).set({
-        'trialEndDate': Timestamp.fromDate(trialEnd),
-      }, SetOptions(merge: true)).timeout(const Duration(seconds: 30));
+      await _firestore
+          .collection('users')
+          .doc(email)
+          .set({
+            'trialEndDate': Timestamp.fromDate(trialEnd),
+          }, SetOptions(merge: true))
+          .timeout(const Duration(seconds: 30));
       trialEndDate.value = trialEnd;
       trialUsed.value = true;
     } catch (e) {
@@ -203,7 +218,10 @@ class SubscriptionController extends GetxController {
     }
   }
 
-  Future<void> _persistStatus(SubscriptionStatus newStatus, String email) async {
+  Future<void> _persistStatus(
+    SubscriptionStatus newStatus,
+    String email,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final prefKey = 'last_sub_status_$email';
     final lastStatusStr = prefs.getString(prefKey);
@@ -229,6 +247,7 @@ class SubscriptionController extends GetxController {
     NotificationService.showNotification(
       title: "Subscription Expired",
       body: "Your Pro plan has expired. Renew now to restore access.",
+      payload: 'subscription',
     );
   }
 
@@ -241,6 +260,7 @@ class SubscriptionController extends GetxController {
       NotificationService.showNotification(
         title: "Upgrade Approved! 🎉",
         body: "Congratulations! You are now a Pro member.",
+        payload: 'subscription',
       );
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
@@ -257,6 +277,7 @@ class SubscriptionController extends GetxController {
       NotificationService.showNotification(
         title: "Request Rejected",
         body: "Your upgrade request was rejected. Contact support for help.",
+        payload: 'subscription',
       );
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
@@ -270,6 +291,7 @@ class SubscriptionController extends GetxController {
       NotificationService.showNotification(
         title: "You are now Pro! 💎",
         body: "Your subscription status has been updated to Pro.",
+        payload: 'subscription',
       );
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
@@ -284,12 +306,11 @@ class SubscriptionController extends GetxController {
       NotificationService.showNotification(
         title: "Subscription Ended ⚠️",
         body: "Your Pro subscription has ended. You are now on the Free plan.",
+        payload: 'subscription',
       );
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
-          content: Text(
-            "Subscription Ended ⚠️\nYou are now on the Free plan.",
-          ),
+          content: Text("Subscription Ended ⚠️\nYou are now on the Free plan."),
           backgroundColor: Colors.orangeAccent,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 5),
@@ -323,7 +344,9 @@ class SubscriptionController extends GetxController {
       if (doc.exists) {
         final lastReq = doc.data()?['lastUpgradeRequest'] as Timestamp?;
         if (lastReq != null) {
-          final secondsSince = DateTime.now().difference(lastReq.toDate()).inSeconds;
+          final secondsSince = DateTime.now()
+              .difference(lastReq.toDate())
+              .inSeconds;
           if (secondsSince < 60) {
             ErrorHandler.showInfo(
               'Please wait a moment before trying again.',
@@ -413,7 +436,9 @@ class SubscriptionController extends GetxController {
       }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('cancelSubscription error: $e');
-      ErrorHandler.showError("Failed to cancel subscription. Please try again.");
+      ErrorHandler.showError(
+        "Failed to cancel subscription. Please try again.",
+      );
     }
   }
 
@@ -444,7 +469,9 @@ class SubscriptionController extends GetxController {
       }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('activateGooglePlaySubscription error: $e');
-      ErrorHandler.showError("Failed to activate subscription. Please contact support.");
+      ErrorHandler.showError(
+        "Failed to activate subscription. Please contact support.",
+      );
     }
   }
 

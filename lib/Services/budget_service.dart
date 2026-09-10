@@ -46,7 +46,10 @@ class BudgetService {
           .collection('users')
           .doc(userId)
           .collection('transactions')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where(
+            'date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
+          )
           .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .where('category', isEqualTo: category)
           .get();
@@ -70,6 +73,7 @@ class BudgetService {
           body: body,
           channelId: 'budget_alerts',
           channelName: 'Budget Alerts',
+          payload: 'budget',
         );
         await prefs.setInt(dedupeKey, now);
       } else if (totalSpent >= (budgetLimit * 0.9)) {
@@ -82,6 +86,7 @@ class BudgetService {
           body: body,
           channelId: 'budget_alerts',
           channelName: 'Budget Alerts',
+          payload: 'budget',
         );
         await prefs.setInt(dedupeKey, now);
       }
@@ -89,5 +94,4 @@ class BudgetService {
       log("Error checking budget: $e");
     }
   }
-
 }

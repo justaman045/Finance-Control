@@ -7,6 +7,7 @@ class UserModel {
   final String? email;
   final String? phone;
   final String? address;
+  final String? gender;
   final String? role;
   final String? profileImage;
   final double? currentBalance;
@@ -22,6 +23,7 @@ class UserModel {
     this.email,
     this.phone,
     this.address,
+    this.gender,
     this.role,
     this.profileImage,
     this.currentBalance,
@@ -40,6 +42,7 @@ class UserModel {
       email: map['email'],
       phone: map['phone'],
       address: map['address'],
+      gender: map['gender'],
       role: map['role'],
       profileImage: map['photoURL'] ?? map['photoUrl'] ?? map['profileImage'],
       currentBalance: map['currentBalance'] is num
@@ -64,6 +67,7 @@ class UserModel {
     if (email != null) map['email'] = email;
     if (phone != null) map['phone'] = phone;
     if (address != null) map['address'] = address;
+    if (gender != null) map['gender'] = gender;
     if (role != null) map['role'] = role;
     if (profileImage != null) map['photoURL'] = profileImage;
     if (currentBalance != null) map['currentBalance'] = currentBalance;

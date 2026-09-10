@@ -130,313 +130,360 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         ),
       ),
       appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: Padding(
-            padding: EdgeInsets.only(left: 16.w, top: 2.h, bottom: 2.h),
-            child: GestureDetector(
-              onTap: () {
-                if (!ensureFeatureUsable(context, 'profile')) return;
-                gotoPage(const EditProfileScreen());
-              },
-              child: Obx(() {
-                  final url = _profileController.photoURL.value;
-                  return Hero(
-                    tag: 'profile_pic',
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: scheme.onSurface.withValues(alpha: 0.1),
-                          width: 1.5,
-                        ),
-                        image: DecorationImage(
-                          image: url.isNotEmpty
-                              ? CachedNetworkImageProvider(url)
-                              : const AssetImage('assets/profile.png')
-                                    as ImageProvider,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: Container(
-                        width: 34.w,
-                        height: 34.w,
-                        decoration: const BoxDecoration(shape: BoxShape.circle),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          title: GestureDetector(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Padding(
+          padding: EdgeInsets.only(left: 16.w, top: 2.h, bottom: 2.h),
+          child: GestureDetector(
             onTap: () {
               if (!ensureFeatureUsable(context, 'profile')) return;
               gotoPage(const EditProfileScreen());
             },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.welcomeBack,
-                  style: theme.textTheme.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+            child: Obx(() {
+              final url = _profileController.photoURL.value;
+              return Hero(
+                tag: 'profile_pic',
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: scheme.onSurface.withValues(alpha: 0.1),
+                      width: 1.5,
+                    ),
+                    image: DecorationImage(
+                      image: url.isNotEmpty
+                          ? CachedNetworkImageProvider(url)
+                          : const AssetImage('assets/profile.png')
+                                as ImageProvider,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Container(
+                    width: 34.w,
+                    height: 34.w,
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
+                  ),
                 ),
-                  Obx(() {
-                    final userModel = _profileController.userProfile.value;
-                    if (userModel == null) {
-                      return shimmerText(theme);
-                    }
-                    final displayName = FirebaseAuth.instance.currentUser?.displayName;
-                    return Text(
-                    (userModel.firstName != null && userModel.firstName!.isNotEmpty)
-                        ? userModel.firstName!
-                        : (displayName != null && displayName.isNotEmpty
-                              ? displayName
-                              : 'User'),
+              );
+            }),
+          ),
+        ),
+        title: GestureDetector(
+          onTap: () {
+            if (!ensureFeatureUsable(context, 'profile')) return;
+            gotoPage(const EditProfileScreen());
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.welcomeBack,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 13.sp,
+                  letterSpacing: 0.3,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 2.h),
+              Obx(() {
+                final userModel = _profileController.userProfile.value;
+                if (userModel == null) {
+                  return shimmerText(theme);
+                }
+                final displayName =
+                    FirebaseAuth.instance.currentUser?.displayName;
+                final name =
+                    (userModel.firstName != null &&
+                        userModel.firstName!.isNotEmpty)
+                    ? userModel.firstName!
+                    : (displayName != null && displayName.isNotEmpty
+                          ? displayName
+                          : 'User');
+                return ShaderMask(
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: isDark
+                        ? const [AppColors.secondary, AppColors.accent]
+                        : const [AppColors.primary, AppColors.secondary],
+                  ).createShader(bounds),
+                  blendMode: BlendMode.srcIn,
+                  child: Text(
+                    name,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
+                      fontSize: 18.sp,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                  );
-                }),
-              ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          // 💎 PRO STATUS — hidden for admins (they are always Pro)
+          Obx(() {
+            if (!Get.isRegistered<SubscriptionController>())
+              return const SizedBox.shrink();
+            final ctrl = Get.find<SubscriptionController>();
+            if (ctrl.isAdmin.value) return const SizedBox.shrink();
+            return _buildActionButton(
+              icon: ctrl.isPro
+                  ? Icons.verified_user_rounded
+                  : Icons.diamond_outlined,
+              onTap: () => gotoPage(const SubscriptionScreen()),
+              theme: theme,
+              color: ctrl.isPro ? Colors.cyanAccent : null,
+            );
+          }),
+          SizedBox(width: 4.w),
+
+          // 🔍 NEW SEARCH BUTTON
+          FeatureVisible(
+            flagKey: 'transaction_search',
+            child: _buildActionButton(
+              icon: Icons.search,
+              onTap: () {
+                if (!ensureFeatureVisible(context, 'transaction_search')) {
+                  return;
+                }
+                gotoPage(const TransactionSearchPage());
+              },
+              theme: theme,
+              heroTag: 'search_bar',
             ),
           ),
-          actions: [
-            // 💎 PRO STATUS — hidden for admins (they are always Pro)
-            Obx(() {
-              if (!Get.isRegistered<SubscriptionController>()) return const SizedBox.shrink();
-              final ctrl = Get.find<SubscriptionController>();
-              if (ctrl.isAdmin.value) return const SizedBox.shrink();
-              return _buildActionButton(
-                icon: ctrl.isPro
-                    ? Icons.verified_user_rounded
-                    : Icons.diamond_outlined,
-                onTap: () => gotoPage(const SubscriptionScreen()),
-                theme: theme,
-                color: ctrl.isPro ? Colors.cyanAccent : null,
-              );
-            }),
-            SizedBox(width: 4.w),
+          SizedBox(width: 4.w),
 
-            // 🔍 NEW SEARCH BUTTON
-            FeatureVisible(
-              flagKey: 'transaction_search',
-              child: _buildActionButton(
-                icon: Icons.search,
-                onTap: () {
-                  if (!ensureFeatureVisible(context, 'transaction_search')) {
-                    return;
-                  }
-                  gotoPage(const TransactionSearchPage());
-                },
-                theme: theme,
-                heroTag: 'search_bar',
-              ),
+          // 📅 SUBSCRIPTIONS BUTTON
+          FeatureVisible(
+            flagKey: 'recurring',
+            child: _buildActionButton(
+              icon: Icons.event_repeat,
+              onTap: () {
+                if (!Get.isRegistered<SubscriptionController>() ||
+                    !Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                if (!ensureFeatureVisible(context, 'recurring')) return;
+                gotoPage(const RecurringPaymentsScreen());
+              },
+              theme: theme,
             ),
-            SizedBox(width: 4.w),
+          ),
+          SizedBox(width: 4.w),
 
-            // 📅 SUBSCRIPTIONS BUTTON
-            FeatureVisible(
-              flagKey: 'recurring',
-              child: _buildActionButton(
-                icon: Icons.event_repeat,
-                onTap: () {
-                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                    gotoPage(const SubscriptionScreen());
-                    return;
-                  }
-                  if (!ensureFeatureVisible(context, 'recurring')) return;
-                  gotoPage(const RecurringPaymentsScreen());
-                },
-                theme: theme,
-              ),
+          // 🤝 LENT MONEY TRACKER BUTTON
+          FeatureVisible(
+            flagKey: 'lent_money',
+            child: _buildActionButton(
+              icon: Icons.handshake_outlined,
+              onTap: () {
+                if (!Get.isRegistered<SubscriptionController>() ||
+                    !Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                if (!ensureFeatureVisible(context, 'lent_money')) return;
+                gotoPage(const LentMoneyScreen());
+              },
+              theme: theme,
+              color: Colors.greenAccent,
             ),
-            SizedBox(width: 4.w),
+          ),
+          SizedBox(width: 4.w),
 
-            // 🤝 LENT MONEY TRACKER BUTTON
-            FeatureVisible(
-              flagKey: 'lent_money',
-              child: _buildActionButton(
-                icon: Icons.handshake_outlined,
-                onTap: () {
-                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                    gotoPage(const SubscriptionScreen());
-                    return;
-                  }
-                  if (!ensureFeatureVisible(context, 'lent_money')) return;
-                  gotoPage(const LentMoneyScreen());
-                },
-                theme: theme,
-                color: Colors.greenAccent,
-              ),
+          // 📈 FORECAST BUTTON
+          FeatureVisible(
+            flagKey: 'forecast',
+            child: _buildActionButton(
+              icon: Icons.trending_up,
+              onTap: () {
+                if (!Get.isRegistered<SubscriptionController>() ||
+                    !Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                if (!ensureFeatureVisible(context, 'forecast')) return;
+                gotoPage(const ForecastScreen());
+              },
+              theme: theme,
             ),
-            SizedBox(width: 4.w),
+          ),
+          SizedBox(width: 4.w),
 
-            // 📈 FORECAST BUTTON
-            FeatureVisible(
-              flagKey: 'forecast',
-              child: _buildActionButton(
-                icon: Icons.trending_up,
-                onTap: () {
-                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                    gotoPage(const SubscriptionScreen());
-                    return;
-                  }
-                  if (!ensureFeatureVisible(context, 'forecast')) return;
-                  gotoPage(const ForecastScreen());
-                },
-                theme: theme,
-              ),
+          // 🎯 GOALS BUTTON
+          FeatureVisible(
+            flagKey: 'goals',
+            child: _buildActionButton(
+              icon: Icons.flag_outlined,
+              onTap: () {
+                if (!Get.isRegistered<SubscriptionController>() ||
+                    !Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                if (!ensureFeatureVisible(context, 'goals')) return;
+                gotoPage(const GoalsScreen());
+              },
+              theme: theme,
+              color: Colors.amberAccent,
             ),
-            SizedBox(width: 4.w),
+          ),
+          SizedBox(width: 4.w),
+          // 🏆 CHALLENGES BUTTON
+          FeatureVisible(
+            flagKey: 'challenges',
+            child: _buildActionButton(
+              icon: Icons.emoji_events_outlined,
+              onTap: () {
+                if (!ensureFeatureVisible(context, 'challenges')) return;
+                gotoPage(const SavingsChallengesScreen());
+              },
+              theme: theme,
+              color: Colors.greenAccent,
+            ),
+          ),
+          SizedBox(width: 6.w),
+        ],
 
-            // 🎯 GOALS BUTTON
-            FeatureVisible(
-              flagKey: 'goals',
-              child: _buildActionButton(
-                icon: Icons.flag_outlined,
-                onTap: () {
-                  if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
-                    gotoPage(const SubscriptionScreen());
-                    return;
-                  }
-                  if (!ensureFeatureVisible(context, 'goals')) return;
-                  gotoPage(const GoalsScreen());
-                },
-                theme: theme,
-                color: Colors.amberAccent,
-              ),
-            ),
-            SizedBox(width: 4.w),
-            // 🏆 CHALLENGES BUTTON
-            FeatureVisible(
-              flagKey: 'challenges',
-              child: _buildActionButton(
-                icon: Icons.emoji_events_outlined,
-                onTap: () {
-                  if (!ensureFeatureVisible(context, 'challenges')) return;
-                  gotoPage(const SavingsChallengesScreen());
-                },
-                theme: theme,
-                color: Colors.greenAccent,
-              ),
-            ),
-            SizedBox(width: 6.w),
-          ],
-
-          toolbarHeight: 64.h,
-        ),
-        body: NotificationListener<UserScrollNotification>(
-          onNotification: (notification) {
-            if (notification.direction == rendering.ScrollDirection.reverse) {
-              if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
-            } else if (notification.direction ==
-                rendering.ScrollDirection.forward) {
-              if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
-            }
-            return true;
-          },
-          child: SafeArea(
-            bottom: false,
-            child: RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
-                    child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BalanceCard()
-                        .animate()
-                        .fadeIn(duration: 600.ms)
-                        .slideY(begin: -0.1, end: 0, curve: Curves.easeOutBack),
-                    SizedBox(height: 12.h), // Added some spacing after card
-                    FeatureVisible(
-                      flagKey: 'category',
-                      child: SectionTitle(
-                          title: AppLocalizations.of(context)!.quickSend,
-                          color: scheme.onSurface,
-                          accentColor: AppColors.primary,
-                          onTap: () =>
-                              gotoPage(const CategoriesHistoryScreen()),
-                        )
-                        .animate()
-                        .fadeIn(delay: 200.ms, duration: 500.ms)
-                        .slideX(begin: -0.1, end: 0, curve: Curves.easeOut),
-                    ),
-                    SizedBox(height: 12.h),
-                    FeatureVisible(
-                      flagKey: 'upi_pay',
-                      child: QuickSendRow(
-                          cardColor: isDark
-                              ? AppColors.darkSurface.withValues(alpha: 0.5)
-                              : AppColors.lightSurface.withValues(alpha: 0.6),
-                          textColor: scheme.onSurface,
-                        )
-                        .animate()
-                        .fadeIn(delay: 300.ms, duration: 500.ms)
-                        .slideX(begin: 0.1, end: 0, curve: Curves.easeOut),
-                    ),
-                    SizedBox(height: 18.h),
-                    SectionTitle(
-                          title: AppLocalizations.of(
-                            context,
-                          )!.recentTransactions,
-                          color: scheme.onSurface,
-                          accentColor: AppColors.primary,
-                          onTap: () => gotoPage(TransactionHistoryScreen()),
-                        )
-                        .animate()
-                        .fadeIn(delay: 400.ms, duration: 500.ms)
-                        .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
-                    SizedBox(height: 12.h),
-                    RecentPaymentList(
-                          key: _keyTransactionList,
-                          cardColor: isDark
-                              ? AppColors.darkSurface.withValues(alpha: 0.5)
-                              : AppColors.lightSurface.withValues(alpha: 0.6),
-                          textColor: scheme.onSurface,
-                          receivedColor: AppColors.success,
-                          sentColor: AppColors.error,
-                        )
-                        .animate()
-                        .fadeIn(delay: 500.ms, duration: 600.ms)
-                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
-                  ],
+        toolbarHeight: 64.h,
+      ),
+      body: NotificationListener<UserScrollNotification>(
+        onNotification: (notification) {
+          if (notification.direction == rendering.ScrollDirection.reverse) {
+            if (_isBottomBarVisible.value) _isBottomBarVisible.value = false;
+          } else if (notification.direction ==
+              rendering.ScrollDirection.forward) {
+            if (!_isBottomBarVisible.value) _isBottomBarVisible.value = true;
+          }
+          return true;
+        },
+        child: SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: Responsive.contentMaxWidth(context),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      BalanceCard()
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .slideY(
+                            begin: -0.1,
+                            end: 0,
+                            curve: Curves.easeOutBack,
+                          ),
+                      SizedBox(height: 12.h), // Added some spacing after card
+                      FeatureVisible(
+                        flagKey: 'category',
+                        child:
+                            SectionTitle(
+                                  title: AppLocalizations.of(
+                                    context,
+                                  )!.quickSend,
+                                  color: scheme.onSurface,
+                                  accentColor: AppColors.primary,
+                                  onTap: () =>
+                                      gotoPage(const CategoriesHistoryScreen()),
+                                )
+                                .animate()
+                                .fadeIn(delay: 200.ms, duration: 500.ms)
+                                .slideX(
+                                  begin: -0.1,
+                                  end: 0,
+                                  curve: Curves.easeOut,
+                                ),
+                      ),
+                      SizedBox(height: 12.h),
+                      FeatureVisible(
+                        flagKey: 'upi_pay',
+                        child:
+                            QuickSendRow(
+                                  cardColor: isDark
+                                      ? AppColors.darkSurface.withValues(
+                                          alpha: 0.5,
+                                        )
+                                      : AppColors.lightSurface.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                  textColor: scheme.onSurface,
+                                )
+                                .animate()
+                                .fadeIn(delay: 300.ms, duration: 500.ms)
+                                .slideX(
+                                  begin: 0.1,
+                                  end: 0,
+                                  curve: Curves.easeOut,
+                                ),
+                      ),
+                      SizedBox(height: 18.h),
+                      SectionTitle(
+                            title: AppLocalizations.of(
+                              context,
+                            )!.recentTransactions,
+                            color: scheme.onSurface,
+                            accentColor: AppColors.primary,
+                            onTap: () => gotoPage(TransactionHistoryScreen()),
+                          )
+                          .animate()
+                          .fadeIn(delay: 400.ms, duration: 500.ms)
+                          .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
+                      SizedBox(height: 12.h),
+                      RecentPaymentList(
+                            key: _keyTransactionList,
+                            cardColor: isDark
+                                ? AppColors.darkSurface.withValues(alpha: 0.5)
+                                : AppColors.lightSurface.withValues(alpha: 0.6),
+                            textColor: scheme.onSurface,
+                            receivedColor: AppColors.success,
+                            sentColor: AppColors.error,
+                          )
+                          .animate()
+                          .fadeIn(delay: 500.ms, duration: 600.ms)
+                          .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
-    ),
-        floatingActionButton: FeatureVisible(
-          flagKey: 'qr_scan',
-          child: FloatingActionButton(
-            backgroundColor: AppColors.primary,
-            tooltip: 'Scan QR to Pay',
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              if (!Get.isRegistered<SubscriptionController>() ||
-                  !Get.find<SubscriptionController>().isPro) {
-                gotoPage(const SubscriptionScreen());
-                return;
-              }
-              if (!ensureFeatureVisible(context, 'qr_scan')) return;
-              _openQrPay();
-            },
-            child: const Icon(Icons.qr_code_scanner, color: Colors.white),
-          ),
+      floatingActionButton: FeatureVisible(
+        flagKey: 'qr_scan',
+        child: FloatingActionButton(
+          backgroundColor: AppColors.primary,
+          tooltip: 'Scan QR to Pay',
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            if (!Get.isRegistered<SubscriptionController>() ||
+                !Get.find<SubscriptionController>().isPro) {
+              gotoPage(const SubscriptionScreen());
+              return;
+            }
+            if (!ensureFeatureVisible(context, 'qr_scan')) return;
+            _openQrPay();
+          },
+          child: const Icon(Icons.qr_code_scanner, color: Colors.white),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        extendBody: true,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      extendBody: true,
     );
   }
 
@@ -488,8 +535,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.of(ctx, rootNavigator: true).pop(false),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
             child: const Text("Cancel"),
           ),
           FilledButton(

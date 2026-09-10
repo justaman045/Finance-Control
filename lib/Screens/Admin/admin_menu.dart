@@ -11,6 +11,7 @@ import 'package:money_control/Screens/Admin/payment_settings_screen.dart';
 import 'package:money_control/Screens/Admin/feature_flags_screen.dart';
 import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Services/error_handler.dart';
 
@@ -182,14 +183,17 @@ class _AdminMenuState extends State<AdminMenu> {
                 onTap: () => Get.to(() => const FeatureFlagsScreen()),
               ),
               SizedBox(height: 16.h),
-              _buildMenuCard(
-                context,
-                title: "SMS Auto-Import",
-                subtitle: "Import transactions from last 7 days",
-                icon: Icons.sms_rounded,
-                color: Colors.greenAccent,
-                loading: _isImporting,
-                onTap: _isImporting ? null : _triggerSmsImport,
+              FeatureVisible(
+                flagKey: 'sms_auto_import',
+                child: _buildMenuCard(
+                  context,
+                  title: "SMS Auto-Import",
+                  subtitle: "Import transactions from last 7 days",
+                  icon: Icons.sms_rounded,
+                  color: Colors.greenAccent,
+                  loading: _isImporting,
+                  onTap: _isImporting ? null : _triggerSmsImport,
+                ),
               ),
             ],
               ),

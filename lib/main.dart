@@ -18,6 +18,8 @@ import 'package:money_control/Utils/web_reload_stub.dart'
 
 import 'package:money_control/firebase_options.dart';
 import 'package:money_control/Screens/main_shell.dart';
+import 'package:money_control/Screens/budget.dart';
+import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Screens/onboarding_screen.dart';
 import 'package:money_control/Components/colors.dart';
@@ -253,8 +255,19 @@ Future<void> mainCommon({bool isTest = false}) async {
   // Init Notifications with callback
   await NotificationService.init(
     onDidReceiveNotificationResponse: (response) {
-      if (response.payload == "home") {
-        Get.to(() => const MainShell());
+      switch (response.payload) {
+        case 'budget':
+          // Route budget alerts to the budget screen (respect the kill-switch;
+          // a hidden budget flag must not open the UI).
+          if (FeatureFlagService.to.isHidden('budget')) {
+            Get.to(() => const MainShell());
+          } else {
+            Get.to(() => const CategoryBudgetScreen());
+          }
+        case 'subscription':
+          Get.to(() => const SubscriptionScreen());
+        default:
+          Get.to(() => const MainShell());
       }
     },
   );
@@ -316,6 +329,9 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
 
   void _initWidgetClickHandling() {
     if (kIsWeb) return;
+    // Kill-switch: a `hidden` home_widget flag makes widget taps dead — the
+    // feature reads as if it never existed (no cold/warm-start navigation).
+    if (FeatureFlagService.to.isHidden('home_widget')) return;
     // Cold start: app opened via widget tap
     HomeWidget.initiallyLaunchedFromHomeWidget()
         .then((uri) {

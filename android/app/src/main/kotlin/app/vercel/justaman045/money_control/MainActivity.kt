@@ -7,9 +7,11 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import java.util.UUID
 import kotlin.concurrent.thread
 
@@ -17,6 +19,10 @@ class MainActivity : FlutterFragmentActivity() {
     private val UPI_CHANNEL = "money_control/upi"
     private val UPI_REQUEST_CODE = 1001
     private val UPI_RESULT_TIMEOUT_MS = 60_000L
+
+    private val INSTALL_CHANNEL = "money_control/install"
+    private val INSTALL_PERMISSION_REQUEST = 1002
+    private val APK_INSTALL_REQUEST = 1003
 
     private var pendingResult: MethodChannel.Result? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -26,6 +32,9 @@ class MainActivity : FlutterFragmentActivity() {
     // recreated activity instead of being dropped (which would hang the Dart
     // Future until its own timeout).
     private var pendingResultStatic: MethodChannel.Result? = null
+
+    // Install-flow state: survives the permission-request round-trip to Settings.
+    private var pendingInstallResult: MethodChannel.Result? = null
 
     private val upiTimeoutRunnable = Runnable {
         val result = pendingResult ?: return@Runnable
@@ -137,10 +146,89 @@ class MainActivity : FlutterFragmentActivity() {
                     result.notImplemented()
                 }
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, INSTALL_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "installApk" -> {
+                        val filePath = call.arguments as? String
+                        if (filePath == null) {
+                            result.error("NO_PATH", "File path is required", null)
+                            return@setMethodCallHandler
+                        }
+                        installApk(filePath, result)
+                    }
+                    "checkInstallPermission" -> {
+                        result.success(packageManager.canRequestPackageInstalls())
+                    }
+                    "requestInstallPermission" -> {
+                        pendingInstallResult = result
+                        val intent = Intent(
+                            android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES
+                        ).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                        startActivityForResult(intent, INSTALL_PERMISSION_REQUEST)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun installApk(filePath: String, result: MethodChannel.Result) {
+        val file = File(filePath)
+        if (!file.exists()) {
+            result.error("FILE_NOT_FOUND", "APK file not found: $filePath", null)
+            return
+        }
+        if (!packageManager.canRequestPackageInstalls()) {
+            result.error(
+                "PERMISSION_REQUIRED",
+                "Install from unknown sources permission not granted",
+                null
+            )
+            return
+        }
+        val uri = FileProvider.getUriForFile(
+            this,
+            "${packageName}.fileProvider.com.crazecoder.openfile",
+            file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        pendingInstallResult = result
+        try {
+            startActivityForResult(intent, APK_INSTALL_REQUEST)
+        } catch (e: ActivityNotFoundException) {
+            pendingInstallResult = null
+            result.error("NO_INSTALLER", "No app found to install APKs", null)
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+
+        when (requestCode) {
+            INSTALL_PERMISSION_REQUEST -> {
+                val result = pendingInstallResult ?: return
+                pendingInstallResult = null
+                result.success(packageManager.canRequestPackageInstalls())
+                return
+            }
+            APK_INSTALL_REQUEST -> {
+                val result = pendingInstallResult ?: return
+                pendingInstallResult = null
+                when (resultCode) {
+                    Activity.RESULT_OK -> result.success("installed")
+                    Activity.RESULT_CANCELED -> result.success("cancelled")
+                    else -> result.success("cancelled")
+                }
+                return
+            }
+        }
+
         if (requestCode != UPI_REQUEST_CODE) return
         mainHandler.removeCallbacks(upiTimeoutRunnable)
         val result = pendingResult ?: return
@@ -171,6 +259,8 @@ class MainActivity : FlutterFragmentActivity() {
                 // Flutter engine may already be torn down.
             }
             pendingResult = null
+            pendingInstallResult?.error("CANCELLED", "Install cancelled (activity destroyed)", null)
+            pendingInstallResult = null
         } else {
             // Config-change recreation (rotation, resize): keep the payment
             // alive and hand the result to the recreated activity.

@@ -21,7 +21,7 @@
         android:id="@+id/widget_balance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="₹—"
+        android:text="—"
         android:textColor="#FFFFFF"
         android:textSize="24sp"
         android:textStyle="bold"
@@ -47,7 +47,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="+ Add"
-            android:textColor="#FF6C63FF"
+            android:textColor="#FF4F46E5"
             android:textSize="10sp"
             android:textStyle="bold" />
 

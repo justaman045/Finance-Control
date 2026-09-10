@@ -55,7 +55,7 @@ showGeneralDialog(context: Get.overlayContext!, ...);
 ```bash
 flutter pub get
 flutter analyze --no-fatal-infos   # CI gate (warnings→errors, infos OK)
-flutter test                        # 90 unit/widget tests ONLY (test/) — never integration tests
+flutter test                        # unit/widget tests ONLY (test/) — never integration tests
 flutter test test/<file>_test.dart  # single file
 flutter run
 flutter build apk --release
@@ -110,7 +110,7 @@ CI (`.github/workflows/flutter_build.yml`, Flutter 3.44.8): analyze → unit/wid
 | `lib/Platform/` | Platform abstraction stubs for 9 services (biometric, geocoding, IAP, notification, SMS, etc.) |
 | `lib/l10n/` | ARB localization files (`app_en.arb` template) |
 | `lib/data/` | Challenge preset seed data |
-| `test/` | 9 unit/widget test files (inactivity_reminder, lent_money_model, recurring_payment_model, sms_category, upi_apps, upi_qr, wealth_data, wealth_math, widget) |
+| `test/` | 14 unit/widget test files (bottom_nav_layout, feature_flags, feature_flags_widget, feature_gate, inactivity_reminder, lent_money_model, recurring_payment_model, sms_category, toggle_gate, upi_apps, upi_qr, wealth_data, wealth_math, widget) |
 | `integration_test/` | 25 integration tests — require a live Firebase backend and run against emulator-5554 with the four account dart-defines (see `test_credentials.dart`). `mainCommon(isTest: true)` only skips Crashlytics/notifications. Tests: add_transaction, ai_insights, analytics_reports, budget_categories (Pro), data_management, edit_profile, free_paywall_gates (free), full_app_e2e_tabs (login→home→tab-tour smoke; subsumes the old app_test), goals_challenges (Pro), lent_money_split_bill (Pro), loan_tracker, login, login_valid, misc_settings, pro_features (Pro), receive_transaction_e2e, search_transaction, settings (free), subscription_flow (Pro), subscription_screen (Pro), transaction_management, wealth_assets, wealth_sweep_1/2/3. Helpers in `test_helpers.dart`: `launchAndSignIn` (with `account: TestAccount.free|pro`), `tapNavTab` (auto-reveals the auto-hiding bottom bar), `handleSplashAndOnboarding`, `loginIfNeeded`, `createTransaction`, `waitForHome`, `waitForGone`, `ensureAccountState`, `sweepAssetEntry`. |
 
 ## Integration Test Gotchas

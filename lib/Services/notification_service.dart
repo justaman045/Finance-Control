@@ -1,7 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:money_control/Platform/notification_platform.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Master on/off for ALL app notifications (in-app + background). Lives in
+/// SharedPreferences so both the foreground [NotificationService] and the
+/// WorkManager isolate can read it.
+const String notificationsMasterEnabledKey = 'notifications_all_enabled';
+
+/// Per-channel toggle prefix — the full preference key is
+/// `notif_enabled_<channelId>` so each notification channel can be muted
+/// independently while `hidden` on the global `notifications` flag is the
+/// admin-level kill switch.
+const String notificationChannelEnabledKeyPrefix = 'notif_enabled_';
+String notificationChannelEnabledKey(String channelId) =>
+    '$notificationChannelEnabledKeyPrefix$channelId';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -28,7 +44,22 @@ class NotificationService {
     required String body,
     String channelId = 'general_notifications',
     String channelName = 'General Notifications',
+    String? payload,
   }) async {
+    // Kill-switch: a `hidden` notifications flag (admin) suppresses ALL
+    // notification posting — no display and no Firestore history entry.
+    if (Get.isRegistered<FeatureFlagService>() &&
+        FeatureFlagService.to.isHidden('notifications')) {
+      return;
+    }
+    // User prefs: master toggle + per-channel toggle (Settings → General →
+    // Notifications). Missing keys default to on so old installs keep working.
+    final prefs = await SharedPreferences.getInstance();
+    if (!(prefs.getBool(notificationsMasterEnabledKey) ?? true)) return;
+    if (!(prefs.getBool(notificationChannelEnabledKey(channelId)) ?? true)) {
+      return;
+    }
+
     // 1. Show Local Notification
     AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -50,6 +81,7 @@ class NotificationService {
       title,
       body,
       platformChannelSpecifics,
+      payload: payload,
     );
 
     // 2. Persist to Firestore
